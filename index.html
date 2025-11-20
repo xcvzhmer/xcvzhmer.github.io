@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор Турниров Round Robin</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Генератор Турниров Round Robin</h1>
+
+        <div class="input-section">
+            <div class="teams-and-urls">
+
+                <div class="input-group">
+                    <label for="teamsInput">КОМАНДЫ:</label>
+                    <textarea id="teamsInput" rows="10" placeholder="Команда 1
+Команда 2
+Команда 3
+Команда 4"></textarea>
+                </div>
+
+                <div class="input-group">
+                    <label for="urlsInput">ССЫЛКИ:</label>
+                    <textarea id="urlsInput" rows="10" placeholder="https://open.spotify.com/track/1
+https://open.spotify.com/track/2
+https://open.spotify.com/track/3
+https://open.spotify.com/track/4"></textarea>
+                </div>
+
+            </div>
+
+            <button id="generateBtn">Сгенерировать расписание</button>
+            <button id="resetBtn" class="reset-button">Сбросить все данные</button>
+        </div>
+
+        <!-- Турнирная таблица -->
+        <div class="standings-section" id="standingsOutput">
+            <h2>Турнирная Таблица</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Команда</th>
+                        <th>И</th>
+                        <th>В</th>
+                        <th>Н</th>
+                        <th>П</th>
+                        <th>ЗГ</th>
+                        <th>ПГ</th>
+                        <th>РМ</th>
+                        <th>Очки</th>
+                    </tr>
+                </thead>
+                <tbody id="standingsBody"></tbody>
+            </table>
+        </div>
+
+        <div class="schedule-control">
+            <h2>Расписание матчей</h2>
+
+            <div class="tour-navigation">
+                <button id="prevTourBtn" disabled>&lt; Предыдущий тур</button>
+                <span class="tour-info">Тур <span id="currentTourNum">1</span> из <span id="totalToursNum">0</span></span>
+                <button id="nextTourBtn" disabled>Следующий тур &gt;</button>
+
+                <div class="tour-jump">
+                    <input type="number" id="tourJumpInput" min="1" placeholder="№">
+                    <button id="jumpToTourBtn">Перейти</button>
+                </div>
+
+                <div id="tourStats" class="tour-stats"></div>
+            </div>
+
+            <button id="showFullScheduleBtn" disabled>Полное расписание</button>
+        </div>
+
+        <div id="currentTourOutput" class="schedule-section"></div>
+
+    </div>
+
+    <!-- Полное расписание (модал) -->
+    <div id="fullScheduleModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Полное расписание</h2>
+            <div id="fullScheduleContent"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+
+</body>
+</html>
