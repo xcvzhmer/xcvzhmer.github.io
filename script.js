@@ -706,8 +706,9 @@ async function generateAndSaveSchedule(numTeams) {
         const rotating = teamsForRoundRobin.slice(1);
 
         rotating.unshift(rotating.pop());
-
+        
         teamsForRoundRobin = [fixed, ...rotating];
+        }
 
     // Сохраняем настройки
     await saveSettings({ totalTeams: savedTeams.length, currentTourIndex: 0, teamsPerTour: numMatchesPerTour });
