@@ -702,18 +702,21 @@ async function generateAndSaveSchedule(numTeams) {
         }
 
         // --- Правильная ротация Round Robin ---
+const fixed = teamsForRoundRobin[0];
+const rotating = teamsForRoundRobin.slice(1);
 
-    const fixed = teamsForRoundRobin[0];
-    const rotating = teamsForRoundRobin.slice(1);
+// круговое вращение
+const last = rotating.pop();
+rotating.unshift(last);
 
-    // круговое вращение
-    const last = rotating.pop();
-    rotating.unshift(last);
+// сохраняем массив
+teamsForRoundRobin.length = 0;
+teamsForRoundRobin.push(fixed, ...rotating);
+} // ← закрывает for (round)
 
-    // записываем обратно в исходный массив, чтобы сохранить ссылку
-    teamsForRoundRobin.length = 0;
-    teamsForRoundRobin.push(fixed, ...rotating);
-}
+// ← ЭТА НОВАЯ СКОБКА — закрывает всю функцию generateAndSaveSchedule
+} 
+
 
     // Сохраняем настройки
     await saveSettings({ totalTeams: savedTeams.length, currentTourIndex: 0, teamsPerTour: numMatchesPerTour });
