@@ -701,14 +701,19 @@ async function generateAndSaveSchedule(numTeams) {
             await addMatch(match);
         }
 
-        // Правильная ротация Round Robin (Circle Method) — без реваншей
-        const fixed = teamsForRoundRobin[0];
-        const rotating = teamsForRoundRobin.slice(1);
+        // --- Правильная ротация Round Robin ---
 
-        rotating.unshift(rotating.pop());
-        
-        teamsForRoundRobin = [fixed, ...rotating];
-        }
+    const fixed = teamsForRoundRobin[0];
+    const rotating = teamsForRoundRobin.slice(1);
+
+    // круговое вращение
+    const last = rotating.pop();
+    rotating.unshift(last);
+
+    // записываем обратно в исходный массив, чтобы сохранить ссылку
+    teamsForRoundRobin.length = 0;
+    teamsForRoundRobin.push(fixed, ...rotating);
+}
 
     // Сохраняем настройки
     await saveSettings({ totalTeams: savedTeams.length, currentTourIndex: 0, teamsPerTour: numMatchesPerTour });
