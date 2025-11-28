@@ -619,95 +619,89 @@ async function generateAndSaveSchedule(numTeams) {
     tournamentData.teams = savedTeams; // Обновляем глобальную переменную
 
     const teamNamesForRR = savedTeams.map(t => t.teamName);
-    const teamsForRoundRobin = [...teamNamesForRR]; // Копируем для алгоритма
-    let numMatchesPerTour = 0;
-    let totalTours = 0;
+let teamsForRoundRobin = teamNamesForRR.slice(); // обязательно let, потому что будет мутация
+let numMatchesPerTour = 0;
+let totalTours = 0;
 
-    // Если нечетное число — добавляем BYE
-    if (teamsForRoundRobin.length % 2 !== 0) {
-        teamsForRoundRobin.push('BYE');
-    }
+// Если команд нечётное число — добавляем BYE
+if (teamsForRoundRobin.length % 2 !== 0) {
+    teamsForRoundRobin.push('BYE');
+}
 
-    const numTeamsAdjusted = teamsForRoundRobin.length;
-    totalTours = (numTeamsAdjusted - 1);
+const numTeamsAdjusted = teamsForRoundRobin.length;
+totalTours = numTeamsAdjusted - 1;
 
-    for (let round = 0; round < totalTours; round++) {
-        const currentRoundFixtures = [];
-        for (let i = 0; i < numTeamsAdjusted / 2; i++) {
-            const team1Name = teamsForRoundRobin[i];
-            const team2Name = teamsForRoundRobin[numTeamsAdjusted - 1 - i];
-            const isByeMatch = team1Name === 'BYE' || team2Name === 'BYE';
+for (let round = 0; round < totalTours; round++) {
+    const currentRoundFixtures = [];
 
-            const team1Data = savedTeams.find(t => t.teamName === team1Name);
-            const team2Data = savedTeams.find(t => t.teamName === team2Name);
+    for (let i = 0; i < numTeamsAdjusted / 2; i++) {
+        const team1Name = teamsForRoundRobin[i];
+        const team2Name = teamsForRoundRobin[numTeamsAdjusted - 1 - i];
+        const isByeMatch = team1Name === 'BYE' || team2Name === 'BYE';
 
-            // Определяем, являются ли команды inactive (❌)
-            const team1Inactive = team1Data ? !!team1Data.inactive : false;
-            const team2Inactive = team2Data ? !!team2Data.inactive : false;
+        const team1Data = savedTeams.find(t => t.teamName === team1Name);
+        const team2Data = savedTeams.find(t => t.teamName === team2Name);
 
-            // Логика: если одна из команд inactive => матч помечается как isBye и технический
-            // Противник получает техпобеду 3:0
-            const match = {
-                tourIndex: round,
-                matchIndex: i,
-                team1: team1Name,
-                team2: team2Name,
-                isBye: isByeMatch, // true если BYE placeholder присутствует
-                spotifyUrl1: team1Data ? team1Data.spotifyUrl : '',
-                spotifyUrl2: team2Data ? team2Data.spotifyUrl : '',
-                score1: null,
-                score2: null,
-                technical: false // если техническая победа — true
-            };
+        const team1Inactive = team1Data ? !!team1Data.inactive : false;
+        const team2Inactive = team2Data ? !!team2Data.inactive : false;
 
-            if (isByeMatch) {
-                // Обычный BYE (когда добавлен BYE placeholder) — оставляем как isBye, без технических очков
-                match.isBye = true;
-                match.technical = false;
-                match.score1 = null;
-                match.score2 = null;
-            } else if (team1Inactive && !team2Inactive) {
-                // team1 отключена — team2 получает техническую победу 3:0
-                match.isBye = true;
-                match.technical = true;
-                match.score1 = 0;
-                match.score2 = 3;
-            } else if (!team1Inactive && team2Inactive) {
-                // team2 отключена — team1 получает техническую победу 3:0
-                match.isBye = true;
-                match.technical = true;
-                match.score1 = 3;
-                match.score2 = 0;
-            } else if (team1Inactive && team2Inactive) {
-                // обе отключены — считаем матч BYE без результата
-                match.isBye = true;
-                match.technical = false;
-                match.score1 = null;
-                match.score2 = null;
-            } else {
-                // обычный матч —待 заполнения счетов пользователем
-                match.isBye = false;
-                match.technical = false;
-                match.score1 = null;
-                match.score2 = null;
-            }
+        const match = {
+            tourIndex: round,
+            matchIndex: i,
+            team1: team1Name,
+            team2: team2Name,
+            isBye: isByeMatch,
+            spotifyUrl1: team1Data ? team1Data.spotifyUrl : '',
+            spotifyUrl2: team2Data ? team2Data.spotifyUrl : '',
+            score1: null,
+            score2: null,
+            technical: false
+        };
 
-            currentRoundFixtures.push(match);
-        }
-        numMatchesPerTour = currentRoundFixtures.length;
-
-        // Сохраняем матчи тура в IndexedDB
-        for (const match of currentRoundFixtures) {
-            await addMatch(match);
+        if (isByeMatch) {
+            match.isBye = true;
+            match.technical = false;
+            match.score1 = null;
+            match.score2 = null;
+        } else if (team1Inactive && !team2Inactive) {
+            match.isBye = true;
+            match.technical = true;
+            match.score1 = 0;
+            match.score2 = 3;
+        } else if (!team1Inactive && team2Inactive) {
+            match.isBye = true;
+            match.technical = true;
+            match.score1 = 3;
+            match.score2 = 0;
+        } else if (team1Inactive && team2Inactive) {
+            match.isBye = true;
+            match.technical = false;
+            match.score1 = null;
+            match.score2 = null;
+        } else {
+            match.isBye = false;
+            match.technical = false;
+            match.score1 = null;
+            match.score2 = null;
         }
 
-        // Ротация команд для следующего раунда
-        const firstTeam = teamsForRoundRobin[0];
-        const lastTeam = teamsForRoundRobin[numTeamsAdjusted - 1];
-        const rotatingTeams = teamsForRoundRobin.slice(1, numTeamsAdjusted / 2);
-        const staticTeams = teamsForRoundRobin.slice(numTeamsAdjusted / 2, numTeamsAdjusted - 1);
-        teamsForRoundRobin.splice(0, numTeamsAdjusted, firstTeam, lastTeam, ...staticTeams, ...rotatingTeams);
+        currentRoundFixtures.push(match);
     }
+
+    numMatchesPerTour = currentRoundFixtures.length;
+
+    // Сохраняем матчи в базу
+    for (const match of currentRoundFixtures) {
+        await addMatch(match);
+    }
+
+    // --- НОВАЯ ПРАВИЛЬНАЯ РОТАЦИЯ ROUND ROBIN ---
+    // Фиксируем нулевой элемент, крутим остальные по кругу:
+    // Последний элемент переносится на позицию 1.
+    const last = teamsForRoundRobin.pop();   // снять последний
+    teamsForRoundRobin.splice(1, 0, last);   // вставить на позицию 1
+
+} // ← конец цикла round
 
     // Сохраняем настройки
     await saveSettings({ totalTeams: savedTeams.length, currentTourIndex: 0, teamsPerTour: numMatchesPerTour });
