@@ -701,17 +701,13 @@ async function generateAndSaveSchedule(numTeams) {
             await addMatch(match);
         }
 
-        // --- Правильная ротация Round Robin (circle method) ---
-const first = teamsForRoundRobin[0];
-
-const rest = teamsForRoundRobin.slice(1);
-
-// вращение по часовой стрелке
-rest.unshift(rest.pop());
-
-// собираем обратно
-teamsForRoundRobin.splice(1, rest.length, ...rest);
-}
+        // Ротация команд для следующего раунда
+        const firstTeam = teamsForRoundRobin[0];
+        const lastTeam = teamsForRoundRobin[numTeamsAdjusted - 1];
+        const rotatingTeams = teamsForRoundRobin.slice(1, numTeamsAdjusted / 2);
+        const staticTeams = teamsForRoundRobin.slice(numTeamsAdjusted / 2, numTeamsAdjusted - 1);
+        teamsForRoundRobin.splice(0, numTeamsAdjusted, firstTeam, lastTeam, ...staticTeams, ...rotatingTeams);
+    }
 
 
     // Сохраняем настройки
