@@ -1232,7 +1232,7 @@ function enableButtons() {
     const hasTeams = tournamentData.teams.length > 0;
     const hasSchedule = tournamentData.schedule.length > 0 && tournamentData.schedule[tournamentData.currentTourIndex] && tournamentData.schedule[tournamentData.currentTourIndex].length > 0;
 
-    generateBtn.disabled = hasTeams;
+    generateBtn.disabled = false;
     resetBtn.disabled = !hasTeams;
 
     prevTourBtn.disabled = !hasSchedule || tournamentData.currentTourIndex === 0;
