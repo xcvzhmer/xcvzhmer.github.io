@@ -695,13 +695,23 @@ for (let round = 0; round < totalTours; round++) {
         await addMatch(match);
     }
 
-    // --- НОВАЯ ПРАВИЛЬНАЯ РОТАЦИЯ ROUND ROBIN ---
-    // Фиксируем нулевой элемент, крутим остальные по кругу:
-    // Последний элемент переносится на позицию 1.
-    const last = teamsForRoundRobin.pop();   // снять последний
-    teamsForRoundRobin.splice(1, 0, last);   // вставить на позицию 1
+    // --- Новая идеальная ротация Round Robin (ВАРИАНТ A — как в твоих примерах) ---
+{
+    // Сдвигаем команды на 1 позицию влево, кроме первой
+    // Пример:
+    // Тур 1: [1,2,3,4,5,6]
+    // Тур 2: [1,3,4,5,6,2]
+    const fixed = teamsForRoundRobin[0];
+    const tail = teamsForRoundRobin.slice(1);
 
-} // ← конец цикла round
+    // циклический сдвиг влево
+    const firstTail = tail.shift();
+    tail.push(firstTail);
+
+    // собираем массив обратно
+    teamsForRoundRobin.length = 0;
+    teamsForRoundRobin.push(fixed, ...tail);
+}
 
     // Сохраняем настройки
     await saveSettings({ totalTeams: savedTeams.length, currentTourIndex: 0, teamsPerTour: numMatchesPerTour });
