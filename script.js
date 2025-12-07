@@ -1325,6 +1325,96 @@ prevTourBtn.addEventListener('click', async () => {
     }
 });
 
+// Кнопка "Обновить команды" — новая красная кнопка X
+const updateTeamsBtn = document.getElementById('updateTeamsBtn');
+
+updateTeamsBtn.addEventListener('click', async () => {
+    try {
+        await updateTeamsStatuses();
+        alert("Статусы команд обновлены!");
+        await renderStandingsFromDB();
+        await displayTour(tournamentData.currentTourIndex);
+        updateTourNavigation();
+    } catch (error) {
+        console.error("Ошибка при обновлении статусов команд:", error);
+        alert("Не удалось обновить команды.");
+    }
+});
+
+/**
+ * Обновляет статусы команд согласно списку в textarea:
+ * команды со значком ❌ → дисквалифицированы.
+ * Им ставится BYE во всех матчах, соперникам — тех. победа 3:0.
+ */
+async function updateTeamsStatuses() {
+    const teamsText = teamsInput.value.trim().split("\n").map(t => t.trim());
+    const bannedTeamNames = teamsText
+        .filter(line => line.endsWith(" ❌"))
+        .map(line => line.replace(" ❌", "").trim());
+
+    console.log("Дисквалифицированы:", bannedTeamNames);
+
+    // загрузим все матчи
+    const transaction = db.transaction(['schedule'], 'readwrite');
+    const store = transaction.objectStore('schedule');
+
+    const getAllReq = store.getAll();
+
+    return new Promise((resolve, reject) => {
+        getAllReq.onsuccess = async (event) => {
+            const matches = event.target.result;
+
+            for (const match of matches) {
+                const t1 = match.team1;
+                const t2 = match.team2;
+
+                // матч уже BYE — не трогаем
+                if (match.isBye) continue;
+
+                // 1) дисквалифицирована команда1
+                if (bannedTeamNames.includes(t1)) {
+                    match.isBye = true;
+                    match.technical = true;
+                    match.score1 = 0;
+                    match.score2 = 3;
+                }
+
+                // 2) дисквалифицирована команда2
+                else if (bannedTeamNames.includes(t2)) {
+                    match.isBye = true;
+                    match.technical = true;
+                    match.score1 = 3;
+                    match.score2 = 0;
+                }
+
+                // сохраняем
+                await new Promise((res, rej) => {
+                    const updateReq = store.put(match);
+                    updateReq.onsuccess = () => res();
+                    updateReq.onerror = () => rej(updateReq.error);
+                });
+            }
+
+            // обновляем память
+            tournamentData.schedule.forEach((tour, tourIndex) => {
+                tour.forEach(match => {
+                    const original = matches.find(m => m.id === match.id);
+                    if (original) {
+                        match.isBye = original.isBye;
+                        match.technical = original.technical;
+                        match.score1 = original.score1;
+                        match.score2 = original.score2;
+                    }
+                });
+            });
+
+            resolve();
+        };
+
+        getAllReq.onerror = () => reject(getAllReq.error);
+    });
+}
+
 nextTourBtn.addEventListener('click', async () => {
     if (tournamentData.currentTourIndex < tournamentData.totalTours - 1) {
         tournamentData.currentTourIndex++;
