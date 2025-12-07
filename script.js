@@ -396,7 +396,7 @@ async function initializeApp() {
         updateTourNavigation();
         displayTour(tournamentData.currentTourIndex);
         enableButtons();
-        generateBtn.disabled = true; // Отключаем кнопку генерации, если есть сохраненные данные
+        generateBtn.disabled = false; // Отключаем кнопку генерации, если есть сохраненные данные
     } else {
         // Если данных нет, сбрасываем UI и кнопки
         resetUIState();
@@ -724,7 +724,7 @@ for (let round = 0; round < totalTours; round++) {
     await displayTour(0); // Показываем первый тур
     await renderStandingsFromDB(); // Отображаем таблицу
     enableButtons();
-    generateBtn.disabled = true; // Отключаем кнопку генерации
+    generateBtn.disabled = false; // Отключаем кнопку генерации
 }
 
 /**
