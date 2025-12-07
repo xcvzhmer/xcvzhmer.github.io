@@ -200,13 +200,13 @@ textarea {
     width: 34px;
     height: 34px;
     background-color: #e53935;
-    color: #fff;
+    color: #121212;
     font-weight: bold;
     font-size: 18px;
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    margin-left: 10px;
+    margin-left: 9px;
     display: inline-flex;
     justify-content: center;
     align-items: center;
