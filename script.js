@@ -598,6 +598,7 @@ async function renderStandingsFromDB() {
 async function generateAndSaveSchedule(numTeams) {
     await clearScheduleStore(); // Очищаем старое расписание перед генерацией нового
     await clearTeamsStore(); // Очищаем команды, чтобы добавить их заново с UUID
+    tournamentData.teams = [];
 
     const teamsInputText = teamsInput.value.trim();
     const urlsInputText = urlsInput.value.trim();
@@ -789,19 +790,16 @@ async function displayTour(tourIndex) {
             row.classList.add('bye-match');
         }
 
-        // --- Подсветка ничьих и тотала 4 ---
+            // --- Подсветка при загрузке тура ---
     if (!match.isBye && match.score1 !== null && match.score2 !== null) {
-
-        // Ничья
         if (match.score1 === match.score2) {
-            row.classList.add('draw-match');
+            row.classList.add('draw-match', 'draw-row');
         }
-
-        // Тотал 4
         if (match.score1 + match.score2 === 4) {
-            row.classList.add('total4-match');
+            row.classList.add('total4-match', 'total4-row');
         }
     }
+
 
         // Номер матча
         const matchNumCell = row.insertCell(0);
@@ -1082,23 +1080,22 @@ function handleScoreInputChange(event) {
             saveBtn.textContent = 'Сохранить'; // Возвращаем текст кнопки
         }
     }
-}
-
 // --- Подсветка строки после изменения счёта ---
-    const row = input.closest('tr');
-    row.classList.remove('draw-match', 'total4-match');
+    // Удаляем предыдущие стили
+    row.classList.remove('draw-match', 'draw-row', 'total4-match', 'total4-row');
 
-    const s1 = score1Input.value === '' ? null : parseInt(score1Input.value);
-    const s2 = score2Input.value === '' ? null : parseInt(score2Input.value);
+    const s1 = score1Input.value !== '' ? parseInt(score1Input.value, 10) : null;
+    const s2 = score2Input.value !== '' ? parseInt(score2Input.value, 10) : null;
 
     if (s1 !== null && s2 !== null) {
         if (s1 === s2) {
-            row.classList.add('draw-match');
+            row.classList.add('draw-match', 'draw-row');
         }
         if (s1 + s2 === 4) {
-            row.classList.add('total4-match');
+            row.classList.add('total4-match', 'total4-row');
         }
     }
+}
 
 /**
  * Обновляет счет матча в памяти и в IndexedDB.
@@ -1265,7 +1262,7 @@ async function checkTourStatsAndDisplay(tourIndex) {
  * Включает/отключает кнопки в зависимости от состояния турнира.
  */
 function enableButtons() {
-    const hasTeams = tournamentData.teams.length > 0;
+    const hasTeams = tournamentData.teams && tournamentData.teams.length > 0;
     const hasSchedule = tournamentData.schedule.length > 0 && tournamentData.schedule[tournamentData.currentTourIndex] && tournamentData.schedule[tournamentData.currentTourIndex].length > 0;
 
     generateBtn.disabled = false;
