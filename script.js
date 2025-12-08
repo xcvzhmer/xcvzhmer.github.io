@@ -789,6 +789,20 @@ async function displayTour(tourIndex) {
             row.classList.add('bye-match');
         }
 
+        // --- Подсветка ничьих и тотала 4 ---
+    if (!match.isBye && match.score1 !== null && match.score2 !== null) {
+
+        // Ничья
+        if (match.score1 === match.score2) {
+            row.classList.add('draw-match');
+        }
+
+        // Тотал 4
+        if (match.score1 + match.score2 === 4) {
+            row.classList.add('total4-match');
+        }
+    }
+
         // Номер матча
         const matchNumCell = row.insertCell(0);
         matchNumCell.textContent = `${matchIndex + 1}`;
@@ -1069,6 +1083,22 @@ function handleScoreInputChange(event) {
         }
     }
 }
+
+// --- Подсветка строки после изменения счёта ---
+    const row = input.closest('tr');
+    row.classList.remove('draw-match', 'total4-match');
+
+    const s1 = score1Input.value === '' ? null : parseInt(score1Input.value);
+    const s2 = score2Input.value === '' ? null : parseInt(score2Input.value);
+
+    if (s1 !== null && s2 !== null) {
+        if (s1 === s2) {
+            row.classList.add('draw-match');
+        }
+        if (s1 + s2 === 4) {
+            row.classList.add('total4-match');
+        }
+    }
 
 /**
  * Обновляет счет матча в памяти и в IndexedDB.
