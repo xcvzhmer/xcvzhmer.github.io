@@ -378,7 +378,12 @@ async function initializeApp() {
     // Загружаем настройки
     const settings = await loadSettings();
     tournamentData.currentTourIndex = settings.currentTourIndex || 0;
-    tournamentData.totalTours = settings.totalTeams ? Math.ceil(settings.totalTeams * (settings.totalTeams - 1) / 2) : 0; // Примерный расчет, будет пересчитан при генерации
+    if (settings.totalTeams) {
+    const n = settings.totalTeams;
+    tournamentData.totalTours = (n % 2 === 0) ? (n - 1) : n;
+} else {
+    tournamentData.totalTours = 0;
+}
 
     // Загружаем команды
     tournamentData.teams = await getAllTeams();
