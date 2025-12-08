@@ -1156,6 +1156,7 @@ async function handleSaveOrUpdateScore(event) {
 
         // Перерисовываем таблицу результатов
         await renderStandingsFromDB();
+        await repaintStandingsBannedRows();
 
         // Перерисовываем текущий тур, чтобы обновить состояние кнопок и счетчиков
         await displayTour(tournamentData.currentTourIndex);
@@ -1335,6 +1336,7 @@ updateTeamsBtn.addEventListener('click', async () => {
         await renderStandingsFromDB();
         await displayTour(tournamentData.currentTourIndex);
         updateTourNavigation();
+        await repaintStandingsBannedRows();
     } catch (error) {
         console.error("Ошибка при обновлении статусов команд:", error);
         alert("Не удалось обновить команды.");
@@ -1353,6 +1355,30 @@ async function updateTeamsStatuses() {
         .map(line => line.replace(" ❌", "").trim());
 
     console.log("Дисквалифицированы:", bannedTeamNames);
+
+    /**
+ * Перекрашивает строки таблицы по факту banned = true в IndexedDB.
+ * Работает всегда корректно.
+ */
+async function repaintStandingsBannedRows() {
+    const teams = await getAllTeams();
+    const banned = teams.filter(t => t.inactive === true).map(t => t.teamName);
+
+    const rows = document.querySelectorAll("#standingsBody tr");
+
+    rows.forEach(row => {
+        const nameCell = row.querySelector("td:nth-child(2)");
+        if (!nameCell) return;
+
+        const name = nameCell.textContent.trim();
+
+        if (banned.includes(name)) {
+            row.classList.add("banned");
+        } else {
+            row.classList.remove("banned");
+        }
+    });
+}
 
     // загрузим все матчи
     const transaction = db.transaction(['schedule'], 'readwrite');
