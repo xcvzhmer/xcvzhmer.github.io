@@ -791,15 +791,19 @@ async function displayTour(tourIndex) {
         }
 
             // --- Подсветка при загрузке тура ---
-    if (!match.isBye && match.score1 !== null && match.score2 !== null) {
-        if (match.score1 === match.score2) {
-            row.classList.add('draw-match', 'draw-row');
-        }
-        if (match.score1 + match.score2 === 4) {
-            row.classList.add('total4-match', 'total4-row');
-        }
-    }
+if (!match.isBye && match.score1 !== null && match.score2 !== null) {
 
+    // Удаляем прошлые классы, если тур рисуется повторно
+    row.classList.remove('draw-match', 'total4-match', 'draw-row', 'total4-row');
+
+    if (match.score1 === match.score2) {
+        // Приоритет ничьей — ТОЛЬКО ничья, без тотал=4
+        row.classList.add('draw-match', 'draw-row');
+    } else if (match.score1 + match.score2 === 4) {
+        // Тотал 4 — только если не ничья
+        row.classList.add('total4-match', 'total4-row');
+    }
+}
 
         // Номер матча
         const matchNumCell = row.insertCell(0);
@@ -1080,21 +1084,25 @@ function handleScoreInputChange(event) {
             saveBtn.textContent = 'Сохранить'; // Возвращаем текст кнопки
         }
     }
-// --- Подсветка строки после изменения счёта ---
-    // Удаляем предыдущие стили
-    row.classList.remove('draw-match', 'draw-row', 'total4-match', 'total4-row');
 
-    const s1 = score1Input.value !== '' ? parseInt(score1Input.value, 10) : null;
-    const s2 = score2Input.value !== '' ? parseInt(score2Input.value, 10) : null;
+    // --- Подсветка строки после изменения счёта ---
+row.classList.remove('draw-match', 'total4-match', 'draw-row', 'total4-row');
 
-    if (s1 !== null && s2 !== null) {
-        if (s1 === s2) {
-            row.classList.add('draw-match', 'draw-row');
-        }
-        if (s1 + s2 === 4) {
-            row.classList.add('total4-match', 'total4-row');
-        }
+// читаем значения снова, только что введённые
+const s1 = score1Input.value === '' ? null : parseInt(score1Input.value);
+const s2 = score2Input.value === '' ? null : parseInt(score2Input.value);
+
+if (s1 !== null && s2 !== null) {
+
+    if (s1 === s2) {
+        // приоритет ничьи
+        row.classList.add('draw-match', 'draw-row');
+
+    } else if (s1 + s2 === 4) {
+        // тотал 4 только если НЕ ничья
+        row.classList.add('total4-match', 'total4-row');
     }
+  }
 }
 
 /**
