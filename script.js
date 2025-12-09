@@ -124,6 +124,26 @@ function generateUUID() {
     });
 }
 
+// --- Утилиты для работы с "крестиком" (поддерживает разные варианты: ❌ и ❌️ и похожие символы) ---
+function hasCrossMark(str) {
+    if (str === undefined || str === null) return false;
+    const s = String(str);
+    // Убираем selector-variants и zero-width joiner, затем проверяем по множеству похожих символов
+    const clean = s.replace(/\uFE0F/g, '').replace(/\u200D/g, '').trim();
+    return /[❌✖✕✗\u274C\u2716]/.test(clean);
+}
+
+function removeCrossMark(str) {
+    if (str === undefined || str === null) return '';
+    const s = String(str);
+    return s
+        .replace(/\uFE0F/g, '')
+        .replace(/\u200D/g, '')
+        .replace(/[❌✖✕✗\u274C\u2716]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 // --- Операции с хранилищем 'settings' ---
 
 /**
@@ -642,13 +662,31 @@ async function generateAndSaveSchedule(numTeams) {
         return;
     }
 
+// Универсальная нормализация ❌ (учитывает телефонный вариант ❌️)
+function normalizeCross(str) {
+    // убираем оба emoji-модификатора FE0F и FE0E
+    return str.replace(/[\uFE0F\uFE0E]/g, ""); 
+}
+
+// Проверка: содержит ли строка ❌ любого типа (❌ или ❌️)
+function hasCrossMark(str) {
+    return normalizeCross(str).includes("❌");
+}
+
+// Удаление ❌ любого вида
+function removeCrossMark(str) {
+    return normalizeCross(str).replace(/❌/g, "").trim();
+}
+
     // Сохраняем команды с UUID и учитываем ссылки по строкам — 1:1
     const savedTeams = [];
     for (let idx = 0; idx < rawTeamNames.length; idx++) {
         let name = rawTeamNames[idx];
-        const hasCross = name.includes('❌');
-        // очищаем маркер ❌ если есть
-        const cleanName = name.replace(/❌/g, '').trim();
+        // Универсальная проверка ❌ (телефонный и обычный)
+        const hasCross = hasCrossMark(name);
+
+// Удаляем ❌ любого типа
+        const cleanName = removeCrossMark(name);
         const spotifyUrl = rawUrls[idx] || ''; // если ссылка отсутствует — пусто
         const teamId = await addTeam(cleanName, spotifyUrl, hasCross);
         savedTeams.push({ id: teamId, teamName: cleanName, spotifyUrl: spotifyUrl, inactive: !!hasCross });
@@ -1402,34 +1440,23 @@ prevTourBtn.addEventListener('click', async () => {
 
 // Кнопка "Обновить команды" — новая красная кнопка X
 const updateTeamsBtn = document.getElementById('updateTeamsBtn');
-
-updateTeamsBtn.addEventListener('click', async () => {
-    try {
-        await updateTeamsStatuses();
-        alert("Статусы команд обновлены!");
-        await renderStandingsFromDB();
-        await displayTour(tournamentData.currentTourIndex);
-        updateTourNavigation();
-        await repaintStandingsBannedRows();
-    } catch (error) {
-        console.error("Ошибка при обновлении статусов команд:", error);
-        alert("Не удалось обновить команды.");
-    }
-});
-
-/**
- * Обновляет статусы команд согласно списку в textarea:
- * команды со значком ❌ → дисквалифицированы.
- * Им ставится BYE во всех матчах, соперникам — тех. победа 3:0.
- */
-async function updateTeamsStatuses() {
-    const teamsText = teamsInput.value.trim().split("\n").map(t => t.trim());
-    const bannedTeamNames = teamsText
-        .filter(line => line.endsWith(" ❌"))
-        .map(line => line.replace(" ❌", "").trim());
-
-    console.log("Дисквалифицированы:", bannedTeamNames);
-
+if (updateTeamsBtn) {
+    updateTeamsBtn.addEventListener('click', async () => {
+        try {
+            await updateTeamsStatuses();
+            alert("Статусы команд обновлены!");
+            await renderStandingsFromDB();
+            await displayTour(tournamentData.currentTourIndex);
+            updateTourNavigation();
+            await repaintStandingsBannedRows();
+        } catch (error) {
+            console.error("Ошибка при обновлении статусов команд:", error);
+            alert("Не удалось обновить команды.");
+        }
+    });
+} else {
+    console.warn('Кнопка updateTeamsBtn не найдена в DOM. Проверьте, есть ли элемент с id="updateTeamsBtn" в HTML.');
+} 
     /**
  * Перекрашивает строки таблицы по факту banned = true в IndexedDB.
  * Работает всегда корректно.
@@ -1454,6 +1481,19 @@ async function repaintStandingsBannedRows() {
     });
 }
 
+/**
+ * Обновляет статусы команд согласно списку в textarea:
+ * команды со значком ❌ → дисквалифицированы.
+ * Им ставится BYE во всех матчах, соперникам — тех. победа 3:0.
+ */
+async function updateTeamsStatuses() {
+    const teamsText = teamsInput.value.trim().split("\n").map(t => t.trim());
+    const bannedTeamNames = teamsText
+    .filter(line => hasCrossMark(line))              // ищем ❌ любого вида
+    .map(line => removeCrossMark(line).trim());             // очищаем ❌ любого вида
+
+    console.log("Дисквалифицированы:", bannedTeamNames);
+
     // загрузим все матчи
     const transaction = db.transaction(['schedule'], 'readwrite');
     const store = transaction.objectStore('schedule');
@@ -1465,8 +1505,8 @@ async function repaintStandingsBannedRows() {
             const matches = event.target.result;
 
             for (const match of matches) {
-                const t1 = match.team1;
-                const t2 = match.team2;
+                const t1 = match.team1.trim();
+                const t2 = match.team2.trim();
 
                 // матч уже BYE — не трогаем
                 if (match.isBye) continue;
