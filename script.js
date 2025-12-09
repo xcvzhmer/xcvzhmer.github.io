@@ -29,6 +29,34 @@ const fullScheduleModal = document.getElementById('fullScheduleModal');
 const fullScheduleContent = document.getElementById('fullScheduleContent');
 const closeModalBtn = document.getElementById('closeModalBtn');
 
+// ------------------ Сохранение/загрузка textarea в localStorage ------------------
+const LS_TEAMS_KEY = 'rr_teams_textarea_v1';
+const LS_URLS_KEY  = 'rr_urls_textarea_v1';
+
+function saveInputsToLocalStorage() {
+    try {
+        localStorage.setItem(LS_TEAMS_KEY, teamsInput.value);
+        localStorage.setItem(LS_URLS_KEY, urlsInput.value);
+    } catch (e) {
+        console.warn('Не удалось сохранить textarea в localStorage:', e);
+    }
+}
+
+function loadInputsFromLocalStorage() {
+    try {
+        const teams = localStorage.getItem(LS_TEAMS_KEY);
+        const urls  = localStorage.getItem(LS_URLS_KEY);
+        if (teams !== null && teamsInput) teamsInput.value = teams;
+        if (urls !== null && urlsInput) urlsInput.value = urls;
+    } catch (e) {
+        console.warn('Не удалось загрузить textarea из localStorage:', e);
+    }
+}
+
+// Слушатели ввода — сохраняем при каждом изменении (легко откатить, если нужно)
+teamsInput.addEventListener('input', saveInputsToLocalStorage);
+urlsInput.addEventListener('input', saveInputsToLocalStorage);
+
 // --- Функции для работы с IndexedDB ---
 
 /**
@@ -315,8 +343,7 @@ async function clearAllData() {
         await clearScheduleStore();
 
         // Сбрасываем поля ввода
-        teamsInput.value = '';
-        urlsInput.value = '';
+
         currentTourOutput.innerHTML = '';
         tourStatsDiv.textContent = '';
         standingsBody.innerHTML = ''; // Очищаем таблицу результатов
@@ -373,6 +400,8 @@ let tournamentData = {
  * Инициализация и основные функции.
  */
 async function initializeApp() {
+    // загружаем textarea из localStorage до инициализации DB
+    loadInputsFromLocalStorage();
     await initDB(); // Сначала инициализируем базу данных
 
     // Загружаем настройки
@@ -413,8 +442,10 @@ async function initializeApp() {
  * Сбрасывает UI и кнопки в начальное состояние.
  */
 function resetUIState() {
-    teamsInput.value = '';
-    urlsInput.value = '';
+   localStorage.removeItem(LS_TEAMS_KEY);
+   localStorage.removeItem(LS_URLS_KEY);
+   teamsInput.value = '';
+   urlsInput.value = '';
     currentTourOutput.innerHTML = '';
     tourStatsDiv.textContent = '';
     standingsBody.innerHTML = '';
