@@ -27,7 +27,7 @@ const standingsBody = document.getElementById('standingsBody');
 const showFullScheduleBtn = document.getElementById('showFullScheduleBtn');
 const fullScheduleModal = document.getElementById('fullScheduleModal');
 const fullScheduleContent = document.getElementById('fullScheduleContent');
-const closeModalBtn = document.getElementById('closeModalBtn');
+const closeModalBtn = document.querySelector('.close-button');
 
 // ------------------ Сохранение/загрузка textarea в localStorage ------------------
 const LS_TEAMS_KEY = 'rr_teams_textarea_v1';
@@ -1056,16 +1056,19 @@ async function renderFullScheduleModal() {
                     const team2Display = match.isBye ? 'BYE' : match.team2;
 
                     matchDiv.innerHTML = `
-                        <div class="match-teams">
-                            <span class="team-name">${team1Display}</span>
-                            ${spotify1Link}
-                        </div>
-                        <div class="score-display">${scoreDisplay}</div>
-                        <div class="match-teams">
-                            ${spotify2Link}
-                            <span class="team-name">${team2Display}</span>
-                        </div>
-                    `;
+                    <div class="match-teams">
+                    <span class="team-name">${team1Display}</span>
+                    ${spotify1Link}
+                    </div>
+
+                    <div class="score-display">${scoreDisplay}</div>
+
+                    <div class="match-teams">
+                    <span class="team-name">${team2Display}</span>
+                    ${spotify2Link}
+                    </div>
+                `;
+
                     tourBlock.appendChild(matchDiv);
                 });
             }

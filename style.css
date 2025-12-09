@@ -176,6 +176,8 @@ textarea {
     padding: 25px;
     border-radius: 10px;
     position: relative;
+    max-height: 80vh; /* окну ограничиваем высоту */
+    overflow-y: auto; /* включаем вертикальный скролл */
 }
 .close-button {
     position: absolute;
@@ -183,6 +185,27 @@ textarea {
     top: 10px;
     font-size: 30px;
     cursor: pointer;
+}
+
+#fullScheduleModal .match {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #333;
+    gap: 15px;
+}
+
+#fullScheduleModal .match-teams {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#fullScheduleModal .score-display {
+    font-size: 1.2rem;
+    min-width: 70px;
+    text-align: center;
 }
 
 /* Адаптация под телефоны */
