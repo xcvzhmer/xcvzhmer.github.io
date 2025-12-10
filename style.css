@@ -260,9 +260,10 @@ textarea {
     box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.25);
 }
 
-/* Зачёркнутые ❌-команды (ОНИ В ТАБЛИЦЕ СНИЗУ 145-150)*/
+/* Дисквалифицированные команды — зачёркнуты и с тем же фоном, что BYE */
 .banned {
-    font-style: italic;
     text-decoration: line-through;
     opacity: 0.55;
+    background-color: rgba(0, 0, 0, 0.248) !important; /* как .bye-match */
+    font-style: italic; /* как BYE */
 }

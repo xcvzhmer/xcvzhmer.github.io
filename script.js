@@ -625,6 +625,9 @@ async function renderStandingsFromDB() {
         });
     };
 
+    // ← ← ← ДОБАВИТЬ ЭТУ СТРОКУ
+    await repaintStandingsBannedRows();
+
     getAllRequest.onerror = (event) => {
         console.error("Ошибка при загрузке всех матчей для расчета статистики:", event.target.error);
         alert("Не удалось рассчитать статистику турнира.");
