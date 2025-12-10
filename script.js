@@ -133,17 +133,6 @@ function hasCrossMark(str) {
     return /[❌✖✕✗\u274C\u2716]/.test(clean);
 }
 
-function removeCrossMark(str) {
-    if (str === undefined || str === null) return '';
-    const s = String(str);
-    return s
-        .replace(/\uFE0F/g, '')
-        .replace(/\u200D/g, '')
-        .replace(/[❌✖✕✗\u274C\u2716]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-}
-
 // --- Операции с хранилищем 'settings' ---
 
 /**
@@ -661,22 +650,6 @@ async function generateAndSaveSchedule(numTeams) {
         alert('Для проведения турнира необходимо минимум 2 команды.');
         return;
     }
-
-// Универсальная нормализация ❌ (учитывает телефонный вариант ❌️)
-function normalizeCross(str) {
-    // убираем оба emoji-модификатора FE0F и FE0E
-    return str.replace(/[\uFE0F\uFE0E]/g, ""); 
-}
-
-// Проверка: содержит ли строка ❌ любого типа (❌ или ❌️)
-function hasCrossMark(str) {
-    return normalizeCross(str).includes("❌");
-}
-
-// Удаление ❌ любого вида
-function removeCrossMark(str) {
-    return normalizeCross(str).replace(/❌/g, "").trim();
-}
 
     // Сохраняем команды с UUID и учитываем ссылки по строкам — 1:1
     const savedTeams = [];
@@ -1437,6 +1410,27 @@ prevTourBtn.addEventListener('click', async () => {
         await saveSettings({ ...await loadSettings(), currentTourIndex: tournamentData.currentTourIndex });
     }
 });
+
+// ==========================
+// Универсальная обработка ❌
+// ==========================
+
+// Убираем emoji-модификаторы FE0F, FE0E, Zero-Width-Joiner
+function normalizeCross(str) {
+    if (!str) return "";
+    return String(str).replace(/[\uFE0F\uFE0E\u200D]/g, "");
+}
+
+// Проверяем, есть ли ❌ любого вида (❌ или ❌️)
+function hasCrossMark(str) {
+    return normalizeCross(str).includes("❌");
+}
+
+// Удаляем ❌ любого вида
+function removeCrossMark(str) {
+    if (!str) return "";
+    return normalizeCross(str).replace(/❌/g, "").trim();
+}
 
 // Кнопка "Обновить команды" — новая красная кнопка X
 const updateTeamsBtn = document.getElementById('updateTeamsBtn');
