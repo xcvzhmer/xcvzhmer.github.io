@@ -1481,75 +1481,131 @@ async function repaintStandingsBannedRows() {
 /**
  * Обновляет статусы команд согласно списку в textarea:
  * команды со значком ❌ → дисквалифицированы.
- * Им ставится BYE во всех матчах, соперникам — тех. победа 3:0.
+ * 1) Проставляет inactive в хранилище teams
+ * 2) Меняет матчи на технические
+ * 3) Обновляет tournamentData.schedule
  */
 async function updateTeamsStatuses() {
-    const teamsText = teamsInput.value.trim().split("\n").map(t => t.trim());
-    const bannedTeamNames = teamsText
-    .filter(line => hasCrossMark(line))              // ищем ❌ любого вида
-    .map(line => removeCrossMark(line).trim());             // очищаем ❌ любого вида
+    try {
+        // 1. Находим дисквалифицированные команды
+        const teamsText = teamsInput.value.trim().split("\n").map(t => t.trim());
+        const bannedTeamNames = teamsText
+            .filter(line => hasCrossMark(line))      // любой ❌ (компьютерный + телефонный)
+            .map(line => removeCrossMark(line).trim());
 
-    console.log("Дисквалифицированы:", bannedTeamNames);
+        console.log("Дисквалифицированы:", bannedTeamNames);
 
-    // загрузим все матчи
-    const transaction = db.transaction(['schedule'], 'readwrite');
-    const store = transaction.objectStore('schedule');
+        // --------------------------
+        // 2. ОБНОВЛЯЕМ TEAMS.inactive
+        // --------------------------
+        {
+            const tr = db.transaction(['teams'], 'readwrite');
+            const store = tr.objectStore('teams');
 
-    const getAllReq = store.getAll();
+            const req = store.getAll();
+            const teamsList = await new Promise((res, rej) => {
+                req.onsuccess = e => res(e.target.result || []);
+                req.onerror = e => rej(e.target.error);
+            });
 
-    return new Promise((resolve, reject) => {
-        getAllReq.onsuccess = async (event) => {
-            const matches = event.target.result;
+            for (const team of teamsList) {
+                const should = bannedTeamNames.includes(team.teamName);
+                if (team.inactive !== should) {
+                    team.inactive = should;
+                    await new Promise((res, rej) => {
+                        const u = store.put(team);
+                        u.onsuccess = () => res();
+                        u.onerror  = () => rej(u.error);
+                    });
+                }
+            }
+
+            await new Promise((res, rej) => {
+                tr.oncomplete = () => res();
+                tr.onerror = () => rej(tr.error);
+            });
+        }
+
+        // обновляем память
+        tournamentData.teams = await getAllTeams();
+
+        // --------------------------
+        // 3. ОБНОВЛЯЕМ РАСПИСАНИЕ
+        // --------------------------
+        {
+            const tr = db.transaction(['schedule'], 'readwrite');
+            const store = tr.objectStore('schedule');
+
+            const req = store.getAll();
+            const matches = await new Promise((res, rej) => {
+                req.onsuccess = e => res(e.target.result || []);
+                req.onerror = e => rej(e.target.error);
+            });
 
             for (const match of matches) {
                 const t1 = match.team1.trim();
                 const t2 = match.team2.trim();
 
-                // матч уже BYE — не трогаем
-                if (match.isBye) continue;
+                let changed = false;
 
-                // 1) дисквалифицирована команда1
-                if (bannedTeamNames.includes(t1)) {
+                if (bannedTeamNames.includes(t1) && !match.isBye) {
                     match.isBye = true;
                     match.technical = true;
                     match.score1 = 0;
                     match.score2 = 3;
-                }
-
-                // 2) дисквалифицирована команда2
-                else if (bannedTeamNames.includes(t2)) {
+                    changed = true;
+                } else if (bannedTeamNames.includes(t2) && !match.isBye) {
                     match.isBye = true;
                     match.technical = true;
                     match.score1 = 3;
                     match.score2 = 0;
+                    changed = true;
                 }
 
-                // сохраняем
-                await new Promise((res, rej) => {
-                    const updateReq = store.put(match);
-                    updateReq.onsuccess = () => res();
-                    updateReq.onerror = () => rej(updateReq.error);
-                });
+                // обе дисквалифицированы → "пустой" BYE
+                if (bannedTeamNames.includes(t1) && bannedTeamNames.includes(t2)) {
+                    match.isBye = true;
+                    match.technical = false;
+                    match.score1 = null;
+                    match.score2 = null;
+                    changed = true;
+                }
+
+                if (changed) {
+                    await new Promise((res, rej) => {
+                        const u = store.put(match);
+                        u.onsuccess = () => res();
+                        u.onerror  = () => rej(u.error);
+                    });
+                }
             }
 
-            // обновляем память
-            tournamentData.schedule.forEach((tour, tourIndex) => {
-                tour.forEach(match => {
-                    const original = matches.find(m => m.id === match.id);
-                    if (original) {
-                        match.isBye = original.isBye;
-                        match.technical = original.technical;
-                        match.score1 = original.score1;
-                        match.score2 = original.score2;
-                    }
-                });
+            await new Promise((res, rej) => {
+                tr.oncomplete = () => res();
+                tr.onerror = () => rej(tr.error);
             });
 
-            resolve();
-        };
+            // Обновляем tournamentData.schedule из DB
+            const freshMatches = matches;  // просто используем уже загруженные матчи
+            const grouped = {};
+            freshMatches.forEach(m => {
+                if (!grouped[m.tourIndex]) grouped[m.tourIndex] = [];
+                grouped[m.tourIndex].push(m);
+            });
 
-        getAllReq.onerror = () => reject(getAllReq.error);
-    });
+            tournamentData.schedule = [];
+            Object.keys(grouped).forEach(i => {
+                const idx = parseInt(i);
+                tournamentData.schedule[idx] =
+                    grouped[idx].sort((a, b) => a.matchIndex - b.matchIndex);
+            });
+        }
+
+        console.log("updateTeamsStatuses(): ВСЁ ГОТОВО");
+    } catch (err) {
+        console.error("Ошибка updateTeamsStatuses:", err);
+        throw err;
+    }
 }
 
 nextTourBtn.addEventListener('click', async () => {
