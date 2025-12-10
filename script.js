@@ -1548,28 +1548,55 @@ async function updateTeamsStatuses() {
 
                 let changed = false;
 
-                if (bannedTeamNames.includes(t1) && !match.isBye) {
-                    match.isBye = true;
-                    match.technical = true;
-                    match.score1 = 0;
-                    match.score2 = 3;
-                    changed = true;
-                } else if (bannedTeamNames.includes(t2) && !match.isBye) {
-                    match.isBye = true;
-                    match.technical = true;
-                    match.score1 = 3;
-                    match.score2 = 0;
-                    changed = true;
-                }
+                const t1Banned = bannedTeamNames.includes(t1);
+const t2Banned = bannedTeamNames.includes(t2);
 
-                // обе дисквалифицированы → "пустой" BYE
-                if (bannedTeamNames.includes(t1) && bannedTeamNames.includes(t2)) {
-                    match.isBye = true;
-                    match.technical = false;
-                    match.score1 = null;
-                    match.score2 = null;
-                    changed = true;
-                }
+// 1) Если кто-то дисквалифицирован → сохраняем оригинал (один раз)
+if ((t1Banned || t2Banned) && !match.originalSaved) {
+    match.originalScore1 = match.score1;
+    match.originalScore2 = match.score2;
+    match.originalIsBye = match.isBye;
+    match.originalTechnical = match.technical;
+    match.originalSaved = true;
+}
+
+// 2) команда1 дисквалифицирована
+if (t1Banned && !t2Banned) {
+    match.isBye = true;
+    match.technical = true;
+    match.score1 = 0;
+    match.score2 = 3;
+    changed = true;
+}
+
+// 3) команда2 дисквалифицирована
+else if (t2Banned && !t1Banned) {
+    match.isBye = true;
+    match.technical = true;
+    match.score1 = 3;
+    match.score2 = 0;
+    changed = true;
+}
+
+// 4) обе дисквалифицированы → BYE без технаря
+else if (t1Banned && t2Banned) {
+    match.isBye = true;
+    match.technical = false;
+    match.score1 = null;
+    match.score2 = null;
+    changed = true;
+}
+
+// 5) ❗❗ ОБЕ НЕ дисквалифицированы → ВОССТАНАВЛИВАЕМ оригинал
+else if (!t1Banned && !t2Banned && match.originalSaved) {
+    match.isBye = match.originalIsBye;
+    match.technical = match.originalTechnical;
+    match.score1 = match.originalScore1;
+    match.score2 = match.originalScore2;
+
+    match.originalSaved = false;
+    changed = true;
+}
 
                 if (changed) {
                     await new Promise((res, rej) => {
