@@ -1485,37 +1485,60 @@ async function repaintStandingsBannedRows() {
  * 2) Меняет матчи на технические
  * 3) Обновляет tournamentData.schedule
  */
+
+/**
+ * Обновляет статусы команд согласно списку в textarea:
+ * - команды со значком ❌ → inactive = true в store 'teams'
+ * - их матчи в 'schedule' помечаются как BYE / technical (3:0 у соперника)
+ * - если дисквалификация отменена (❌ удалён), восстанавливаем оригинальные результаты (если они были сохранены при дисквалификации)
+ */
 async function updateTeamsStatuses() {
     try {
-        // 1. Находим дисквалифицированные команды
-        const teamsText = teamsInput.value.trim().split("\n").map(t => t.trim());
-        const bannedTeamNames = teamsText
-            .filter(line => hasCrossMark(line))      // любой ❌ (компьютерный + телефонный)
-            .map(line => removeCrossMark(line).trim());
+        // --- 1) Считываем текущее состояние textarea и список команд из DB ---
+        const lines = teamsInput.value.trim().split("\n").map(t => t.trim()).filter(l => l.length > 0);
+        const existingTeams = await getAllTeams();
 
-        console.log("Дисквалифицированы:", bannedTeamNames);
+        // Собираем по имени команды — какие сейчас помечены ❌, а какие сняты
+        const bannedNow = [];   // команды, помеченные ❌ прямо сейчас
+        const unbannedNow = []; // команды, для которых ❌ убран (и которые были в DB)
 
-        // --------------------------
-        // 2. ОБНОВЛЯЕМ TEAMS.inactive
-        // --------------------------
+        // Заполним bannedNow / unbannedNow в соответствии с textarea и существующими командами
+        for (const team of existingTeams) {
+            // ищем линию, которая соответствует этой команде (без маркера)
+            const line = lines.find(l => removeCrossMark(l) === team.teamName);
+            if (!line) {
+                // если строки для команды нет в textarea — оставляем прежнее состояние (не предполагаем изменение)
+                continue;
+            }
+            if (hasCrossMark(line)) {
+                bannedNow.push(team.teamName);
+            } else {
+                unbannedNow.push(team.teamName);
+            }
+        }
+
+        console.log("Сейчас дисквалифицированы:", bannedNow);
+        console.log("Сейчас восстановлены:", unbannedNow);
+
+        // --- 2) Обновляем поле inactive в хранилище teams ---
         {
             const tr = db.transaction(['teams'], 'readwrite');
             const store = tr.objectStore('teams');
 
-            const req = store.getAll();
+            const allReq = store.getAll();
             const teamsList = await new Promise((res, rej) => {
-                req.onsuccess = e => res(e.target.result || []);
-                req.onerror = e => rej(e.target.error);
+                allReq.onsuccess = (e) => res(e.target.result || []);
+                allReq.onerror = (e) => rej(e.target.error);
             });
 
             for (const team of teamsList) {
-                const should = bannedTeamNames.includes(team.teamName);
-                if (team.inactive !== should) {
-                    team.inactive = should;
+                const shouldBeInactive = bannedNow.includes(team.teamName);
+                if (team.inactive !== shouldBeInactive) {
+                    team.inactive = shouldBeInactive;
                     await new Promise((res, rej) => {
-                        const u = store.put(team);
-                        u.onsuccess = () => res();
-                        u.onerror  = () => rej(u.error);
+                        const putReq = store.put(team);
+                        putReq.onsuccess = () => res();
+                        putReq.onerror = () => rej(putReq.error);
                     });
                 }
             }
@@ -1526,83 +1549,92 @@ async function updateTeamsStatuses() {
             });
         }
 
-        // обновляем память
+        // Обновим в памяти список команд
         tournamentData.teams = await getAllTeams();
 
-        // --------------------------
-        // 3. ОБНОВЛЯЕМ РАСПИСАНИЕ
-        // --------------------------
+        // --- 3) Обновляем расписание (schedule) в соответствии с bannedNow / unbannedNow ---
         {
             const tr = db.transaction(['schedule'], 'readwrite');
             const store = tr.objectStore('schedule');
 
-            const req = store.getAll();
+            const getAllReq = store.getAll();
             const matches = await new Promise((res, rej) => {
-                req.onsuccess = e => res(e.target.result || []);
-                req.onerror = e => rej(e.target.error);
+                getAllReq.onsuccess = (e) => res(e.target.result || []);
+                getAllReq.onerror = (e) => rej(e.target.error);
             });
 
+            // Проходим все матчи и применяем правила
             for (const match of matches) {
-                const t1 = match.team1.trim();
-                const t2 = match.team2.trim();
+                const t1 = (match.team1 || '').trim();
+                const t2 = (match.team2 || '').trim();
+
+                const t1BannedNow = bannedNow.includes(t1);
+                const t2BannedNow = bannedNow.includes(t2);
 
                 let changed = false;
 
-                const t1Banned = bannedTeamNames.includes(t1);
-const t2Banned = bannedTeamNames.includes(t2);
+                // Сохраняем оригинал только один раз — когда впервые из состояния "не забанен" переходит в "забанен"
+                // originalSaved будет флагом, хранимым в объекте матча
+                if ((t1BannedNow || t2BannedNow) && !match.originalSaved) {
+                    match.originalScore1 = match.score1;
+                    match.originalScore2 = match.score2;
+                    match.originalIsBye = !!match.isBye;
+                    match.originalTechnical = !!match.technical;
+                    match.originalSaved = true;
+                    // не устанавливаем changed здесь — изменения ниже установят, если требуется
+                }
 
-// 1) Если кто-то дисквалифицирован → сохраняем оригинал (один раз)
-if ((t1Banned || t2Banned) && !match.originalSaved) {
-    match.originalScore1 = match.score1;
-    match.originalScore2 = match.score2;
-    match.originalIsBye = match.isBye;
-    match.originalTechnical = match.technical;
-    match.originalSaved = true;
-}
-
-// 2) команда1 дисквалифицирована
-if (t1Banned && !t2Banned) {
-    match.isBye = true;
-    match.technical = true;
-    match.score1 = 0;
-    match.score2 = 3;
-    changed = true;
-}
-
-// 3) команда2 дисквалифицирована
-else if (t2Banned && !t1Banned) {
-    match.isBye = true;
-    match.technical = true;
-    match.score1 = 3;
-    match.score2 = 0;
-    changed = true;
-}
-
-// 4) обе дисквалифицированы → BYE без технаря
-else if (t1Banned && t2Banned) {
-    match.isBye = true;
-    match.technical = false;
-    match.score1 = null;
-    match.score2 = null;
-    changed = true;
-}
-
-// 5) ❗❗ ОБЕ НЕ дисквалифицированы → ВОССТАНАВЛИВАЕМ оригинал
-else if (!t1Banned && !t2Banned && match.originalSaved) {
-    match.isBye = match.originalIsBye;
-    match.technical = match.originalTechnical;
-    match.score1 = match.originalScore1;
-    match.score2 = match.originalScore2;
-
-    match.originalSaved = false;
-    changed = true;
-}
+                // 3.1 Если только команда1 забанена
+                if (t1BannedNow && !t2BannedNow) {
+                    // если ещё не было BYE/tech для этого матча — поставить
+                    if (!match.isBye || !match.technical || match.score1 !== 0 || match.score2 !== 3) {
+                        match.isBye = true;
+                        match.technical = true;
+                        match.score1 = 0;
+                        match.score2 = 3;
+                        changed = true;
+                    }
+                }
+                // 3.2 Если только команда2 забанена
+                else if (t2BannedNow && !t1BannedNow) {
+                    if (!match.isBye || !match.technical || match.score1 !== 3 || match.score2 !== 0) {
+                        match.isBye = true;
+                        match.technical = true;
+                        match.score1 = 3;
+                        match.score2 = 0;
+                        changed = true;
+                    }
+                }
+                // 3.3 Если обе забанены — BYE без технички (ничьи/пустые)
+                else if (t1BannedNow && t2BannedNow) {
+                    if (!match.isBye || match.technical || match.score1 !== null || match.score2 !== null) {
+                        match.isBye = true;
+                        match.technical = false;
+                        match.score1 = null;
+                        match.score2 = null;
+                        changed = true;
+                    }
+                }
+                // 3.4 Если обе НЕ забанены — возможно восстанавливаем оригинал, если он был сохранён ранее
+                else if (!t1BannedNow && !t2BannedNow && match.originalSaved) {
+                    match.isBye = !!match.originalIsBye;
+                    match.technical = !!match.originalTechnical;
+                    match.score1 = match.originalScore1;
+                    match.score2 = match.originalScore2;
+                    match.originalSaved = false;
+                    // очищаем сохранённые оригиналы (по желанию можно оставить, но убираем чтобы не восстанавливать повторно)
+                    delete match.originalScore1;
+                    delete match.originalScore2;
+                    delete match.originalIsBye;
+                    delete match.originalTechnical;
+                    changed = true;
+                }
 
                 if (changed) {
                     await new Promise((res, rej) => {
-                        const u = store.put(match);
-                        u.onsuccess = () => res();
-                        u.onerror  = () => rej(u.error);
+                        const putReq = store.put(match);
+                        putReq.onsuccess = () => res();
+                        putReq.onerror = () => rej(putReq.error);
                     });
                 }
             }
@@ -1612,19 +1644,20 @@ else if (!t1Banned && !t2Banned && match.originalSaved) {
                 tr.onerror = () => rej(tr.error);
             });
 
-            // Обновляем tournamentData.schedule из DB
-            const freshMatches = matches;  // просто используем уже загруженные матчи
+            // Обновляем tournamentData.schedule из DB (чтобы UI отобразил актуальные матчи)
+            const freshMatches = matches;
+
             const grouped = {};
             freshMatches.forEach(m => {
+                if (m.tourIndex === undefined || m.tourIndex === null) return;
                 if (!grouped[m.tourIndex]) grouped[m.tourIndex] = [];
                 grouped[m.tourIndex].push(m);
             });
 
             tournamentData.schedule = [];
-            Object.keys(grouped).forEach(i => {
-                const idx = parseInt(i);
-                tournamentData.schedule[idx] =
-                    grouped[idx].sort((a, b) => a.matchIndex - b.matchIndex);
+            Object.keys(grouped).forEach(idxStr => {
+                const idx = parseInt(idxStr, 10);
+                tournamentData.schedule[idx] = grouped[idx].sort((a, b) => a.matchIndex - b.matchIndex);
             });
         }
 
