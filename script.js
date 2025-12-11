@@ -1505,17 +1505,33 @@ async function updateTeamsStatuses() {
         // Заполним bannedNow / unbannedNow в соответствии с textarea и существующими командами
         for (const team of existingTeams) {
             // ищем линию, которая соответствует этой команде (без маркера)
-            const line = lines.find(l => removeCrossMark(l) === team.teamName);
-            if (!line) {
-                // если строки для команды нет в textarea — оставляем прежнее состояние (не предполагаем изменение)
-                continue;
-            }
-            if (hasCrossMark(line)) {
-                bannedNow.push(team.teamName);
-            } else {
-                unbannedNow.push(team.teamName);
-            }
-        }
+            // НАДЁЖНОЕ сравнение имен команд
+function sameTeam(a, b) {
+    return removeCrossMark(normalizeCross(a)).trim().toLowerCase() ===
+           removeCrossMark(normalizeCross(b)).trim().toLowerCase();
+}
+
+const bannedNow = [];
+const unbannedNow = [];
+
+for (const team of existingTeams) {
+    // ищем строку команды — ТЕПЕРЬ НАДЁЖНО
+    const line = lines.find(l => sameTeam(l, team.teamName));
+
+    // ЕСЛИ строка НЕ найдена → команда точно БЕЗ КРЕСТА (!!!)
+    if (!line) {
+        unbannedNow.push(team.teamName);
+        continue;
+    }
+
+    const hasCross = hasCrossMark(line);
+
+    if (hasCross) {
+        bannedNow.push(team.teamName);
+    } else {
+        unbannedNow.push(team.teamName);
+    }
+}
 
         console.log("Сейчас дисквалифицированы:", bannedNow);
         console.log("Сейчас восстановлены:", unbannedNow);
