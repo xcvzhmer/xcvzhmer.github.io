@@ -664,8 +664,20 @@ async function generateAndSaveSchedule(numTeams) {
 // Удаляем ❌ любого типа
         const cleanName = removeCrossMark(name);
         const spotifyUrl = rawUrls[idx] || ''; // если ссылка отсутствует — пусто
-        const teamId = await addTeam(cleanName, spotifyUrl, hasCross);
-        savedTeams.push({ id: teamId, teamName: cleanName, spotifyUrl: spotifyUrl, inactive: !!hasCross });
+        const teamId = await addTeam(cleanName, spotifyUrl, hasCross, {
+    initiallyBanned: hasCross
+});
+        savedTeams.push({
+    id: teamId,
+    teamName: cleanName,
+    spotifyUrl: spotifyUrl,
+
+    inactive: !!hasCross,
+
+    // 🔥 КЛЮЧЕВОЕ ПОЛЕ
+    initiallyInactive: !!hasCross
+});
+
     }
     tournamentData.teams = savedTeams; // Обновляем глобальную переменную
 
@@ -1494,44 +1506,45 @@ async function repaintStandingsBannedRows() {
  */
 async function updateTeamsStatuses() {
     try {
+
         // --- 1) Считываем текущее состояние textarea и список команд из DB ---
-        const lines = teamsInput.value.trim().split("\n").map(t => t.trim()).filter(l => l.length > 0);
+        const lines = teamsInput.value
+            .trim()
+            .split("\n")
+            .map(t => t.trim())
+            .filter(l => l.length > 0);
+
         const existingTeams = await getAllTeams();
 
-        // Собираем по имени команды — какие сейчас помечены ❌, а какие сняты
-        const bannedNow = [];   // команды, помеченные ❌ прямо сейчас
-        const unbannedNow = []; // команды, для которых ❌ убран (и которые были в DB)
+        // Функция надёжного сравнения строки и имени команды
+        function sameTeam(a, b) {
+            return removeCrossMark(normalizeCross(a)).trim().toLowerCase() ===
+                   removeCrossMark(normalizeCross(b)).trim().toLowerCase();
+        }
 
-        // Заполним bannedNow / unbannedNow в соответствии с textarea и существующими командами
+        // Две группы: кто сейчас с крестом и у кого крест снят
+        const bannedNow = [];
+        const unbannedNow = [];
+
         for (const team of existingTeams) {
-            // ищем линию, которая соответствует этой команде (без маркера)
-            // НАДЁЖНОЕ сравнение имен команд
-function sameTeam(a, b) {
-    return removeCrossMark(normalizeCross(a)).trim().toLowerCase() ===
-           removeCrossMark(normalizeCross(b)).trim().toLowerCase();
-}
+            // ищем соответствующую строку в textarea
+            const line = lines.find(l => sameTeam(l, team.teamName));
 
-const bannedNow = [];
-const unbannedNow = [];
+            // если строки нет в textarea → команда точно без ❌
+            if (!line) {
+                unbannedNow.push(team.teamName);
+                continue;
+            }
 
-for (const team of existingTeams) {
-    // ищем строку команды — ТЕПЕРЬ НАДЁЖНО
-    const line = lines.find(l => sameTeam(l, team.teamName));
+            // если строка есть — смотрим, есть ли на ней ❌
+            const hasCross = hasCrossMark(line);
 
-    // ЕСЛИ строка НЕ найдена → команда точно БЕЗ КРЕСТА (!!!)
-    if (!line) {
-        unbannedNow.push(team.teamName);
-        continue;
-    }
-
-    const hasCross = hasCrossMark(line);
-
-    if (hasCross) {
-        bannedNow.push(team.teamName);
-    } else {
-        unbannedNow.push(team.teamName);
-    }
-}
+            if (hasCross) {
+                bannedNow.push(team.teamName);
+            } else {
+                unbannedNow.push(team.teamName);
+            }
+        }
 
         console.log("Сейчас дисквалифицированы:", bannedNow);
         console.log("Сейчас восстановлены:", unbannedNow);
@@ -1581,13 +1594,24 @@ for (const team of existingTeams) {
 
             // Проходим все матчи и применяем правила
             for (const match of matches) {
-                const t1 = (match.team1 || '').trim();
-                const t2 = (match.team2 || '').trim();
+    const t1 = (match.team1 || '').trim();
+    const t2 = (match.team2 || '').trim();
 
-                const t1BannedNow = bannedNow.includes(t1);
-                const t2BannedNow = bannedNow.includes(t2);
+    const t1BannedNow = bannedNow.includes(t1);
+    const t2BannedNow = bannedNow.includes(t2);
 
-                let changed = false;
+    // 🆕 команда вернулась после ИЗНАЧАЛЬНОГО ❌ (до генерации)
+    const t1Returned =
+        !t1BannedNow &&
+        !match.originalSaved &&
+        tournamentData.teams.find(t => t.teamName === t1)?.initiallyBanned === true;
+
+    const t2Returned =
+        !t2BannedNow &&
+        !match.originalSaved &&
+        tournamentData.teams.find(t => t.teamName === t2)?.initiallyBanned === true;
+
+    let changed = false;
 
                 // Сохраняем оригинал только один раз — когда впервые из состояния "не забанен" переходит в "забанен"
                 // originalSaved будет флагом, хранимым в объекте матча
@@ -1631,20 +1655,60 @@ for (const team of existingTeams) {
                         changed = true;
                     }
                 }
-                // 3.4 Если обе НЕ забанены — возможно восстанавливаем оригинал, если он был сохранён ранее
-                else if (!t1BannedNow && !t2BannedNow && match.originalSaved) {
-                    match.isBye = !!match.originalIsBye;
-                    match.technical = !!match.originalTechnical;
-                    match.score1 = match.originalScore1;
-                    match.score2 = match.originalScore2;
-                    match.originalSaved = false;
-                    // очищаем сохранённые оригиналы (по желанию можно оставить, но убираем чтобы не восстанавливать повторно)
-                    delete match.originalScore1;
-                    delete match.originalScore2;
-                    delete match.originalIsBye;
-                    delete match.originalTechnical;
-                    changed = true;
-                }
+
+                // 3.4 ❗ Команда была ❌ ДО генерации и теперь вернулась → ПОЛНЫЙ СБРОС матча
+const team1Obj = tournamentData.teams.find(t => t.teamName === t1);
+const team2Obj = tournamentData.teams.find(t => t.teamName === t2);
+
+const t1InitiallyInactive = team1Obj?.initiallyInactive === true;
+const t2InitiallyInactive = team2Obj?.initiallyInactive === true;
+
+// 🔥 КРИТИЧЕСКИЙ БЛОК
+if (
+    (!t1BannedNow && t1InitiallyInactive) ||
+    (!t2BannedNow && t2InitiallyInactive)
+) {
+    // команда ВОЗВРАЩЕНА в турнир → матч должен стать ПУСТЫМ
+    match.isBye = false;
+    match.technical = false;
+    match.score1 = null;
+    match.score2 = null;
+
+    changed = true;
+}
+
+    // 3.5 Обычное восстановление
+else if (
+    !t1BannedNow &&
+    !t2BannedNow &&
+    match.originalSaved &&
+    !t1Returned &&
+    !t2Returned
+) {
+    // команда дисквалифицировалась ВО ВРЕМЯ турнира
+    match.isBye = !!match.originalIsBye;
+    match.technical = !!match.originalTechnical;
+    match.score1 = match.originalScore1;
+    match.score2 = match.originalScore2;
+    match.originalSaved = false;
+
+    delete match.originalScore1;
+    delete match.originalScore2;
+    delete match.originalIsBye;
+    delete match.originalTechnical;
+
+    changed = true;
+}
+
+
+else if (t1Returned || t2Returned) {
+    // команда вернулась в турнир — чистим матч
+    match.isBye = false;
+    match.technical = false;
+    match.score1 = null;
+    match.score2 = null;
+    changed = true;
+}
 
                 if (changed) {
                     await new Promise((res, rej) => {
