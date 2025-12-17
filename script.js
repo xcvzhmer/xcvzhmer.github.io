@@ -985,6 +985,7 @@ if (!match.isBye && match.score1 !== null && match.score2 !== null) {
         actionBtn.textContent = (match.score1 !== null && match.score2 !== null) ? 'Изменить' : 'Сохранить';
         actionBtn.dataset.matchId = match.id;
         actionBtn.disabled = match.isBye || match.technical;
+        actionBtn.tabIndex = -1; // ← 🔥 ВАЖНО (tab)
         actionBtn.addEventListener('click', handleSaveOrUpdateScore);
         actionsCell.appendChild(actionBtn);
     });
@@ -1005,6 +1006,7 @@ function createSpotifyButton(url) {
         a.target = '_blank';
         a.rel = 'noopener noreferrer';
         a.className = 'spotify-btn';
+        a.tabIndex = -1;                     // ← 🔥 ВАЖНО (tab)
         a.title = 'Открыть в Spotify';
         a.style.display = 'inline-flex';
         a.style.alignItems = 'center';
@@ -1024,6 +1026,7 @@ function createSpotifyButton(url) {
         btn.type = 'button';
         btn.className = 'spotify-btn disabled';
         btn.disabled = true;
+        btn.tabIndex = -1;                   // ← 🔥 ВАЖНО (tab)
         btn.title = 'Нет ссылки';
         btn.style.display = 'inline-flex';
         btn.style.alignItems = 'center';
