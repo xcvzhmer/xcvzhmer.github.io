@@ -42,7 +42,26 @@ https://open.spotify.com/track/4"></textarea>
 
         <!-- Турнирная таблица -->
         <div class="standings-section" id="standingsOutput">
-            <h2>Турнирная Таблица</h2>
+            <h2>Турнирная Таблица</h2> 
+            <!-- Жёлтая и Красная кнопки -->
+            <div class="relegation-controls">
+    <div class="zone-control yellow-zone">
+        <span>🟨</span>
+        <input type="number" id="yellowFrom" min="1" placeholder="от">
+        -
+        <input type="number" id="yellowTo" min="1" placeholder="до">
+        <button id="applyYellowZone">X</button>
+    </div>
+
+    <div class="zone-control red-zone">
+        <span>🟥</span>
+        <input type="number" id="redFrom" min="1" placeholder="от">
+        -
+        <input type="number" id="redTo" min="1" placeholder="до">
+        <button id="applyRedZone">X</button>
+    </div>
+</div>
+
             <table>
                 <thead>
                     <tr>

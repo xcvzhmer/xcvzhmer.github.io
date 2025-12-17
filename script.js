@@ -173,6 +173,25 @@ async function loadSettings() {
     });
 }
 
+// ===============================
+// Relegation zones (settings)
+// ===============================
+async function saveRelegationZones(zones) {
+    const settings = await loadSettings();
+    await saveSettings({
+        ...settings,
+        relegationZones: zones
+    });
+}
+
+async function loadRelegationZones() {
+    const settings = await loadSettings();
+    return settings.relegationZones || {
+        yellow: null,
+        red: null
+    };
+}
+
 // --- Операции с хранилищем 'teams' ---
 
 /**
@@ -614,16 +633,44 @@ async function renderStandingsFromDB() {
 
         // После рендера — подсвечиваем зоны вылета и стыков (101-120 желтая, 121-150 красная)
         // Подсветка выполняется на основе количества строк (выполнится в UI)
-        const rows = Array.from(standingsBody.rows);
-        rows.forEach((r, idx) => {
-            const pos = idx + 1;
-            if (pos >= 121) {
-                r.classList.add('relegation'); // красная
-            } else if (pos >= 101) {
-                r.classList.add('relegation-playoff'); // желтая
-            }
-        });
-    };
+        // После рендера — подсвечиваем зоны вылета (динамические)
+const rows = Array.from(standingsBody.rows);
+
+// сначала чистим старые классы
+rows.forEach(r => {
+    r.classList.remove('relegation', 'relegation-playoff');
+});
+
+// получаем настройки зон
+const yellowFrom = settings?.yellowZone?.from;
+const yellowTo   = settings?.yellowZone?.to;
+const redFrom    = settings?.redZone?.from;
+const redTo      = settings?.redZone?.to;
+
+rows.forEach((r, idx) => {
+    const pos = idx + 1;
+
+    // 🔴 красная зона
+    if (
+        redFrom !== undefined &&
+        redTo !== undefined &&
+        pos >= redFrom &&
+        pos <= redTo
+    ) {
+        r.classList.add('relegation');
+    }
+
+    // 🟨 жёлтая зона
+    else if (
+        yellowFrom !== undefined &&
+        yellowTo !== undefined &&
+        pos >= yellowFrom &&
+        pos <= yellowTo
+    ) {
+        r.classList.add('relegation-playoff');
+    }
+});
+    }
 
     // ← ← ← ДОБАВИТЬ ЭТУ СТРОКУ
     await repaintStandingsBannedRows();
@@ -1384,6 +1431,60 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// ===============================
+// Relegation zone controls
+// ===============================
+const yellowFrom = document.getElementById("yellowFrom");
+const yellowTo   = document.getElementById("yellowTo");
+const redFrom    = document.getElementById("redFrom");
+const redTo      = document.getElementById("redTo");
+
+const applyYellowBtn = document.getElementById("applyYellowZone");
+const applyRedBtn    = document.getElementById("applyRedZone");
+
+if (applyYellowBtn && applyRedBtn) {
+
+    applyYellowBtn.addEventListener("click", async () => {
+        const from = parseInt(yellowFrom.value);
+        const to = parseInt(yellowTo.value);
+        const totalTeams = document.querySelectorAll("#standingsBody tr").length;
+
+        const zones = await loadRelegationZones();
+        const nextZones = {
+            yellow: { from, to },
+            red: zones.red
+        };
+
+        if (!validateRelegationZones(nextZones.yellow, nextZones.red, totalTeams)) {
+            alert("Некорректный диапазон жёлтой зоны");
+            return;
+        }
+
+        await saveRelegationZones(nextZones);
+        await applyRelegationZonesToStandings();
+    });
+
+    applyRedBtn.addEventListener("click", async () => {
+        const from = parseInt(redFrom.value);
+        const to = parseInt(redTo.value);
+        const totalTeams = document.querySelectorAll("#standingsBody tr").length;
+
+        const zones = await loadRelegationZones();
+        const nextZones = {
+            yellow: zones.yellow,
+            red: { from, to }
+        };
+
+        if (!validateRelegationZones(nextZones.yellow, nextZones.red, totalTeams)) {
+            alert("Некорректный диапазон красной зоны");
+            return;
+        }
+
+        await saveRelegationZones(nextZones);
+        await applyRelegationZonesToStandings();
+    });
+}
+
 // --- Обработчики событий ---
 
 // Кнопка "Сгенерировать"
@@ -1488,6 +1589,60 @@ async function repaintStandingsBannedRows() {
             row.classList.remove("banned");
         }
     });
+}
+
+// ===============================
+// Apply relegation zones to standings
+// ===============================
+async function applyRelegationZonesToStandings() {
+    const zones = await loadRelegationZones();
+    const rows = document.querySelectorAll("#standingsBody tr");
+
+    rows.forEach((row, index) => {
+        const place = index + 1;
+
+        row.classList.remove("relegation", "relegation-playoff");
+
+        if (
+            zones.yellow &&
+            place >= zones.yellow.from &&
+            place <= zones.yellow.to
+        ) {
+            row.classList.add("relegation-playoff");
+        }
+
+        if (
+            zones.red &&
+            place >= zones.red.from &&
+            place <= zones.red.to
+        ) {
+            row.classList.add("relegation");
+        }
+    });
+}
+
+function validateRelegationZones(yellow, red, totalTeams) {
+    function valid(z) {
+        return (
+            Number.isInteger(z.from) &&
+            Number.isInteger(z.to) &&
+            z.from >= 1 &&
+            z.to <= totalTeams &&
+            z.from <= z.to
+        );
+    }
+
+    if (yellow && !valid(yellow)) return false;
+    if (red && !valid(red)) return false;
+
+    if (yellow && red) {
+        const overlap =
+            yellow.from <= red.to &&
+            red.from <= yellow.to;
+        if (overlap) return false;
+    }
+
+    return true;
 }
 
 /**

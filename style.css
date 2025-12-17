@@ -267,3 +267,60 @@ textarea {
     background-color: rgba(0, 0, 0, 0.248) !important; /* как .bye-match */
     font-style: italic; /* как BYE */
 }
+
+/* === Управление зонами вылета === */
+
+.relegation-controls {     /*# расстояние между Ж и К */
+    display: flex;
+    gap: 1px;
+    justify-content: center;
+    margin-bottom: 25px;
+}
+
+.zone-control {   /*# задний прозрачный фон */
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #2c2c2c;
+    padding: 8px 10px;
+    border-radius: 6px;
+}
+
+.zone-control input {   /*# от и до */
+    width: 40px;
+    background-color: #3a3a3a;
+    border: 1px solid #555;
+    color: #fff;
+    text-align: center;
+}
+
+.yellow-zone button {
+
+    width: 36px;
+    height: 36px;
+    background-color: #fbc02d;
+    color: #121212;
+    font-weight: bold;
+    font-size: 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-left: 3px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.red-zone button {
+    width: 36px;
+    height: 36px;
+    background-color: #e53935;
+    color: #121212;
+    font-weight: bold;
+    font-size: 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-left: 3px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
