@@ -1949,6 +1949,109 @@ window.addEventListener('click', (event) => {
     }
 });
 
+// ==========================
+// 🔍 T9 поиск по артисту
+// ==========================
+
+const artistInput = document.getElementById('artistSearchInput');
+const artistResult = document.getElementById('artistSearchResult');
+const artistSuggestions = document.getElementById('artistSuggestions');
+
+if (artistInput && artistResult && artistSuggestions) {
+
+    function getAllArtists() {
+        const lines = teamsInput.value
+            .split('\n')
+            .map(l => l.trim())
+            .filter(Boolean);
+
+        const set = new Set();
+
+        lines.forEach(line => {
+            const left = line.split('—')[0];
+            if (!left) return;
+
+            left.split(',').forEach(a => {
+                const artist = a.trim();
+                if (artist) set.add(artist);
+            });
+        });
+
+        return Array.from(set);
+    }
+
+    function countTracks(artistName) {
+        const target = artistName.toLowerCase();
+        let count = 0;
+
+        teamsInput.value
+            .split('\n')
+            .map(l => l.trim())
+            .filter(Boolean)
+            .forEach(line => {
+                const left = line.split('—')[0];
+                if (!left) return;
+
+                const artists = left
+                    .split(',')
+                    .map(a => a.trim().toLowerCase());
+
+                if (artists.includes(target)) {
+                    count++;
+                }
+            });
+
+        return count;
+    }
+
+    artistInput.addEventListener('input', () => {
+        const query = artistInput.value.trim().toLowerCase();
+
+        artistSuggestions.innerHTML = '';
+        artistResult.textContent = '';
+
+        if (!query) return;
+
+        const artists = getAllArtists();
+
+        const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+
+const matches = artists
+    .filter(a => regex.test(a))
+    .slice(0, 6);
+
+        matches.forEach(name => {
+            const div = document.createElement('div');
+            div.className = 'artist-suggestion';
+            div.textContent = name;
+
+            div.addEventListener('click', () => {
+                artistInput.value = name;
+                artistSuggestions.innerHTML = '';
+
+                const count = countTracks(name);
+                artistResult.textContent = `Треков в топе: ${count}`;
+            });
+
+            artistSuggestions.appendChild(div);
+        });
+
+        // если точное совпадение — сразу считаем
+        const exact = artists.find(a => a.toLowerCase() === query.toLowerCase());
+        if (exact) {
+            const count = countTracks(exact);
+            artistResult.textContent = `Треков в топе: ${count}`;
+        }
+    });
+
+    // клик вне — скрыть подсказки
+    document.addEventListener('click', (e) => {
+        if (!artistInput.contains(e.target) && !artistSuggestions.contains(e.target)) {
+            artistSuggestions.innerHTML = '';
+        }
+    });
+}
+
 // --- Конец скрипта ---
 // Вся логика работы с IndexedDB, генерация расписания, отображение туров,
 // обработка ввода счета и Spotify URL (теперь кнопками), а также базовая статистика тура

@@ -100,6 +100,18 @@ https://open.spotify.com/track/4"></textarea>
             <button id="showFullScheduleBtn" disabled>Полное расписание</button>
         </div>
 
+        <!-- Поиск по артисту -->
+<div class="artist-search">
+    <input
+        type="text"
+        id="artistSearchInput"
+        placeholder="Поиск по артисту..."
+        autocomplete="off"
+    />  <!-- T9 -->
+    <div id="artistSuggestions" class="artist-suggestions"></div>
+    <div id="artistSearchResult" class="artist-search-result"></div>
+</div>
+
         <div id="currentTourOutput" class="schedule-section"></div>
 
     </div>
