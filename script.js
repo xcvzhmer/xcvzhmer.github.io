@@ -612,8 +612,7 @@ async function renderStandingsFromDB() {
             // пометка стиля для inactive команд
             const isInactive = !!inactiveMap[teamName];
             if (isInactive) {
-                row.classList.add('bye-match'); // используем уже существующий класс для визуального выделения
-                row.style.opacity = '0.7';
+                row.classList.add('bye-match'); // для визуального выделения
                 row.style.textDecoration = 'line-through';
             }
 
@@ -929,6 +928,12 @@ if (!match.isBye && match.score1 !== null && match.score2 !== null) {
         team1NameSpan.textContent = match.team1;
         team1Cell.appendChild(team1NameSpan);
 
+        // 🔥 СПЕЦ-ПОДСВЕТКА ТРЕКОВ (Команда 1)
+applySpecialTrackHighlight(
+    team1Cell,
+    match.team1
+);
+
         // Счет Команды 1 (input) — если матч не isBye и не technical
         const score1Cell = row.insertCell(3);
         const score1Input = document.createElement('input');
@@ -970,6 +975,12 @@ if (!match.isBye && match.score1 !== null && match.score2 !== null) {
         team2NameSpan.classList.add('team-name');
         team2NameSpan.textContent = match.team2;
         team2Cell.appendChild(team2NameSpan);
+
+        // 🔥 СПЕЦ-ПОДСВЕТКА ТРЕКОВ (Команда 2)
+applySpecialTrackHighlight(
+    team2Cell,
+    match.team2
+);
 
         // Spotify кнопка для Команды 2
         const spotifyBtnCell2 = row.insertCell(6);
@@ -1213,6 +1224,117 @@ if (s1 !== null && s2 !== null) {
         row.classList.add('total4-match', 'total4-row');
     }
   }
+}
+
+const SPECIAL_TRACK_HIGHLIGHTS = {
+  "fonforino|темный принц|черный": ["#15141aff"],
+  "madk1d|мориарти": ["#b711c6dd"],
+  "шипы|стрипсы": ["#d9e4e8"],
+
+  "zavet|buy me": ["#c3e4ea", "#0d211c"],
+
+  "шипы|cowboyclicker|thepolepositionclub": [
+    "#ff3c06", "#dbd7d9", "#001b60", "#efa105"
+  ],
+
+  "mindless self indulgence|shut me up": ["#5b292b", "#eed70f"],
+
+  "marjorie -w c sinclair|noah's ark": ["#b59f98", "#e6e6e6"],
+
+  "arlekin 40 000|data404|lottery billz|p2p": [
+    "#850a11", "#dd0f1a", "#f2d985"
+  ],
+
+  "a v g|goro|она близко": ["#2f201e", "#d2ac85", "#1a191e"],
+
+  "cmh|слава кпсс": ["#fcfeff", "#8690a0", "#09090b"],
+
+  "пошлая молли|самый лучший эмо панк": [
+    "#955f39", "#e99dbd", "#fefefe"
+  ],
+
+  "9mice|kai angel|fountainebleau": ["#e7e8ea", "#131315"],
+
+  "кеп carson|rockstar lifestyle": [
+    "#5e575f", "#70727d", "#000000"
+  ],
+
+  "2hollis|poster boy": ["#ffffff", "#d24a4a"],
+
+  "benjamingotbenz|supernova": [
+    "#1a5e98", "#d0e872", "#fdf6ed", "#789de5", "#e16b09"
+  ],
+
+  "хестон|benjamingotbenz|bratz": [
+    "#fefefe", "#8e6153", "#faeadc", "#f1bcc8", "#c7a991", "#040404"
+  ]
+};
+
+// ==========================
+// 🎨 Многоцветная подсветка
+// ==========================
+
+function buildMultiColorBackground(colors) {
+    const step = 100 / colors.length;
+
+    const parts = colors.map((hex, i) => {
+        const from = i * step;
+        const to = (i + 1) * step;
+
+        const rgba = hexToRGBA(hex, 0.6); // 30% прозрачности
+        return `${rgba} ${from}%, ${rgba} ${to}%`;
+    });
+
+    return `linear-gradient(90deg, ${parts.join(', ')})`;
+}
+
+function hexToRGBA(hex, alpha) {
+    hex = hex.replace('#', '');
+    if (hex.length === 3) {
+        hex = hex.split('').map(c => c + c).join('');
+    }
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function normalizeText(str) {
+    return str
+        .toLowerCase()
+        .replace(/[–—]/g, '-')
+        .replace(/[.,]/g, ' ')
+        .replace(/ё/g, 'е')
+        .replace(/[^a-zа-я0-9\s\-']/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function applySpecialTrackHighlight(cell, teamText) {
+    if (!cell || !teamText) return;
+
+    const normalized = normalizeText(teamText);
+
+    for (const key in SPECIAL_TRACK_HIGHLIGHTS) {
+    const parts = key.split('|').map(p => p.trim());
+
+    console.log('CHECK:', parts, 'IN', normalized);
+
+    const match = parts.every(part => normalized.includes(part));
+    if (!match) continue;
+
+    console.log('MATCH:', key, '→', teamText);
+
+        if (match) {
+            const colors = SPECIAL_TRACK_HIGHLIGHTS[key];
+
+            cell.style.backgroundImage = buildMultiColorBackground(colors);
+            cell.style.backgroundRepeat = "no-repeat";
+            cell.style.backgroundSize = "100% 100%";
+            cell.style.backgroundColor = "transparent";
+            return;
+        }
+    }
 }
 
 /**

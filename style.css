@@ -445,3 +445,25 @@ textarea {
         max-width: 360px;
     }
 }
+
+/* === Спец-подсветка 16 треков === */
+.special-track-cell {
+    position: relative;
+    overflow: hidden;
+}
+
+.special-track-cell::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: inherit;
+    opacity: var(--special-opacity, 0.3);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* контент поверх подсветки */
+.special-track-cell > * {
+    position: relative;
+    z-index: 1;
+}
