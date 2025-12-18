@@ -389,3 +389,59 @@ textarea {
 .artist-suggestion:hover {
     background-color: #3a3a3a;
 }
+
+/* === Поиск артиста + список треков === */
+.artist-search-wrapper {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    align-items: flex-start;
+    margin-top: 18px;
+    margin-bottom: 25px;
+}
+
+/* === Блок треков артиста === */
+.artist-tracks {
+    min-width: 260px;
+    max-width: 320px;
+    background-color: #272727;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+.artist-tracks-title {
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #8bc34a;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.artist-tracks-list {
+    max-height: 240px;
+    overflow-y: auto;
+    font-size: 0.85rem;
+}
+
+.artist-track {
+    padding: 4px 2px;
+    border-bottom: 1px dashed #333;
+    color: #ddd;
+}
+
+.artist-track:last-child {
+    border-bottom: none;
+}
+
+@media (max-width: 700px) {
+    .artist-search-wrapper {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .artist-tracks {
+        width: 100%;
+        max-width: 360px;
+    }
+}

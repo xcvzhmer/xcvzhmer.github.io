@@ -2004,6 +2004,37 @@ if (artistInput && artistResult && artistSuggestions) {
         return count;
     }
 
+        function showArtistTracks(artistName) {
+        const list = document.getElementById('artistTracksList');
+        if (!list) return;
+
+        list.innerHTML = '';
+
+        const target = artistName.toLowerCase();
+
+        teamsInput.value
+            .split('\n')
+            .map(l => l.trim())
+            .filter(Boolean)
+            .forEach(line => {
+                const parts = line.split('—');
+                if (parts.length < 2) return;
+
+                const artists = parts[0]
+                    .split(',')
+                    .map(a => a.trim().toLowerCase());
+
+                const track = parts[1].trim();
+
+                if (artists.includes(target)) {
+                    const div = document.createElement('div');
+                    div.className = 'artist-track';
+                    div.textContent = track;
+                    list.appendChild(div);
+                }
+            });
+    }
+
     artistInput.addEventListener('input', () => {
         const query = artistInput.value.trim().toLowerCase();
 
@@ -2026,12 +2057,14 @@ const matches = artists
             div.textContent = name;
 
             div.addEventListener('click', () => {
-                artistInput.value = name;
-                artistSuggestions.innerHTML = '';
+    artistInput.value = name;
+    artistSuggestions.innerHTML = '';
 
-                const count = countTracks(name);
-                artistResult.textContent = `Треков в топе: ${count}`;
-            });
+    const count = countTracks(name);
+    artistResult.textContent = `Треков в топе: ${count}`;
+
+    showArtistTracks(name);
+});
 
             artistSuggestions.appendChild(div);
         });
