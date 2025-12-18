@@ -2004,7 +2004,8 @@ if (artistInput && artistResult && artistSuggestions) {
         return count;
     }
 
-        function showArtistTracks(artistName) {
+        // 🔥 ИСПРАВЛЕННАЯ ВЕРСИЯ С feat.
+    function showArtistTracks(artistName) {
         const list = document.getElementById('artistTracksList');
         if (!list) return;
 
@@ -2020,18 +2021,29 @@ if (artistInput && artistResult && artistSuggestions) {
                 const parts = line.split('—');
                 if (parts.length < 2) return;
 
-                const artists = parts[0]
+                const rawArtists = parts[0]
+                    .replace(/feat\.?/gi, ',')
+                    .replace(/&/g, ',')
                     .split(',')
-                    .map(a => a.trim().toLowerCase());
+                    .map(a => a.trim())
+                    .filter(Boolean);
 
-                const track = parts[1].trim();
+                const trackTitle = parts[1].trim();
 
-                if (artists.includes(target)) {
-                    const div = document.createElement('div');
-                    div.className = 'artist-track';
-                    div.textContent = track;
-                    list.appendChild(div);
+                const hasTarget = rawArtists.some(a => a.toLowerCase() === target);
+                if (!hasTarget) return;
+
+                const feats = rawArtists.filter(a => a.toLowerCase() !== target);
+
+                let finalTitle = trackTitle;
+                if (feats.length > 0) {
+                    finalTitle += ` (feat. ${feats.join(', ')})`;
                 }
+
+                const div = document.createElement('div');
+                div.className = 'artist-track';
+                div.textContent = finalTitle;
+                list.appendChild(div);
             });
     }
 
