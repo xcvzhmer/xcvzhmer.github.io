@@ -1228,79 +1228,105 @@ if (s1 !== null && s2 !== null) {
 
 const SPECIAL_TRACK_HIGHLIGHTS = {
   "fonforino|темный принц|черный": ["#15141aff"],
+
   "madk1d|мориарти": ["#b711c6dd"],
-  "шипы|стрипсы": ["#d9e4e8"],
 
-  "zavet|buy me": ["#c3e4ea", "#0d211c"],
+  "шипы|стрипсы": ["#7aafe3", "#eedba6", "#f6f7ec"],
 
-  "шипы|cowboyclicker|thepolepositionclub": [
-    "#ff3c06", "#dbd7d9", "#001b60", "#efa105"
-  ],
+  "zavet|buy me": ["#fefefe", "#27a5ad", "#0d211c"],
 
-  "mindless self indulgence|shut me up": ["#5b292b", "#eed70f"],
+  "шипы|cowboyclicker|thepolepositionclub": ["#ff3c06", "#dbd7d9", "#001b60", "#efa105"],
 
-  "marjorie -w c sinclair|noah's ark": ["#b59f98", "#e6e6e6"],
+  "mindless self indulgence|shut me up": ["#050608f0","#5b292b", "#eed70f"],
 
-  "arlekin 40 000|data404|lottery billz|p2p": [
-    "#850a11", "#dd0f1a", "#f2d985"
-  ],
+  "marjorie -w c sinclair|noah's ark": ["#272a2fcd", "#b6a09c", "#e9e9e9"],
+
+  "arlekin 40 000|data404|lottery billz|p2p": ["#850a11", "#dd0f1a", "#f2d985"],
 
   "a v g|goro|она близко": ["#2f201e", "#d2ac85", "#1a191e"],
 
   "cmh|слава кпсс": ["#fcfeff", "#8690a0", "#09090b"],
 
-  "пошлая молли|самый лучший эмо панк": [
-    "#955f39", "#e99dbd", "#fefefe"
-  ],
+  "пошлая молли|самый лучший эмо панк": ["#955f39", "#e99dbd", "#fefefe"],
 
-  "9mice|kai angel|fountainebleau": ["#e7e8ea", "#131315"],
+  "9mice|kai angel|fountainebleau": ["#131315","#e7e8ea"],
 
-  "ken carson|rockstar lifestyle": [
-    "#5e575f", "#70727d", "#000000"
-  ],
+  "ken carson|rockstar lifestyle": ["#5e575f", "#70727d", "#000000"],
 
   "2hollis|poster boy": ["#ffffff", "#d24a4a"],
 
-  "benjamingotbenz|supernova": [
-    "#1a5e98", "#d0e872", "#fdf6ed", "#789de5", "#e16b09"
-  ],
+  "benjamingotbenz|supernova": ["#186db9", "#fdf6ed", "#e16b09"],
 
-  "хестон|benjamingotbenz|bratz": [
-    "#fefefe", "#8e6153", "#faeadc", "#f1bcc8", "#c7a991", "#040404"
-  ]
+  "хестон|benjamingotbenz|bratz": ["#f2bcc9", "#c7a991", "#8e6153"]
 };
 
 // ==========================
-// 🎨 Многоцветная подсветка
+// 🎨 Многоцветная подсветка — LAYER BLEND (FINAL)
 // ==========================
 
-function buildMultiColorBackground(colors) {
-    const step = 100 / colors.length;
+// 🎛 фиксированный режим
+// (оставлен только Layer Blend)
 
-    const parts = colors.map((hex, i) => {
-        const from = i * step;
-        const to = (i + 1) * step;
-
-        const rgba = hexToRGBA(hex, 0.6); // 30% прозрачности
-        return `${rgba} ${from}%, ${rgba} ${to}%`;
-    });
-
-    return `linear-gradient(90deg, ${parts.join(', ')})`;
+/* ==========================
+   🎨 ПОСТРОИТЕЛЬ ПОДСВЕТКИ
+========================== */
+function buildSpecialBackground(colors) {
+    return buildLayerBlend(colors);
 }
 
+/* ==========================
+   🟠 LAYER BLEND — ЧЁТКИЙ, БЕЗ МЫЛА
+   • меньше прозрачности
+   • нет ухода в фон (#2c2c2c / #272727)
+========================== */
+function buildLayerBlend(colors) {
+    const layers = [];
+
+    // БАЗОВАЯ подложка — фиксирует цвет и отсекает фон
+    layers.push(
+        `linear-gradient(0deg, ${hexToRGBA(colors[0], 0.22)}, ${hexToRGBA(colors[0], 0.22)})`
+    );
+
+    // Второй слой — лёгкий горизонтальный сдвиг
+    if (colors[1]) {
+        layers.push(
+            `linear-gradient(90deg,
+                ${hexToRGBA(colors[1], 0.28)} 0%,
+                ${hexToRGBA(colors[1], 0.18)} 55%,
+                transparent 100%)`
+        );
+    }
+
+    // Третий слой — компактный акцент без размытия
+    if (colors[2]) {
+        layers.push(
+            `radial-gradient(circle at 70% 50%,
+                ${hexToRGBA(colors[2], 0.32)} 0%,
+                ${hexToRGBA(colors[2], 0.18)} 45%,
+                transparent 60%)`
+        );
+    }
+
+    return layers.join(', ');
+}
+
+/* ==========================
+   🧩 ВСПОМОГАТЕЛЬНЫЕ
+========================== */
 function hexToRGBA(hex, alpha) {
     hex = hex.replace('#', '');
-    if (hex.length === 3) {
-        hex = hex.split('').map(c => c + c).join('');
-    }
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+    const r = parseInt(hex.slice(0,2),16);
+    const g = parseInt(hex.slice(2,4),16);
+    const b = parseInt(hex.slice(4,6),16);
+    return `rgba(${r},${g},${b},${alpha})`;
 }
 
+/* ==========================
+   🔤 НОРМАЛИЗАЦИЯ ТЕКСТА
+========================== */
 function normalizeText(str) {
-    return str
+    return String(str)
         .toLowerCase()
         .replace(/[–—]/g, '-')
         .replace(/[.,]/g, ' ')
@@ -1310,30 +1336,29 @@ function normalizeText(str) {
         .trim();
 }
 
+/* ==========================
+   🎯 ПРИМЕНЕНИЕ
+========================== */
 function applySpecialTrackHighlight(cell, teamText) {
     if (!cell || !teamText) return;
 
     const normalized = normalizeText(teamText);
 
     for (const key in SPECIAL_TRACK_HIGHLIGHTS) {
-    const parts = key.split('|').map(p => p.trim());
+        const parts = key
+            .split('|')
+            .map(p => normalizeText(p));
 
-    console.log('CHECK:', parts, 'IN', normalized);
+        if (!parts.every(p => normalized.includes(p))) continue;
 
-    const match = parts.every(part => normalized.includes(part));
-    if (!match) continue;
-
-    console.log('MATCH:', key, '→', teamText);
-
-        if (match) {
-            const colors = SPECIAL_TRACK_HIGHLIGHTS[key];
-
-            cell.style.backgroundImage = buildMultiColorBackground(colors);
-            cell.style.backgroundRepeat = "no-repeat";
-            cell.style.backgroundSize = "100% 100%";
-            cell.style.backgroundColor = "transparent";
-            return;
-        }
+        cell.style.backgroundImage = buildSpecialBackground(
+            SPECIAL_TRACK_HIGHLIGHTS[key]
+        );
+        cell.classList.add('special-track-cell');
+        cell.style.backgroundRepeat = "no-repeat";
+        cell.style.backgroundSize = "100% 100%";
+        cell.style.backgroundColor = "transparent";
+        return;
     }
 }
 
