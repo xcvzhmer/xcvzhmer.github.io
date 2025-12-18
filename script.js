@@ -1255,7 +1255,7 @@ const SPECIAL_TRACK_HIGHLIGHTS = {
 
   "9mice|kai angel|fountainebleau": ["#e7e8ea", "#131315"],
 
-  "кеп carson|rockstar lifestyle": [
+  "ken carson|rockstar lifestyle": [
     "#5e575f", "#70727d", "#000000"
   ],
 
@@ -2071,6 +2071,28 @@ window.addEventListener('click', (event) => {
     }
 });
 
+function parseArtistAndTrack(line) {
+    if (!line) return { artist: '', track: '' };
+
+    // все варианты тире → единый разделитель
+    const normalized = line.replace(/[–—]/g, '-');
+
+    // ищем первое " - " с пробелами
+    const match = normalized.match(/\s-\s(.+)$/);
+
+    if (!match) {
+        return {
+            artist: normalized.trim(),
+            track: ''
+        };
+    }
+
+    const track = match[1].trim();
+    const artist = normalized.slice(0, match.index).trim();
+
+    return { artist, track };
+}
+
 // ==========================
 // 🔍 T9 поиск по артисту
 // ==========================
@@ -2082,50 +2104,49 @@ const artistSuggestions = document.getElementById('artistSuggestions');
 if (artistInput && artistResult && artistSuggestions) {
 
     function getAllArtists() {
-        const lines = teamsInput.value
-            .split('\n')
-            .map(l => l.trim())
-            .filter(Boolean);
+    const lines = teamsInput.value
+        .split('\n')
+        .map(l => l.trim())
+        .filter(Boolean);
 
-        const set = new Set();
+    const set = new Set();
 
-        lines.forEach(line => {
-            const left = line.split('—')[0];
-            if (!left) return;
+    lines.forEach(line => {
+        const { artist } = parseArtistAndTrack(line);
+        if (!artist) return;
 
-            left.split(',').forEach(a => {
-                const artist = a.trim();
-                if (artist) set.add(artist);
-            });
+        artist.split(',').forEach(a => {
+            const name = a.trim();
+            if (name) set.add(name);
         });
+    });
 
-        return Array.from(set);
-    }
+    return Array.from(set);
+}
 
     function countTracks(artistName) {
-        const target = artistName.toLowerCase();
-        let count = 0;
+    const target = artistName.toLowerCase();
+    let count = 0;
 
-        teamsInput.value
-            .split('\n')
-            .map(l => l.trim())
-            .filter(Boolean)
-            .forEach(line => {
-                const left = line.split('—')[0];
-                if (!left) return;
+    teamsInput.value
+        .split('\n')
+        .map(l => l.trim())
+        .filter(Boolean)
+        .forEach(line => {
+            const { artist } = parseArtistAndTrack(line);
+            if (!artist) return;
 
-                const artists = left
-                    .split(',')
-                    .map(a => a.trim().toLowerCase());
+            const artists = artist
+                .split(',')
+                .map(a => a.trim().toLowerCase());
 
-                if (artists.includes(target)) {
-                    count++;
-                }
-            });
+            if (artists.includes(target)) {
+                count++;
+            }
+        });
 
-        return count;
-    }
-
+    return count;
+}
         // 🔥 ИСПРАВЛЕННАЯ ВЕРСИЯ С feat.
     function showArtistTracks(artistName) {
         const list = document.getElementById('artistTracksList');
@@ -2136,38 +2157,36 @@ if (artistInput && artistResult && artistSuggestions) {
         const target = artistName.toLowerCase();
 
         teamsInput.value
-            .split('\n')
-            .map(l => l.trim())
-            .filter(Boolean)
-            .forEach(line => {
-                const parts = line.split('—');
-                if (parts.length < 2) return;
+    .split('\n')
+    .map(l => l.trim())
+    .filter(Boolean)
+    .forEach(line => {
+        const { artist, track } = parseArtistAndTrack(line);
+        if (!artist || !track) return;
 
-                const rawArtists = parts[0]
-                    .replace(/feat\.?/gi, ',')
-                    .replace(/&/g, ',')
-                    .split(',')
-                    .map(a => a.trim())
-                    .filter(Boolean);
+        const rawArtists = artist
+            .replace(/feat\.?/gi, ',')
+            .replace(/&/g, ',')
+            .split(',')
+            .map(a => a.trim())
+            .filter(Boolean);
 
-                const trackTitle = parts[1].trim();
+        const hasTarget = rawArtists.some(a => a.toLowerCase() === target);
+        if (!hasTarget) return;
 
-                const hasTarget = rawArtists.some(a => a.toLowerCase() === target);
-                if (!hasTarget) return;
+        const feats = rawArtists.filter(a => a.toLowerCase() !== target);
 
-                const feats = rawArtists.filter(a => a.toLowerCase() !== target);
+        let finalTitle = track;
+        if (feats.length > 0) {
+            finalTitle += ` (feat. ${feats.join(', ')})`;
+        }
 
-                let finalTitle = trackTitle;
-                if (feats.length > 0) {
-                    finalTitle += ` (feat. ${feats.join(', ')})`;
-                }
-
-                const div = document.createElement('div');
-                div.className = 'artist-track';
-                div.textContent = finalTitle;
-                list.appendChild(div);
-            });
-    }
+        const div = document.createElement('div');
+        div.className = 'artist-track';
+        div.textContent = finalTitle;
+        list.appendChild(div);
+    });
+}
 
     artistInput.addEventListener('input', () => {
         const query = artistInput.value.trim().toLowerCase();
