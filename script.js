@@ -1227,35 +1227,35 @@ if (s1 !== null && s2 !== null) {
 }
 
 const SPECIAL_TRACK_HIGHLIGHTS = {
-  "fonforino|темный принц|черный": ["#15141aff"],
+  "fonforino|темный принц|черный": ["#050016ff", "#051836d3"],
 
-  "madk1d|мориарти": ["#b711c6dd"],
+  "madk1d|мориарти": ["#cd04dfff", "#b711c67e"],
 
   "шипы|стрипсы": ["#7aafe3", "#eedba6", "#f6f7ec"],
 
-  "zavet|buy me": ["#fefefe", "#27a5ad", "#0d211c"],
+  "zavet|buy me": ["#27a5ad", "#0d211ce3"],
 
-  "шипы|cowboyclicker|thepolepositionclub": ["#ff3c06", "#dbd7d9", "#001b60", "#efa105"],
+  "шипы|cowboyclicker|thepolepositionclub": ["#ff3c06", "#001b60d6", "#efa105"],
 
-  "mindless self indulgence|shut me up": ["#050608f0","#5b292b", "#eed70f"],
+  "mindless self indulgence|shut me up": ["#050608f0","#5b292b", "#eed80ff1"],
 
-  "marjorie -w c sinclair|noah's ark": ["#272a2fcd", "#b6a09c", "#e9e9e9"],
+  "marjorie -w c sinclair|noah's ark": ["#b79f99", "#bebebe", "#e9e9e9"],
 
-  "arlekin 40 000|data404|lottery billz|p2p": ["#850a11", "#dd0f1a", "#f2d985"],
+  "arlekin 40 000|data404|lottery billz|p2p": ["#850a11", "#dd0f19e7", "#f2d985"],
 
-  "a v g|goro|она близко": ["#2f201e", "#d2ac85", "#1a191e"],
+  "a v g|goro|она близко": ["#1a191e", "#412a27ff", "#d2ac85"],
 
-  "cmh|слава кпсс": ["#fcfeff", "#8690a0", "#09090b"],
+  "cmh|слава кпсс": ["#8690a0", "#d5dbe4ff"],
 
   "пошлая молли|самый лучший эмо панк": ["#955f39", "#e99dbd", "#fefefe"],
 
-  "9mice|kai angel|fountainebleau": ["#131315","#e7e8ea"],
+  "9mice|kai angel|fountainebleau": ["#131315","#e2e4e5"],
 
-  "ken carson|rockstar lifestyle": ["#5e575f", "#70727d", "#000000"],
+  "ken carson|rockstar lifestyle": ["#141314ff","#4d464eff"],
 
-  "2hollis|poster boy": ["#ffffff", "#d24a4a"],
+  "2hollis|poster boy": ["#ffffff", "#cb2929ff"],
 
-  "benjamingotbenz|supernova": ["#186db9", "#fdf6ed", "#e16b09"],
+  "benjamingotbenz|supernova": ["#186db9", "#e16a09ff", "#fdf6ed"],
 
   "хестон|benjamingotbenz|bratz": ["#f2bcc9", "#c7a991", "#8e6153"]
 };
@@ -1280,34 +1280,31 @@ function buildSpecialBackground(colors) {
    • нет ухода в фон (#2c2c2c / #272727)
 ========================== */
 function buildLayerBlend(colors) {
-    const layers = [];
-
-    // БАЗОВАЯ подложка — фиксирует цвет и отсекает фон
-    layers.push(
-        `linear-gradient(0deg, ${hexToRGBA(colors[0], 0.22)}, ${hexToRGBA(colors[0], 0.22)})`
-    );
-
-    // Второй слой — лёгкий горизонтальный сдвиг
-    if (colors[1]) {
-        layers.push(
-            `linear-gradient(90deg,
-                ${hexToRGBA(colors[1], 0.28)} 0%,
-                ${hexToRGBA(colors[1], 0.18)} 55%,
-                transparent 100%)`
-        );
+    if (colors.length === 1) {
+        return `linear-gradient(90deg,
+            ${hexToRGBA(colors[0], 0.38)},
+            ${hexToRGBA(colors[0], 0.38)})`;
     }
 
-    // Третий слой — компактный акцент без размытия
-    if (colors[2]) {
-        layers.push(
-            `radial-gradient(circle at 70% 50%,
-                ${hexToRGBA(colors[2], 0.32)} 0%,
-                ${hexToRGBA(colors[2], 0.18)} 45%,
-                transparent 60%)`
-        );
+    if (colors.length === 2) {
+        return `linear-gradient(90deg,
+            ${hexToRGBA(colors[0], 0.40)} 0%,
+            ${hexToRGBA(colors[0], 0.30)} 30%,
+            ${hexToRGBA(colors[1], 0.30)} 70%,
+            ${hexToRGBA(colors[1], 0.40)} 100%)`;
     }
 
-    return layers.join(', ');
+    // 3 цвета (основной кейс)
+    return `linear-gradient(90deg,
+        ${hexToRGBA(colors[0], 0.42)} 0%,
+        ${hexToRGBA(colors[0], 0.32)} 22%,
+
+        ${hexToRGBA(colors[1], 0.36)} 40%,
+        ${hexToRGBA(colors[1], 0.36)} 60%,
+
+        ${hexToRGBA(colors[2], 0.32)} 78%,
+        ${hexToRGBA(colors[2], 0.42)} 100%
+    )`;
 }
 
 /* ==========================
