@@ -680,6 +680,90 @@ rows.forEach((r, idx) => {
     };
 }
 
+/* ======================================================
+   📊 ФОРМА, ЗГ/ПГ, СЕРИИ — ДЛЯ ВТОРОГО МОДАЛЬНОГО ОКНА
+====================================================== */
+
+async function getLastPlayedMatchesFromDB(teamName, limit = 5) {
+    const tx = db.transaction(['schedule'], 'readonly');
+    const store = tx.objectStore('schedule');
+    const req = store.getAll();
+
+    return new Promise(resolve => {
+        req.onsuccess = () => {
+            const all = req.result.filter(m =>
+    !m.isBye &&
+    m.score1 !== null &&
+    m.score2 !== null &&
+    (m.team1 === teamName || m.team2 === teamName)
+);
+
+const lastTour = Math.max(...all.map(m => m.tourIndex));
+
+const matches = all
+    .filter(m => m.tourIndex >= lastTour - (limit - 1))
+    .sort((a, b) => a.tourIndex - b.tourIndex);
+
+resolve(matches);
+
+        };
+    });
+}
+
+async function getStreaksFromDB(teamName) {
+    const tx = db.transaction(['schedule'], 'readonly');
+    const store = tx.objectStore('schedule');
+    const req = store.getAll();
+
+    return new Promise(resolve => {
+        req.onsuccess = () => {
+
+            let win = 0;
+            let clean = 0;
+            let golden = 0;
+
+            let cleanActive = true;
+            let goldenActive = true;
+
+            const matches = req.result
+                .filter(m =>
+                    !m.isBye &&
+                    m.score1 !== null &&
+                    m.score2 !== null &&
+                    (m.team1 === teamName || m.team2 === teamName)
+                )
+                .sort((a, b) => b.tourIndex - a.tourIndex); // последний тур → назад
+
+            for (const m of matches) {
+                const scored   = m.team1 === teamName ? m.score1 : m.score2;
+                const conceded = m.team1 === teamName ? m.score2 : m.score1;
+
+                // ❌ ничья или поражение — обрывает ВСЁ
+                if (scored <= conceded) break;
+
+                // ✅ победа
+                win++;
+
+                // 🟦 сухая серия
+                if (cleanActive && conceded === 0) {
+                    clean++;
+                } else {
+                    cleanActive = false;
+                }
+
+                // 🟨 золотая серия
+                if (goldenActive && conceded === 0 && scored >= 4) {
+                    golden++;
+                } else {
+                    goldenActive = false;
+                }
+            }
+
+            resolve({ win, clean, golden });
+        };
+    });
+}
+
 /**
  * Генерирует расписание турнира по схеме Round Robin и сохраняет в IndexedDB.
  * @param {number} numTeams - Общее количество команд.
@@ -834,6 +918,82 @@ for (let round = 0; round < totalTours; round++) {
     await renderStandingsFromDB(); // Отображаем таблицу
     enableButtons();
     generateBtn.disabled = false; // Отключаем кнопку генерации
+
+}
+
+/* ======================================================
+   🪟 РЕНДЕР ВТОРОГО МОДАЛЬНОГО ОКНА (ФОРМА И СЕРИИ)
+====================================================== */
+
+async function renderFormStandingsFromDB() {
+    const tbody = document.getElementById('formStandingsBody');
+    tbody.innerHTML = '';
+
+    const allTeams = await getAllTeams();
+    const rows = [];
+
+    for (const t of allTeams) {
+        const team = t.teamName;
+        const matches = await getLastPlayedMatchesFromDB(team, 5);
+        const { win, clean, golden } = await getStreaksFromDB(team);
+
+        let gf = 0, ga = 0;
+        const formIcons = [];
+
+        for (const m of matches) {
+            const scored   = m.team1 === team ? m.score1 : m.score2;
+            const conceded = m.team1 === team ? m.score2 : m.score1;
+
+            gf += scored;
+            ga += conceded;
+
+            if (scored > conceded) formIcons.push('✅');
+            else if (scored < conceded) formIcons.push('❌');
+            else formIcons.push('🟨');
+        }
+
+        rows.push({
+            team,
+            win,
+            clean,
+            golden,
+            form: formIcons.join(''),
+            gf,
+            ga,
+            diff: gf - ga
+        });
+    }
+
+    // сортировка по разнице за последние 5 матчей
+    rows.sort((a, b) => b.diff - a.diff);
+
+    rows.forEach((r, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${i + 1}</td>
+            <td>${r.team}</td>
+            <td>${r.win}</td>
+            <td>${r.clean}</td>
+            <td>${r.golden}</td>
+            <td class="form-icons">${r.form}</td>
+            <td>${r.gf}:${r.ga}</td>
+            <td>${r.diff}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function renderWinStreak(count) {
+    let html = '<div class="win-streak">';
+    for (let i = 0; i < 5; i++) {
+        let cls = 'streak-box gray';
+        if (i === 3) cls = 'streak-box light';
+        if (i === 4) cls = 'streak-box gold';
+        if (i < count) cls += ' filled';
+        html += `<div class="${cls}"></div>`;
+    }
+    html += '</div>';
+    return html;
 }
 
 /**
@@ -2083,15 +2243,36 @@ showFullScheduleBtn.addEventListener('click', async () => {
     fullScheduleModal.style.display = 'block';
 });
 
-closeModalBtn.addEventListener('click', () => {
+// 🔴 ВСТАВКА — крестик первого модала
+const closeFullScheduleModalBtn = document.getElementById('closeFullScheduleModal');
+closeFullScheduleModalBtn.addEventListener('click', () => {
     fullScheduleModal.style.display = 'none';
+});
+
+const showFormStatsBtn = document.getElementById('showFormStatsBtn');
+const formStatsModal = document.getElementById('formStatsModal');
+const closeFormModalBtn = document.getElementById('closeFormModal');
+
+showFormStatsBtn.addEventListener('click', async () => {
+    formStatsModal.style.display = 'block';
+    await renderFormStandingsFromDB();
+});
+
+// 🔴 ВСТАВКА — закрытие по крестику
+closeFormModalBtn.addEventListener('click', () => {
+    formStatsModal.style.display = 'none';
 });
 
 window.addEventListener('click', (event) => {
     if (event.target === fullScheduleModal) {
         fullScheduleModal.style.display = 'none';
     }
-});
+
+    // 🔴 ВСТАВКА — второй модал
+    if (event.target === formStatsModal) {
+        formStatsModal.style.display = 'none';
+    }
+})
 
 function parseArtistAndTrack(line) {
     if (!line) return { artist: '', track: '' };

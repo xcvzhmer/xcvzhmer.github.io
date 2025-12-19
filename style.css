@@ -467,3 +467,19 @@ textarea {
     position: relative;
     z-index: 1;
 }
+
+    /* === Второе модальное окно === */
+/* === Оранжевая кнопка === */
+.orange-btn {
+    background-color: #e68a00;
+    color: #121212;
+}
+
+.orange-btn:hover:not(:disabled) {
+    background-color: #ff9c1a;
+}
+
+/* Оранжевый стиль */
+.modal-orange h2 {
+    color: #e68a00;
+}
