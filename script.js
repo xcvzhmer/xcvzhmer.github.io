@@ -1389,7 +1389,7 @@ if (s1 !== null && s2 !== null) {
 const SPECIAL_TRACK_HIGHLIGHTS = {
   "fonforino|темный принц|черный": ["#050016ff", "#051836d3"],
 
-  "madk1d|мориарти": ["#cd04dfff", "#b711c67e"],
+  "madk1d|мориарти": ["#cd04dfff", "#9f11c690"],
 
   "шипы|стрипсы": ["#7aafe3", "#eedba6", "#f6f7ec"],
 
@@ -1405,7 +1405,7 @@ const SPECIAL_TRACK_HIGHLIGHTS = {
 
   "a v g|goro|она близко": ["#1a191e", "#412a27ff", "#d2ac85"],
 
-  "cmh|слава кпсс": ["#8690a0", "#d5dbe4ff"],
+  "cmh|слава кпсс": ["#5f657cff", "#d5dbe4ff"],
 
   "пошлая молли|самый лучший эмо панк": ["#955f39", "#e99dbd", "#fefefe"],
 
@@ -2252,6 +2252,23 @@ closeFullScheduleModalBtn.addEventListener('click', () => {
 const showFormStatsBtn = document.getElementById('showFormStatsBtn');
 const formStatsModal = document.getElementById('formStatsModal');
 const closeFormModalBtn = document.getElementById('closeFormModal');
+
+/* ==========================
+   🎨 РЕЖИМ ВИЗУАЛЬНОЙ ПРОВЕРКИ
+========================== */
+document.addEventListener('DOMContentLoaded', () => {
+
+    const hideTeamsBtn = document.getElementById('hideTeamsBtn');
+    if (!hideTeamsBtn) return;
+
+    let teamsHidden = false;
+
+    hideTeamsBtn.addEventListener('click', () => {
+    document.body.classList.toggle('teams-hidden');
+});
+
+});
+/* ========================== */
 
 showFormStatsBtn.addEventListener('click', async () => {
     formStatsModal.style.display = 'block';
