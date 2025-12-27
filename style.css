@@ -542,3 +542,30 @@ body.teams-hidden .team-name {
 .team-name {
     transition: opacity 0.2s ease;
 }
+
+/* ==========================
+   🎨 КВАДРАТ ЦВЕТОВ КОМАНДЫ
+========================== */
+
+.team-cell {
+    position: relative;
+    padding-top: 8px;
+    padding-right: 56px; /* место под квадрат */
+}
+
+.color-square {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+
+    width: 47px;
+    height: 47px;
+
+    border-radius: 4px;
+
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+
+    pointer-events: none;
+}

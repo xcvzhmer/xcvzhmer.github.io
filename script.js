@@ -607,28 +607,31 @@ async function renderStandingsFromDB() {
 
         // Рендерим строки таблицы
         sortedTeams.forEach((teamName, index) => {
-            const stats = standings[teamName];
-            const row = standingsBody.insertRow();
-            // пометка стиля для inactive команд
-            const isInactive = !!inactiveMap[teamName];
-            if (isInactive) {
-                row.classList.add('bye-match'); // для визуального выделения
-                row.style.textDecoration = 'line-through';
-            }
+    const stats = standings[teamName];
+    const row = standingsBody.insertRow();
+    // пометка стиля для inactive команд
+    const isInactive = !!inactiveMap[teamName];
+    if (isInactive) {
+        row.classList.add('bye-match'); // для визуального выделения
+        row.style.textDecoration = 'line-through';
+    }
 
-            row.innerHTML = `
-                <td>${index + 1}</td>
-                <td>${teamName}</td>
-                <td>${stats.wins + stats.losses + stats.draws}</td>
-                <td>${stats.wins}</td>
-                <td>${stats.draws}</td>
-                <td>${stats.losses}</td>
-                <td>${stats.goalsFor}</td>
-                <td>${stats.goalsAgainst}</td>
-                <td>${stats.goalDifference}</td>
-                <td>${stats.points}</td>
-            `;
-        });
+    // 🧹 убираем inline-цвета ТОЛЬКО для отображения
+    const cleanTeamName = stripInlineColors(teamName);
+
+    row.innerHTML = `
+        <td>${index + 1}</td>
+        <td>${cleanTeamName}</td>
+        <td>${stats.wins + stats.losses + stats.draws}</td>
+        <td>${stats.wins}</td>
+        <td>${stats.draws}</td>
+        <td>${stats.losses}</td>
+        <td>${stats.goalsFor}</td>
+        <td>${stats.goalsAgainst}</td>
+        <td>${stats.goalDifference}</td>
+        <td>${stats.points}</td>
+    `;
+});
 
         // После рендера — подсвечиваем зоны вылета и стыков (101-120 желтая, 121-150 красная)
         // Подсветка выполняется на основе количества строк (выполнится в UI)
@@ -968,19 +971,23 @@ async function renderFormStandingsFromDB() {
     rows.sort((a, b) => b.diff - a.diff);
 
     rows.forEach((r, i) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${i + 1}</td>
-            <td>${r.team}</td>
-            <td>${r.win}</td>
-            <td>${r.clean}</td>
-            <td>${r.golden}</td>
-            <td class="form-icons">${r.form}</td>
-            <td>${r.gf}:${r.ga}</td>
-            <td>${r.diff}</td>
-        `;
-        tbody.appendChild(tr);
-    });
+    const tr = document.createElement('tr');
+
+    // 🧹 чистим ТОЛЬКО отображаемое имя
+    const cleanTeamName = stripInlineColors(r.team);
+
+    tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${cleanTeamName}</td>
+        <td>${r.win}</td>
+        <td>${r.clean}</td>
+        <td>${r.golden}</td>
+        <td class="form-icons">${r.form}</td>
+        <td>${r.gf}:${r.ga}</td>
+        <td>${r.diff}</td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
 function renderWinStreak(count) {
@@ -1081,18 +1088,26 @@ if (!match.isBye && match.score1 !== null && match.score2 !== null) {
         spotifyBtnCell1.appendChild(spotifyBtn1);
 
         // Команда 1
-        const team1Cell = row.insertCell(2);
-        team1Cell.classList.add('match-teams');
-        const team1NameSpan = document.createElement('span');
-        team1NameSpan.classList.add('team-name');
-        team1NameSpan.textContent = match.team1;
-        team1Cell.appendChild(team1NameSpan);
+const team1Cell = row.insertCell(2);
+team1Cell.classList.add('match-teams');
 
-        // 🔥 СПЕЦ-ПОДСВЕТКА ТРЕКОВ (Команда 1)
-applySpecialTrackHighlight(
-    team1Cell,
-    match.team1
-);
+const rawTeam1 = match.team1;
+const cleanTeam1 = stripInlineColors(rawTeam1);
+
+// 🟦 КВАДРАТ ЦВЕТА
+const colorSquare1 = document.createElement('div');
+colorSquare1.classList.add('color-square');
+team1Cell.appendChild(colorSquare1);
+
+// 📝 ТЕКСТ КОМАНДЫ (БЕЗ HEX)
+const team1NameSpan = document.createElement('span');
+team1NameSpan.classList.add('team-name');
+team1NameSpan.textContent = cleanTeam1;
+team1Cell.appendChild(team1NameSpan);
+
+// 🔥 ЦВЕТА — ПО СЫРОЙ СТРОКЕ
+applySpecialTrackHighlight(team1Cell, rawTeam1);
+applyInlineColorSquare(colorSquare1, rawTeam1);
 
         // Счет Команды 1 (input) — если матч не isBye и не technical
         const score1Cell = row.insertCell(3);
@@ -1129,18 +1144,26 @@ applySpecialTrackHighlight(
         score2Cell.appendChild(score2Input);
 
         // Команда 2
-        const team2Cell = row.insertCell(5);
-        team2Cell.classList.add('match-teams');
-        const team2NameSpan = document.createElement('span');
-        team2NameSpan.classList.add('team-name');
-        team2NameSpan.textContent = match.team2;
-        team2Cell.appendChild(team2NameSpan);
+const team2Cell = row.insertCell(5);
+team2Cell.classList.add('match-teams');
 
-        // 🔥 СПЕЦ-ПОДСВЕТКА ТРЕКОВ (Команда 2)
-applySpecialTrackHighlight(
-    team2Cell,
-    match.team2
-);
+const rawTeam2 = match.team2;
+const cleanTeam2 = stripInlineColors(rawTeam2);
+
+// 🟦 КВАДРАТ ЦВЕТА
+const colorSquare2 = document.createElement('div');
+colorSquare2.classList.add('color-square');
+team2Cell.appendChild(colorSquare2);
+
+// 📝 ТЕКСТ КОМАНДЫ (БЕЗ HEX)
+const team2NameSpan = document.createElement('span');
+team2NameSpan.classList.add('team-name');
+team2NameSpan.textContent = cleanTeam2;
+team2Cell.appendChild(team2NameSpan);
+
+// 🔥 ЦВЕТА — ПО СЫРОЙ СТРОКЕ
+applySpecialTrackHighlight(team2Cell, rawTeam2);
+applyInlineColorSquare(colorSquare2, rawTeam2);
 
         // Spotify кнопка для Команды 2
         const spotifyBtnCell2 = row.insertCell(6);
@@ -1299,8 +1322,13 @@ async function renderFullScheduleModal() {
                     const spotify1Link = match.spotifyUrl1 ? `<a href="${match.spotifyUrl1}" target="_blank" class="spotify-link">S</a>` : '<span class="spotify-link disabled">S</span>';
                     const spotify2Link = match.spotifyUrl2 ? `<a href="${match.spotifyUrl2}" target="_blank" class="spotify-link">S</a>` : '<span class="spotify-link disabled">S</span>';
 
-                    const team1Display = match.isBye ? 'BYE' : match.team1;
-                    const team2Display = match.isBye ? 'BYE' : match.team2;
+                    const team1Display = match.isBye
+    ? 'BYE'
+    : stripInlineColors(match.team1);
+
+const team2Display = match.isBye
+    ? 'BYE'
+    : stripInlineColors(match.team2);
 
                     matchDiv.innerHTML = `
                     <div class="match-teams">
@@ -1422,6 +1450,7 @@ const SPECIAL_TRACK_HIGHLIGHTS = {
 
 // ==========================
 // 🎨 Многоцветная подсветка — LAYER BLEND (FINAL)
+// используется для 16 песен исключений
 // ==========================
 
 // 🎛 фиксированный режим
@@ -1493,6 +1522,35 @@ function normalizeText(str) {
         .trim();
 }
 
+// 🧹 УДАЛЕНИЕ hex-ЦВЕТОВ ИЗ ТЕКСТА
+function stripInlineColors(str) {
+    if (!str) return '';
+    return str.replace(/\s*\([^)]*\)\s*/g, '').trim();
+}
+
+/* ==========================
+   ✂️ ОЧИСТКА НАЗВАНИЯ КОМАНДЫ
+========================== */
+function stripInlineColors(text) {
+    return text.replace(/\s*\([^)]*\)\s*$/, '').trim();
+}
+
+/* ==========================
+   🎨 ПАРСИНГ ЦВЕТОВ ИЗ ТЕКСТА
+========================== */
+function extractInlineColors(text) {
+    const match = text.match(/\(([^)]+)\)/);
+    if (!match) return null;
+
+    const colors = match[1]
+        .split('+')
+        .map(c => c.trim())
+        .filter(c => /^[0-9a-fA-F]{6}$/.test(c))
+        .map(c => `#${c}`);
+
+    return colors.length >= 2 ? colors.slice(0, 4) : null;
+}
+
 /* ==========================
    🎯 ПРИМЕНЕНИЕ
 ========================== */
@@ -1517,6 +1575,25 @@ function applySpecialTrackHighlight(cell, teamText) {
         cell.style.backgroundColor = "transparent";
         return;
     }
+}
+
+/* ==========================
+   🟩 ЦВЕТОВОЙ КВАДРАТ В ЯЧЕЙКЕ
+========================== */
+function applyInlineColorSquare(cell, teamText) {
+    if (!cell || !teamText) return;
+
+    const colors = extractInlineColors(teamText);
+    if (!colors) return;
+
+    let square = cell.querySelector('.color-square');
+    if (!square) {
+        square = document.createElement('div');
+        square.className = 'color-square';
+        cell.appendChild(square);
+    }
+
+    square.style.backgroundImage = buildSpecialBackground(colors);
 }
 
 /**
@@ -2396,15 +2473,18 @@ if (artistInput && artistResult && artistSuggestions) {
 
         const feats = rawArtists.filter(a => a.toLowerCase() !== target);
 
-        let finalTitle = track;
-        if (feats.length > 0) {
-            finalTitle += ` (feat. ${feats.join(', ')})`;
-        }
+        // 🧹 ЧИСТИМ НАЗВАНИЕ ТРЕКА ОТ (hex + hex)
+const cleanTrack = stripInlineColors(track);
 
-        const div = document.createElement('div');
-        div.className = 'artist-track';
-        div.textContent = finalTitle;
-        list.appendChild(div);
+let finalTitle = cleanTrack;
+if (feats.length > 0) {
+    finalTitle += ` (feat. ${feats.join(', ')})`;
+}
+
+const div = document.createElement('div');
+div.className = 'artist-track';
+div.textContent = finalTitle;
+list.appendChild(div);
     });
 }
 
