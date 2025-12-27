@@ -1089,7 +1089,7 @@ if (!match.isBye && match.score1 !== null && match.score2 !== null) {
 
         // Команда 1
 const team1Cell = row.insertCell(2);
-team1Cell.classList.add('match-teams');
+team1Cell.classList.add('match-teams', 'team-left');
 
 const rawTeam1 = match.team1;
 const cleanTeam1 = stripInlineColors(rawTeam1);
@@ -1145,7 +1145,7 @@ applyInlineColorSquare(colorSquare1, rawTeam1);
 
         // Команда 2
 const team2Cell = row.insertCell(5);
-team2Cell.classList.add('match-teams');
+team2Cell.classList.add('match-teams', 'team-right');
 
 const rawTeam2 = match.team2;
 const cleanTeam2 = stripInlineColors(rawTeam2);
@@ -1330,19 +1330,49 @@ const team2Display = match.isBye
     ? 'BYE'
     : stripInlineColors(match.team2);
 
-                    matchDiv.innerHTML = `
-                    <div class="match-teams">
-                    <span class="team-name">${team1Display}</span>
-                    ${spotify1Link}
-                    </div>
+// ====== КОМАНДА 1 ======
+const team1Div = document.createElement('div');
+team1Div.classList.add('match-teams', 'team-left');
 
-                    <div class="score-display">${scoreDisplay}</div>
+const colorSquare1 = document.createElement('div');
+colorSquare1.className = 'color-square';
+team1Div.appendChild(colorSquare1);
 
-                    <div class="match-teams">
-                    <span class="team-name">${team2Display}</span>
-                    ${spotify2Link}
-                    </div>
-                `;
+const team1Span = document.createElement('span');
+team1Span.className = 'team-name';
+team1Span.textContent = team1Display;
+team1Div.appendChild(team1Span);
+
+team1Div.insertAdjacentHTML('beforeend', spotify1Link);
+
+// ====== СЧЁТ ======
+const scoreDiv = document.createElement('div');
+scoreDiv.className = 'score-display';
+scoreDiv.textContent = scoreDisplay;
+
+// ====== КОМАНДА 2 ======
+const team2Div = document.createElement('div');
+team2Div.classList.add('match-teams', 'team-right');
+
+const colorSquare2 = document.createElement('div');
+colorSquare2.className = 'color-square';
+team2Div.appendChild(colorSquare2);
+
+const team2Span = document.createElement('span');
+team2Span.className = 'team-name';
+team2Span.textContent = team2Display;
+team2Div.appendChild(team2Span);
+
+team2Div.insertAdjacentHTML('beforeend', spotify2Link);
+
+// ====== ВСТАВКА В МАТЧ ======
+matchDiv.appendChild(team1Div);
+matchDiv.appendChild(scoreDiv);
+matchDiv.appendChild(team2Div);
+
+// 🔥 ЦВЕТА — ПО СЫРОЙ СТРОКЕ
+applyInlineColorSquare(colorSquare1, match.team1);
+applyInlineColorSquare(colorSquare2, match.team2);
 
                     tourBlock.appendChild(matchDiv);
                 });
@@ -1580,18 +1610,11 @@ function applySpecialTrackHighlight(cell, teamText) {
 /* ==========================
    🟩 ЦВЕТОВОЙ КВАДРАТ В ЯЧЕЙКЕ
 ========================== */
-function applyInlineColorSquare(cell, teamText) {
-    if (!cell || !teamText) return;
+function applyInlineColorSquare(square, teamText) {
+    if (!square || !teamText) return;
 
     const colors = extractInlineColors(teamText);
-    if (!colors) return;
-
-    let square = cell.querySelector('.color-square');
-    if (!square) {
-        square = document.createElement('div');
-        square.className = 'color-square';
-        cell.appendChild(square);
-    }
+    if (!colors || colors.length === 0) return;
 
     square.style.backgroundImage = buildSpecialBackground(colors);
 }

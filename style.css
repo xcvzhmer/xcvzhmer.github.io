@@ -544,28 +544,39 @@ body.teams-hidden .team-name {
 }
 
 /* ==========================
-   🎨 КВАДРАТ ЦВЕТОВ КОМАНДЫ
+   🎨 ЯЧЕЙКА КОМАНДЫ
 ========================== */
 
-.team-cell {
+.match-teams {
     position: relative;
-    padding-top: 8px;
-    padding-right: 56px; /* место под квадрат */
+    padding-left: 31px;   /* место под полосу слева */
+    padding-right: 31px;  /* место под полосу справа */
+    overflow: hidden;
 }
+
+/* 🎨 ЦВЕТОВАЯ ПОЛОСА */
 
 .color-square {
     position: absolute;
-    top: 6px;
-    right: 6px;
-
-    width: 47px;
-    height: 47px;
-
-    border-radius: 4px;
+    
+    top: 0px;
+    bottom: 0px;
+    width: 31px;
+    height: 99px;
 
     background-color: transparent;
     background-repeat: no-repeat;
     background-size: 100% 100%;
 
     pointer-events: none;
+}
+
+/* 🟦 КОМАНДА 1 — СЛЕВА */
+.team-left .color-square {
+    left: 0;
+}
+
+/* 🟥 КОМАНДА 2 — СПРАВА */
+.team-right .color-square {
+    right: 0;
 }
