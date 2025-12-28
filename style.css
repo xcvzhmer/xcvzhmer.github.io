@@ -146,7 +146,7 @@ textarea {
 
 /* BYE-матчи (ОНИ В РАСПИСАНИИ 0:3)*/
 .bye-match {
-    background-color: rgba(0, 0, 0, 0.248) !important;
+    background-color: rgba(0, 0, 0, 0.286) !important;
     font-style: italic;
 }
 
@@ -278,12 +278,11 @@ textarea {
     box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.25);
 }
 
-/* Дисквалифицированные команды — зачёркнуты и с тем же фоном, что BYE */
+/* Дисквалифицированные команды — но не покрашенные */
 .banned {
     text-decoration: line-through;
-    opacity: 0.55;
-    background-color: rgba(0, 0, 0, 0.248) !important; /* как .bye-match */
-    font-style: italic; /* как BYE */
+    background-color: rgba(0, 0, 0, 0.533) !important; /* не hex */
+    font-style: italic; 
 }
 
 /* === Управление зонами вылета === */
@@ -549,24 +548,36 @@ body.teams-hidden .team-name {
 
 .match-teams {
     position: relative;
-    padding-left: 31px;   /* место под полосу слева */
-    padding-right: 31px;  /* место под полосу справа */
+    padding-left: 31px;
+    padding-right: 31px;
     overflow: hidden;
 }
 
-/* 🎨 ЦВЕТОВАЯ ПОЛОСА */
+/* ==========================
+   📝 ТЕКСТ КОМАНДЫ — САМЫЙ ВЕРХ
+========================== */
+
+.match-teams .team-name {
+    position: relative;
+    z-index: 4;               /* ВЫШЕ ВСЕГО */
+    color: #e6e6e6;
+}
+
+/* ==========================
+   🎨 ЦВЕТОВАЯ ПОЛОСА (HEX)
+========================== */
 
 .color-square {
     position: absolute;
-    
-    top: 0px;
-    bottom: 0px;
+    top: 0;
+    bottom: 0;
     width: 31px;
-    height: 99px;
 
     background-color: transparent;
     background-repeat: no-repeat;
     background-size: 100% 100%;
+
+    z-index: 3;               /* ПОД ТЕКСТОМ */
 
     pointer-events: none;
 }
@@ -579,4 +590,22 @@ body.teams-hidden .team-name {
 /* 🟥 КОМАНДА 2 — СПРАВА */
 .team-right .color-square {
     right: 0;
+}
+
+/* ==========================
+   🔥 ПОДСВЕТКА 16 ИСКЛЮЧЕНИЙ
+========================== */
+
+.match-teams.special-track {
+    position: relative;
+    z-index: 2;
+}
+
+/* ==========================
+   🚫 BYE / ТЕХНИЧКА / НЕЧЁТ
+========================== */
+
+.match-teams.bye,
+.match-teams.technical {
+    z-index: 1;
 }

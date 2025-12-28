@@ -1463,7 +1463,7 @@ const SPECIAL_TRACK_HIGHLIGHTS = {
 
   "a v g|goro|она близко": ["#1a191e", "#412a27ff", "#d2ac85"],
 
-  "cmh|слава кпсс": ["#5f657cff", "#d5dbe4ff"],
+  "cmh|слава кпсс|сэлфхарм": ["#5f657cff", "#d5dbe4ff"],
 
   "пошлая молли|самый лучший эмо панк": ["#955f39", "#e99dbd", "#fefefe"],
 
@@ -1523,6 +1523,53 @@ function buildLayerBlend(colors) {
 
         ${hexToRGBA(colors[2], 0.32)} 78%,
         ${hexToRGBA(colors[2], 0.42)} 100%
+    )`;
+}
+
+/* ==========================
+   🟩 ВЕРТИКАЛЬНЫЙ BLEND ДЛЯ HEX-Прямоугольников
+   • 2–4 цвета
+   • сверху вниз
+========================== */
+function buildVerticalBlend(colors) {
+
+    // 2 цвета
+    if (colors.length === 2) {
+        return `linear-gradient(180deg,
+            ${hexToRGBA(colors[0], 0.45)} 0%,
+            ${hexToRGBA(colors[0], 0.35)} 45%,
+            ${hexToRGBA(colors[1], 0.35)} 55%,
+            ${hexToRGBA(colors[1], 0.45)} 100%
+        )`;
+    }
+
+    // 3 цвета
+    if (colors.length === 3) {
+        return `linear-gradient(180deg,
+            ${hexToRGBA(colors[0], 0.46)} 0%,
+            ${hexToRGBA(colors[0], 0.34)} 22%,
+
+            ${hexToRGBA(colors[1], 0.38)} 40%,
+            ${hexToRGBA(colors[1], 0.38)} 60%,
+
+            ${hexToRGBA(colors[2], 0.34)} 78%,
+            ${hexToRGBA(colors[2], 0.46)} 100%
+        )`;
+    }
+
+    // 4 цвета — ОСНОВНОЙ КЕЙС
+    return `linear-gradient(180deg,
+        ${hexToRGBA(colors[0], 0.48)} 0%,
+        ${hexToRGBA(colors[0], 0.36)} 18%,
+
+        ${hexToRGBA(colors[1], 0.36)} 32%,
+        ${hexToRGBA(colors[1], 0.36)} 46%,
+
+        ${hexToRGBA(colors[2], 0.36)} 54%,
+        ${hexToRGBA(colors[2], 0.36)} 68%,
+
+        ${hexToRGBA(colors[3], 0.36)} 82%,
+        ${hexToRGBA(colors[3], 0.48)} 100%
     )`;
 }
 
@@ -1614,9 +1661,15 @@ function applyInlineColorSquare(square, teamText) {
     if (!square || !teamText) return;
 
     const colors = extractInlineColors(teamText);
-    if (!colors || colors.length === 0) return;
 
-    square.style.backgroundImage = buildSpecialBackground(colors);
+    // если нет hex — полоса прозрачная
+    if (!colors || colors.length < 2) {
+        square.style.backgroundImage = 'none';
+        return;
+    }
+
+    // ⬇️ ВАЖНО: используем ВЕРТИКАЛЬНЫЙ BLEND
+    square.style.backgroundImage = buildVerticalBlend(colors);
 }
 
 /**
