@@ -7,8 +7,9 @@
 // ъуйх
 // --- Константы и переменные --- 
 const DB_NAME = 'tournamentDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 let db; // Переменная для объекта базы данных IndexedDB
+let currentTourIndex = null;
 
 // --- Элементы DOM ---
 const teamsInput = document.getElementById('teamsInput');
@@ -28,6 +29,8 @@ const showFullScheduleBtn = document.getElementById('showFullScheduleBtn');
 const fullScheduleModal = document.getElementById('fullScheduleModal');
 const fullScheduleContent = document.getElementById('fullScheduleContent');
 const closeModalBtn = document.querySelector('.close-button');
+// ⭐ ЛУЧШИЕ МАТЧИ ПО ТУРАМ
+const bestMatchesByTour = {};
 
 // ------------------ Сохранение/загрузка textarea в localStorage ------------------
 const LS_TEAMS_KEY = 'rr_teams_textarea_v1';
@@ -90,14 +93,20 @@ async function initDB() {
             }
 
             // Создание хранилища расписания
-            if (!db.objectStoreNames.contains('schedule')) {
-                const scheduleStore = db.createObjectStore('schedule', { keyPath: 'id' });
-                scheduleStore.createIndex('tourIndex', 'tourIndex', { unique: false });
-                scheduleStore.createIndex('matchIndex', 'matchIndex', { unique: false });
-                scheduleStore.createIndex('team1', 'team1', { unique: false });
-                scheduleStore.createIndex('team2', 'team2', { unique: false });
-                console.log("Создано хранилище 'schedule'");
-            }
+if (!db.objectStoreNames.contains('schedule')) {
+    const scheduleStore = db.createObjectStore('schedule', { keyPath: 'id' });
+    scheduleStore.createIndex('tourIndex', 'tourIndex', { unique: false });
+    scheduleStore.createIndex('matchIndex', 'matchIndex', { unique: false });
+    scheduleStore.createIndex('team1', 'team1', { unique: false });
+    scheduleStore.createIndex('team2', 'team2', { unique: false });
+    console.log("Создано хранилище 'schedule'");
+}
+
+/* ⭐ ЛУЧШИЕ МАТЧИ ТУРА */
+if (!db.objectStoreNames.contains('bestMatches')) {
+    db.createObjectStore('bestMatches', { keyPath: 'tourIndex' });
+    console.log("Создано хранилище 'bestMatches'");
+    }
         };
 
         request.onsuccess = (event) => {
@@ -340,6 +349,61 @@ async function getMatchesByTour(tourIndex) {
     });
 }
 
+async function saveBestMatchesForTour(tourIndex, slots) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(['bestMatches'], 'readwrite');
+        const store = tx.objectStore('bestMatches');
+        store.put({ tourIndex, slots });
+
+        tx.oncomplete = () => resolve();
+        tx.onerror = e => reject(e);
+    });
+}
+
+    // лучшие матчи идут в db
+
+async function loadBestMatchesForTour(tourIndex) {
+    return new Promise((resolve) => {
+        const tx = db.transaction(['bestMatches'], 'readonly');
+        const store = tx.objectStore('bestMatches');
+        const req = store.get(tourIndex);
+
+        req.onsuccess = () => resolve(req.result?.slots || []);
+        req.onerror = () => resolve([]);
+    });
+}
+
+/* ⭐ ВОССТАНОВЛЕНИЕ ЛУЧШИХ МАТЧЕЙ ДЛЯ ТУРА */
+async function renderBestMatchesForTour(tourIndex) {
+    const slotsData = await loadBestMatchesForTour(tourIndex);
+
+    // ✅ КРИТИЧЕСКИ ВАЖНО — восстанавливаем кэш
+    bestMatchesByTour[tourIndex] = slotsData;
+
+    const slots = document.querySelectorAll('.best-match-slot');
+
+    slots.forEach((slot, idx) => {
+        slot.innerHTML = '';
+
+        const matchNumber = slotsData[idx];
+        if (!matchNumber) {
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.min = 1;
+            input.placeholder = '№ матча';
+            slot.appendChild(input);
+            return;
+        }
+
+        const match = getMatchByNumberInCurrentTour(matchNumber);
+        if (!match) return;
+
+        slot.innerHTML = buildBestMatchLine(match);
+    });
+
+    initBestMatchesUI();
+}
+
 /**
  * Очищает хранилище расписания.
  */
@@ -385,6 +449,11 @@ async function clearAllData() {
         tournamentData.standings = {};
         tournamentData.currentTourIndex = 0;
         tournamentData.totalTours = 0;
+
+        // Сброс лучших матчей
+        for (const key in bestMatchesByTour) {
+        delete bestMatchesByTour[key];
+    }
 
         console.log("Все данные удалены.");
         alert("Все данные турнира удалены.");
@@ -1008,6 +1077,8 @@ function renderWinStreak(count) {
  * @param {number} tourIndex - Индекс тура для отображения.
  */
 async function displayTour(tourIndex) {
+    currentTourIndex = tourIndex;
+
     currentTourOutput.innerHTML = ''; // Очищаем предыдущий тур
 
     const currentTourMatches = await getMatchesByTour(tourIndex);
@@ -1185,7 +1256,128 @@ applyInlineColorSquare(colorSquare2, rawTeam2);
     });
 
     currentTourOutput.appendChild(table);
+
+    // ⭐ восстановление лучших матчей ДЛЯ ЭТОГО ТУРА
+    await renderBestMatchesForTour(tourIndex);
+
+    // ⚠️ initBestMatchesUI вызывается ВНУТРИ renderBestMatchesForTour
 }
+
+
+
+/* ==========================
+   ⭐ ЛУЧШИЕ МАТЧИ ТУРА
+========================== */
+
+function initBestMatchesUI() {
+    const slots = document.querySelectorAll('.best-match-slot');
+
+    slots.forEach(slot => {
+        const input = slot.querySelector('input');
+        if (!input) return;
+
+        input.addEventListener('change', async () => {
+    const matchNumber = parseInt(input.value, 10);
+    if (!matchNumber || matchNumber < 1) return;
+
+    const match = getMatchByNumberInCurrentTour(matchNumber);
+    if (!match) {
+        alert('Матч с таким номером не найден');
+        return;
+    }
+
+    const tourIndex = currentTourIndex;
+    if (!bestMatchesByTour[tourIndex]) {
+        bestMatchesByTour[tourIndex] = [];
+    }
+
+    const slotIndex = [...slot.parentNode.children].indexOf(slot);
+    bestMatchesByTour[tourIndex][slotIndex] = matchNumber;
+
+    // ✅ РЕАЛЬНО сохраняем в DB
+    await saveBestMatchesForTour(tourIndex, bestMatchesByTour[tourIndex]);
+
+    slot.innerHTML = buildBestMatchLine(match);
+  });
+ });
+}
+
+/* 🔎 получить матч по номеру в текущем туре */
+function getMatchByNumberInCurrentTour(number) {
+    const tourIndex = currentTourIndex;
+    const tourMatches = tournamentData.schedule[tourIndex];
+    if (!tourMatches) return null;
+
+    return tourMatches[number - 1] || null;
+}
+
+/* 🧱 построение строки */
+function buildBestMatchLine(match, matchNumber) {
+
+    const team1 = stripInlineColors(match.team1);
+    const team2 = stripInlineColors(match.team2);
+
+    const score =
+        match.score1 !== null && match.score2 !== null
+            ? `${match.score1} : ${match.score2}`
+            : '- : -';
+
+    const spotify1 = match.spotifyUrl1
+        ? `<a href="${match.spotifyUrl1}" target="_blank" class="spotify-link">S</a>`
+        : '';
+
+    const spotify2 = match.spotifyUrl2
+        ? `<a href="${match.spotifyUrl2}" target="_blank" class="spotify-link">S</a>`
+        : '';
+
+    return `
+    <div class="best-match-line">
+    <button class="remove-best-match">✕</button>
+    ${spotify1}
+
+    <div class="best-match-center">
+    <span class="team team-left">${team1}</span>
+    <span class="score">${score}</span>
+    <span class="team team-right">${team2}</span>
+</div>
+
+    ${spotify2}
+</div>
+`;
+}
+
+// логика удаления - крестик ❌ удаление лучшего матча
+document.addEventListener('click', async e => {
+    if (!e.target.classList.contains('remove-best-match')) return;
+
+    const slot = e.target.closest('.best-match-slot');
+    const slots = [...slot.parentNode.children];
+    const slotIndex = slots.indexOf(slot);
+
+    const tourIndex = currentTourIndex;
+
+    if (bestMatchesByTour[tourIndex]) {
+        bestMatchesByTour[tourIndex][slotIndex] = null;
+
+        // ✅ сохраняем после удаления
+        await saveBestMatchesForTour(
+            tourIndex,
+            bestMatchesByTour[tourIndex]
+        );
+    }
+
+    slot.innerHTML = '';
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = 1;
+    input.placeholder = '№ матча';
+    slot.appendChild(input);
+
+    initBestMatchesUI();
+});
+
+// ❌ УДАЛЕНО
+// восстановление лучших матчей выполняется ТОЛЬКО через IndexedDB
 
 /**
  * Создаёт маленькую кнопку [S]. Если url пустой — серый некликабельный квадратик.
@@ -1530,6 +1722,7 @@ function buildLayerBlend(colors) {
    🟩 ВЕРТИКАЛЬНЫЙ BLEND ДЛЯ HEX-Прямоугольников
    • 2–4 цвета
    • сверху вниз
+   • проценты/процентаж/полоски
 ========================== */
 function buildVerticalBlend(colors) {
 

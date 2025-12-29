@@ -281,7 +281,7 @@ textarea {
 /* Дисквалифицированные команды — но не покрашенные */
 .banned {
     text-decoration: line-through;
-    background-color: rgba(0, 0, 0, 0.533) !important; /* не hex */
+    background-color: rgba(0, 0, 0, 0.303) !important; /* не hex */
     font-style: italic; 
 }
 
@@ -608,4 +608,207 @@ body.teams-hidden .team-name {
 .match-teams.bye,
 .match-teams.technical {
     z-index: 1;
+}
+
+/* ==========================
+   ⭐ ЛУЧШИЕ МАТЧИ ТУРА
+========================== */
+
+.best-matches-wrapper {
+    margin: 20px auto;        /* центр по горизонтали */
+    padding: 12px;
+    background: #1f1f1f;
+    border-radius: 8px;
+
+    max-width: 50%;           /* ← ВАЖНО: в 2 раза уже */
+    overflow: hidden;         /* ← ВАЖНО: ничего не вылезет */
+}
+
+/* ==========================
+   🏷 ЗАГОЛОВОК "ЛУЧШИЕ МАТЧИ ТУРА"
+   ⬇️ ШРИФТ / ЖИРНОСТЬ МЕНЯЕШЬ ЗДЕСЬ
+========================== */
+
+/* контейнер для центрирования капсулы */
+.best-matches-header {
+    display: flex;
+    justify-content: center;   /* 🔥 ВСЕГДА ПО ЦЕНТРУ */
+    margin-bottom: 0px;        /* отступ под Лучшие матчи тура */
+}
+
+.best-matches-title {
+    display: inline-block;      /* ← чтобы был "бейдж", а не строка */
+    margin: 0 auto 12px;
+    padding: 6px 14px;
+
+    background: #2b2b2b;        /* ← фигура */
+    border-radius: 999px;       /* ← капсула */
+
+    font-family: 'JetBrains Mono', monospace; /* ← МЕНЯЕШЬ ШРИФТ ЗДЕСЬ */
+    font-size: 14px;
+    font-weight: 700;           /* ← ЖИРНОСТЬ */
+    letter-spacing: 0.3px;
+
+    color: #f0f0f0;
+    text-align: center;
+}
+
+/* контейнер слотов */
+.best-matches-slots {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* пустой слот */
+.best-match-slot {
+    background: #272727;
+    border-radius: 6px;
+    padding: 6px 8px;
+
+    width: 100%;
+    max-width: 100%;      /* 🔥 защита от перерастягивания */
+    box-sizing: border-box;
+
+    overflow: hidden;     /* 🔥 защита от вылезания */
+}
+
+/* input номера матча */
+.best-match-slot input {
+    width: 100%;
+    background: transparent;
+    border: 1px dashed #555;
+    border-radius: 4px;
+    padding: 6px;
+
+    color: #e6e6e6;
+    font-size: 14px;
+
+    text-align: center;          /* ⭐ ЦЕНТР текста и числа */
+    box-sizing: border-box; /* 🔥 не вылезает вправо */
+}
+
+.best-match-slot input:focus {
+    outline: none;
+    border-color: #ffffff;
+}
+
+.best-match-slot input::placeholder {
+    text-align: center;
+    color: #8a8a8a;              /* можно подправить оттенок */
+}
+
+.best-match-slot input::-webkit-outer-spin-button,
+.best-match-slot input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.best-match-line span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+}
+
+/* ==========================
+   🎼 СТРОКА ЛУЧШЕГО МАТЧА
+   ⬇️ ШРИФТ НАСТРАИВАЕТСЯ ЗДЕСЬ
+========================== */
+
+.best-match-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    width: 100%;
+    min-width: 0;
+
+    font-family: 'JetBrains Mono', monospace; /* ← МЕНЯЕШЬ шрифт ЗДЕСЬ */
+    font-size: 14px;
+    color: #e6e6e6;
+}
+
+/* расстояние от команды до счёта */
+
+.best-match-line .score {
+    flex-shrink: 0;        /* ← НЕ СЖИМАТЬ */
+    margin: 0 16px;        /* ← УВЕЛИЧИВАЕШЬ ЗДЕСЬ */
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* spotify */
+.best-match-line .spotify-link {
+    flex-shrink: 0;
+    margin: 0 6px;
+}
+
+/* ❌ КНОПКА УДАЛЕНИЯ ЛУЧШЕГО МАТЧА (крестик) */
+
+.remove-best-match {
+    width: 23px;
+    height: 23px;
+
+    flex-shrink: 0;        /* 🔥 ВАЖНО */
+
+    background: #7cb03e;
+    border: none;
+    border-radius: 4px;
+
+    color: #000;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+    padding: 0;
+}
+
+.remove-best-match:hover {
+    background: #8fd14a;
+}
+
+/* ЦЕНТР */
+
+.best-match-center {
+    flex: 1;
+    min-width: 0;              /* 🔥 ОБЯЗАТЕЛЬНО для flex */
+
+    display: grid;                       /* 🔥 GRID */
+    grid-template-columns: 1fr auto 1fr; /* 🔥 ОБЩАЯ КОЛОНКА СЧЁТА */
+    justify-content: center;
+
+    gap: 24px;
+
+    max-width: 100%;           /* 🔥 */
+    overflow: hidden;
+}
+
+.best-match-center .team {
+    min-width: 0;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    white-space: normal;
+    word-break: break-word;
+}
+
+.best-match-center .team.team-left {
+    text-align: right;
+}
+
+.best-match-center .team.team-right {
+    text-align: left;
+}
+
+.best-match-center .score {
+    white-space: nowrap;
+    font-weight: 600;
+    color: #ffffff;
 }
