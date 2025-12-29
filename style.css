@@ -199,26 +199,63 @@ textarea {
     cursor: pointer;
 }
 
+:root {
+    --team-gap-s: 12px;       /* расстояние между S и текстом */
+    --team-gap-score: 12px;   /* не используется */
+    }
+
 #fullScheduleModal .match {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr 80px 1fr;
     align-items: center;
+
     padding: 12px 0;
     border-bottom: 1px solid #333;
-    gap: 15px;
 }
 
 #fullScheduleModal .match-teams {
+    display: grid;
+    grid-template-columns: auto 1fr; /* hex | content */
+    align-items: center;
+
+    column-gap: 1px;
+    min-width: 0;
+}
+
+/* --- TEAM CONTENT (СТРОГАЯ ГЕОМЕТРИЯ) --- */
+
+#fullScheduleModal .team-content {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    min-width: 0;
+}
+
+#fullScheduleModal .team-name {
+    text-align: center;
+    white-space: normal;
+    min-width: 0;
 }
 
 #fullScheduleModal .score-display {
     font-size: 1.2rem;
-    min-width: 70px;
+    text-align: center;
+
+    justify-self: center;     /* 🔥 */
+    white-space: nowrap;
+}
+
+#fullScheduleModal .color-square {
+    width: 24px;
+    height: 55px;
+    justify-self: center;
+    align-self: center;
+}
+
+#fullScheduleModal .spotify-link {
     text-align: center;
 }
+
 
 /* Адаптация под телефоны */
 @media (max-width: 750px) {

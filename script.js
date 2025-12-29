@@ -1465,6 +1465,12 @@ async function renderFullScheduleModal() {
         return;
     }
 
+    function createGap(size = 12) {
+    const gap = document.createElement('div');
+    gap.className = `grid-gap gap-${size}`;
+    return gap;
+}
+
     // Загрузим все матчи для полноты
     const transaction = db.transaction(['schedule'], 'readonly');
     const store = transaction.objectStore('schedule');
@@ -1514,13 +1520,22 @@ async function renderFullScheduleModal() {
                     const spotify1Link = match.spotifyUrl1 ? `<a href="${match.spotifyUrl1}" target="_blank" class="spotify-link">S</a>` : '<span class="spotify-link disabled">S</span>';
                     const spotify2Link = match.spotifyUrl2 ? `<a href="${match.spotifyUrl2}" target="_blank" class="spotify-link">S</a>` : '<span class="spotify-link disabled">S</span>';
 
-                    const team1Display = match.isBye
-    ? 'BYE'
-    : stripInlineColors(match.team1);
+let team1Display = '';
+let team2Display = '';
 
-const team2Display = match.isBye
-    ? 'BYE'
-    : stripInlineColors(match.team2);
+if (match.isBye && !match.technical) {
+    // 🟡 ПРОПУСК ТУРА
+    team1Display = stripInlineColors(match.team1);
+    team2Display = 'BYE';
+} else if (match.isBye && match.technical) {
+    // ❌ ДИСКВАЛИФИКАЦИЯ
+    team1Display = `${stripInlineColors(match.team1)} (❌)`;
+    team2Display = `${stripInlineColors(match.team2)} (❌)`;
+} else {
+    // ✅ ОБЫЧНЫЙ МАТЧ
+    team1Display = stripInlineColors(match.team1);
+    team2Display = stripInlineColors(match.team2);
+}
 
 // ====== КОМАНДА 1 ======
 const team1Div = document.createElement('div');
@@ -1530,12 +1545,16 @@ const colorSquare1 = document.createElement('div');
 colorSquare1.className = 'color-square';
 team1Div.appendChild(colorSquare1);
 
+const team1Content = document.createElement('div');
+team1Content.className = 'team-content';
+team1Content.insertAdjacentHTML('beforeend', spotify1Link);
+
 const team1Span = document.createElement('span');
 team1Span.className = 'team-name';
 team1Span.textContent = team1Display;
-team1Div.appendChild(team1Span);
+team1Content.appendChild(team1Span);
 
-team1Div.insertAdjacentHTML('beforeend', spotify1Link);
+team1Div.appendChild(team1Content);
 
 // ====== СЧЁТ ======
 const scoreDiv = document.createElement('div');
@@ -1550,19 +1569,26 @@ const colorSquare2 = document.createElement('div');
 colorSquare2.className = 'color-square';
 team2Div.appendChild(colorSquare2);
 
+// 🔥 НОВЫЙ КОНТЕЙНЕР
+const team2Content = document.createElement('div');
+team2Content.className = 'team-content';
+
+// Название — ПЕРВЫМ
 const team2Span = document.createElement('span');
 team2Span.className = 'team-name';
 team2Span.textContent = team2Display;
-team2Div.appendChild(team2Span);
+team2Content.appendChild(team2Span);
 
-team2Div.insertAdjacentHTML('beforeend', spotify2Link);
+// Spotify S — ВТОРЫМ
+team2Content.insertAdjacentHTML('beforeend', spotify2Link);
 
-// ====== ВСТАВКА В МАТЧ ======
+team2Div.appendChild(team2Content);
+
+// ====== ВСТАВКА ======
 matchDiv.appendChild(team1Div);
 matchDiv.appendChild(scoreDiv);
 matchDiv.appendChild(team2Div);
 
-// 🔥 ЦВЕТА — ПО СЫРОЙ СТРОКЕ
 applyInlineColorSquare(colorSquare1, match.team1);
 applyInlineColorSquare(colorSquare2, match.team2);
 
