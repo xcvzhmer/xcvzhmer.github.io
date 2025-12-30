@@ -713,10 +713,13 @@ rows.forEach(r => {
 });
 
 // получаем настройки зон
-const yellowFrom = settings?.yellowZone?.from;
-const yellowTo   = settings?.yellowZone?.to;
-const redFrom    = settings?.redZone?.from;
-const redTo      = settings?.redZone?.to;
+// получаем настройки зон
+const zones = settings?.relegationZones;
+
+const yellowFrom = zones?.yellow?.from;
+const yellowTo   = zones?.yellow?.to;
+const redFrom    = zones?.red?.from;
+const redTo      = zones?.red?.to;
 
 rows.forEach((r, idx) => {
     const pos = idx + 1;
@@ -745,6 +748,7 @@ rows.forEach((r, idx) => {
 
     // ← ← ← ДОБАВИТЬ ЭТУ СТРОКУ
     await repaintStandingsBannedRows();
+    await restoreRelegationZonesUI();
 
     getAllRequest.onerror = (event) => {
         console.error("Ошибка при загрузке всех матчей для расчета статистики:", event.target.error);
@@ -2017,19 +2021,24 @@ async function checkTourStatsAndDisplay(tourIndex) {
     let totalScore4Matches = 0;
 
     currentTourMatches.forEach(match => {
-        if (!match.isBye) {
-            if (match.score1 === null || match.score2 === null) {
-                unfilledScores++;
-            } else {
-                if (match.score1 === match.score2) {
-                    draws++;
-                }
-                if (match.score1 + match.score2 === 4) {
-                    totalScore4Matches++;
-                }
+    if (!match.isBye) {
+        if (match.score1 === null || match.score2 === null) {
+            unfilledScores++;
+        } else {
+            if (match.score1 === match.score2) {
+                draws++;
+            }
+
+            // ✅ тотал 4, но НЕ ничья 2:2
+            if (
+                match.score1 + match.score2 === 4 &&
+                match.score1 !== match.score2
+            ) {
+                totalScore4Matches++;
             }
         }
-    });
+    }
+});
 
     if (unfilledScores > 0) {
         statsMessage += `Есть ${unfilledScores} незаполненных матчей. `;
@@ -2322,6 +2331,25 @@ function validateRelegationZones(yellow, red, totalTeams) {
     }
 
     return true;
+}
+
+// ===============================
+// Restore relegation zones on load
+// ===============================
+async function restoreRelegationZonesUI() {
+    const zones = await loadRelegationZones();
+
+    if (zones.yellow) {
+        yellowFrom.value = zones.yellow.from ?? "";
+        yellowTo.value   = zones.yellow.to ?? "";
+    }
+
+    if (zones.red) {
+        redFrom.value = zones.red.from ?? "";
+        redTo.value   = zones.red.to ?? "";
+    }
+
+    await applyRelegationZonesToStandings();
 }
 
 /**

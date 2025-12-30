@@ -220,6 +220,7 @@ textarea {
 
     column-gap: 1px;
     min-width: 0;
+    align-items: stretch; /* 🔥 запрещаем вертикальное схлопывание */
 }
 
 /* --- TEAM CONTENT (СТРОГАЯ ГЕОМЕТРИЯ) --- */
@@ -247,9 +248,13 @@ textarea {
 
 #fullScheduleModal .color-square {
     width: 24px;
-    height: 55px;
-    justify-self: center;
-    align-self: center;
+    height: 30px;
+
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+
+    justify-self: stretch;   /* 🔥 ВАЖНО */
+    align-self: stretch;     /* 🔥 ВАЖНО */
 }
 
 #fullScheduleModal .spotify-link {
