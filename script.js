@@ -378,28 +378,46 @@ async function renderBestMatchesForTour(tourIndex) {
     const slotsData = await loadBestMatchesForTour(tourIndex);
 
     // ✅ КРИТИЧЕСКИ ВАЖНО — восстанавливаем кэш
-    bestMatchesByTour[tourIndex] = slotsData;
+    bestMatchesByTour[tourIndex] = Array.isArray(slotsData)
+    ? slotsData
+    : [];
 
     const slots = document.querySelectorAll('.best-match-slot');
 
-    slots.forEach((slot, idx) => {
-        slot.innerHTML = '';
+for (let idx = 0; idx < slots.length; idx++) {
+    const slot = slots[idx];
+    slot.innerHTML = '';
 
-        const matchNumber = slotsData[idx];
-        if (!matchNumber) {
-            const input = document.createElement('input');
-            input.type = 'number';
-            input.min = 1;
-            input.placeholder = '№ матча';
-            slot.appendChild(input);
-            return;
-        }
+    const matchNumber = slotsData[idx];
+    if (!matchNumber) {
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.min = 1;
+        input.placeholder = '№ матча';
+        slot.appendChild(input);
+        continue;
+    }
 
-        const match = getMatchByNumberInCurrentTour(matchNumber);
-        if (!match) return;
+    const match = getMatchByNumberInCurrentTour(matchNumber);
 
-        slot.innerHTML = buildBestMatchLine(match);
-    });
+    if (!match) {
+        // ⚠️ матч устарел — сбрасываем слот
+        bestMatchesByTour[tourIndex][idx] = null;
+        await saveBestMatchesForTour(
+            tourIndex,
+            bestMatchesByTour[tourIndex]
+        );
+
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.min = 1;
+        input.placeholder = '№ матча';
+        slot.appendChild(input);
+        continue;
+    }
+
+    slot.innerHTML = buildBestMatchLine(match);
+}
 
     initBestMatchesUI();
 }
@@ -987,6 +1005,17 @@ for (let round = 0; round < totalTours; round++) {
 
     console.log(`Расписание сгенерировано (${totalTours} туров, ${numMatchesPerTour} матчей за тур).`);
     alert(`Расписание сгенерировано (${totalTours} туров).`);
+
+    // 🧹 сброс лучших матчей после генерации нового расписания
+{
+    const tx = db.transaction(['bestMatches'], 'readwrite');
+    const store = tx.objectStore('bestMatches');
+    store.clear();
+}
+
+for (const key in bestMatchesByTour) {
+    delete bestMatchesByTour[key];
+}
 
     // Обновляем UI
     updateTourNavigation();
