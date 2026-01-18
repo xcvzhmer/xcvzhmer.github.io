@@ -10,6 +10,8 @@ const DB_NAME = 'tournamentDB';
 const DB_VERSION = 2;
 let db; // Переменная для объекта базы данных IndexedDB
 let currentTourIndex = null;
+// 🎯 активный фильтр по счёту
+let activeScoreFilter = null;
 
 // --- Элементы DOM ---
 const teamsInput = document.getElementById('teamsInput');
@@ -1175,6 +1177,8 @@ async function displayTour(tourIndex) {
     `;
 
     currentTourMatches.forEach((match, matchIndex) => {
+        // 🎯 ФИЛЬТР ПО СЧЁТУ
+    if (!matchPassesScoreFilter(match)) return;
         const row = tbody.insertRow();
         row.dataset.matchId = match.id; // Добавляем ID матча для удобства
 
@@ -1309,13 +1313,65 @@ applyInlineColorSquare(colorSquare2, rawTeam2);
 
     currentTourOutput.appendChild(table);
 
-    // ⭐ восстановление лучших матчей ДЛЯ ЭТОГО ТУРА
+    // ⭐ лучшие матчи перерисовываем ТОЛЬКО если фильтр выключен
+if (!activeScoreFilter) {
     await renderBestMatchesForTour(tourIndex);
+}
 
     // ⚠️ initBestMatchesUI вызывается ВНУТРИ renderBestMatchesForTour
 }
 
+function matchPassesScoreFilter(match) {
+    if (!activeScoreFilter) return true;
 
+    if (
+        match.score1 === null ||
+        match.score2 === null ||
+        match.isBye
+    ) return false;
+
+    const a = match.score1;
+    const b = match.score2;
+
+    const min = Math.min(a, b);
+    const max = Math.max(a, b);
+
+    switch (activeScoreFilter) {
+
+    case '3:0':
+        return max === 3 && min === 0;
+
+    case '2:1':
+        return max === 2 && min === 1;
+
+    case '2:2':
+        // ✅ ЛЮБАЯ НИЧЬЯ
+        return a === b;
+
+    case '4:0':
+        // ✅ ТОЛЬКО тотал 4, но не 2:2
+        return (
+            (max === 4 && min === 0) ||
+            (max === 3 && min === 1)
+        );
+
+    case 'other':
+        return !(
+            // 3:0
+            (max === 3 && min === 0) ||
+            // 2:1
+            (max === 2 && min === 1) ||
+            // любая ничья
+            (a === b) ||
+            // тотал 4 (4:0, 3:1)
+            (max === 4 && min === 0) ||
+            (max === 3 && min === 1)
+        );
+
+    default:
+        return true;
+  }
+}
 
 /* ==========================
    ⭐ ЛУЧШИЕ МАТЧИ ТУРА
@@ -1552,6 +1608,8 @@ async function renderFullScheduleModal() {
                 tourBlock.innerHTML += '<p>Нет матчей в этом туре.</p>';
             } else {
                 tour.forEach((match, matchIndex) => {
+                    // 🎯 фильтр по счёту
+                    if (!matchPassesScoreFilter(match)) return;
                     const matchDiv = document.createElement('div');
                     matchDiv.classList.add('match');
 
@@ -2809,6 +2867,35 @@ function parseArtistAndTrack(line) {
 
     return { artist, track };
 }
+
+// 🎯 управление фильтром по счёту
+document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.score-filter-btn');
+    if (!btn) return;
+
+    const value = btn.dataset.score;
+
+document.querySelectorAll('.score-filter-btn')
+    .forEach(b => b.classList.remove('active'));
+
+if (value === 'all') {
+    activeScoreFilter = null;
+    btn.classList.add('active');
+} else {
+    activeScoreFilter = value;
+    btn.classList.add('active');
+
+    // снимаем активность с "Все"
+    document
+        .querySelector('.score-filter-btn.all')
+        ?.classList.remove('active');
+}
+
+    // ⚠️ если тур ещё не показан — ничего не делаем
+if (currentTourIndex === null) return;
+    // перерисовываем текущий тур
+    await displayTour(currentTourIndex);
+});
 
 // ==========================
 // 🔍 T9 поиск по артисту

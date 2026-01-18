@@ -895,3 +895,68 @@ body.teams-hidden .team-name {
 .form-icons span {
     display: inline-block;
 }
+
+/* ==========================
+   🎯 ФИЛЬТР МАТЧЕЙ ПО СЧЁТУ
+========================== */
+
+.score-filter {
+    margin: 12px 0 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.score-filter-title {
+    font-size: 0.85rem;
+    color: #bdbdbd;
+}
+
+.score-filter-buttons {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.score-filter-btn {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    background-color: #3a3a3a;
+    color: #e0e0e0;
+    border: 1px solid #555;
+    cursor: pointer;
+}
+
+.score-filter-btn:hover {
+    background-color: #4a4a4a;
+}
+
+.score-filter-btn.active {
+    background-color: #8bc34a;
+    color: #121212;
+    border-color: #8bc34a;
+}
+
+.score-filter {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+}
+
+.score-filter-btn {
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: #2a2a2a;
+    color: #e0e0e0;
+    border: 1px solid #444;
+    cursor: pointer;
+}
+
+.score-filter-btn.active {
+    background: #4caf50;
+    color: #000;
+    font-weight: 600;
+}
