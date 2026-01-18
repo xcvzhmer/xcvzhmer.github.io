@@ -960,3 +960,24 @@ body.teams-hidden .team-name {
     color: #000;
     font-weight: 600;
 }
+
+/* фильтр таблицы | кнопки 6 верхние */
+
+.standings-focus-controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.standings-focus-controls button {
+    padding: 4px 6px;
+    cursor: pointer;
+}
+
+.custom-range-inputs {
+    grid-column: span 3;
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+}

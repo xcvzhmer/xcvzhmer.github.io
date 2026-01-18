@@ -12,6 +12,9 @@ let db; // Переменная для объекта базы данных Inde
 let currentTourIndex = null;
 // 🎯 активный фильтр по счёту
 let activeScoreFilter = null;
+// Standings visibility filter
+let activeStandingsRange = null;
+// { from: number, to: number } | null
 
 // --- Элементы DOM ---
 const teamsInput = document.getElementById('teamsInput');
@@ -769,6 +772,7 @@ rows.forEach((r, idx) => {
     // ← ← ← ДОБАВИТЬ ЭТУ СТРОКУ
     await repaintStandingsBannedRows();
     await restoreRelegationZonesUI();
+    applyStandingsVisibilityFilter();
 
     getAllRequest.onerror = (event) => {
         console.error("Ошибка при загрузке всех матчей для расчета статистики:", event.target.error);
@@ -2325,6 +2329,67 @@ if (applyYellowBtn && applyRedBtn) {
     });
 }
 
+// ===============================
+// Standings focus buttons
+// ===============================
+document.querySelectorAll('.standings-focus-controls button[data-range]')
+.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const type = btn.dataset.range;
+
+        const total = document.querySelectorAll("#standingsBody tr").length;
+
+        if (type === 'all') {
+            activeStandingsRange = null;
+        }
+
+        else if (type === '100') {
+            activeStandingsRange = total >= 100 ? { from: 1, to: 100 } : null;
+        }
+
+        else if (type === '40') {
+            activeStandingsRange = total >= 40 ? { from: 1, to: 40 } : null;
+        }
+
+        else if (type === '10') {
+            activeStandingsRange = total >= 10 ? { from: 1, to: 10 } : null;
+        }
+
+        else if (type === 'nq') {
+            activeStandingsRange = total >= 150 ? { from: 101, to: 150 } : null;
+        }
+
+        else if (type === 'custom') {
+            document.querySelector('.custom-range-inputs').style.display = 'flex';
+            return;
+        }
+
+        document.querySelector('.custom-range-inputs').style.display = 'none';
+        applyStandingsVisibilityFilter();
+    });
+});
+
+// Custom range apply
+document.getElementById('applyCustomRange')?.addEventListener('click', () => {
+    const from = parseInt(document.getElementById('customFrom').value);
+    const to   = parseInt(document.getElementById('customTo').value);
+    const total = document.querySelectorAll("#standingsBody tr").length;
+
+    if (
+        !Number.isInteger(from) ||
+        !Number.isInteger(to) ||
+        from < 1 ||
+        to > total ||
+        from > to
+    ) {
+        alert("Некорректный диапазон");
+        return;
+    }
+
+    activeStandingsRange = { from, to };
+    applyStandingsVisibilityFilter();
+});
+
 // --- Обработчики событий ---
 
 // Кнопка "Сгенерировать"
@@ -2460,6 +2525,34 @@ async function applyRelegationZonesToStandings() {
             place <= zones.red.to
         ) {
             row.classList.add("relegation");
+        }
+    });
+}
+
+function applyStandingsVisibilityFilter() {
+    const rows = document.querySelectorAll("#standingsBody tr");
+    const total = rows.length;
+
+    rows.forEach((row, index) => {
+        const place = index + 1;
+
+        if (!activeStandingsRange) {
+            row.style.display = "";
+            return;
+        }
+
+        const { from, to } = activeStandingsRange;
+
+        // если таблица меньше диапазона — показываем всё
+        if (total < from) {
+            row.style.display = "";
+            return;
+        }
+
+        if (place >= from && place <= to) {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
         }
     });
 }
