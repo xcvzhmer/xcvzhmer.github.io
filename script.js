@@ -1043,30 +1043,49 @@ async function renderFormStandingsFromDB() {
         const { win, clean, golden } = await getStreaksFromDB(team);
 
         let gf = 0, ga = 0;
-        const formIcons = [];
+const formItems = [];
 
-        for (const m of matches) {
-            const scored   = m.team1 === team ? m.score1 : m.score2;
-            const conceded = m.team1 === team ? m.score2 : m.score1;
+for (const m of matches) {
+    const isTeamLeft = m.team1 === team;
 
-            gf += scored;
-            ga += conceded;
+const leftTeam  = stripInlineColors(team);
+const rightTeam = stripInlineColors(isTeamLeft ? m.team2 : m.team1);
 
-            if (scored > conceded) formIcons.push('✅');
-            else if (scored < conceded) formIcons.push('❌');
-            else formIcons.push('🟨');
-        }
+const leftGoals  = isTeamLeft ? m.score1 : m.score2;
+const rightGoals = isTeamLeft ? m.score2 : m.score1;
 
-        rows.push({
-            team,
-            win,
-            clean,
-            golden,
-            form: formIcons.join(''),
-            gf,
-            ga,
-            diff: gf - ga
-        });
+const scored   = leftGoals;
+const conceded = rightGoals;
+
+    gf += scored;
+    ga += conceded;
+
+    let icon = '🟨';
+    if (scored > conceded) icon = '✅';
+    else if (scored < conceded) icon = '❌';
+
+    const title = `${m.tourIndex + 1} тур, ${leftTeam} ${leftGoals} – ${rightGoals} ${rightTeam}`;
+
+    formItems.push({
+        icon,
+        title
+    });
+}
+
+        const formHtml = formItems
+    .map(item => `<span title="${item.title}">${item.icon}</span>`)
+    .join('');
+
+    rows.push({
+    team,
+    win,
+    clean,
+    golden,
+    form: formHtml,
+    gf,
+    ga,
+    diff: gf - ga
+    });
     }
 
     // сортировка по разнице за последние 5 матчей
@@ -2104,8 +2123,9 @@ async function checkTourStatsAndDisplay(tourIndex) {
    📊 ПРОГРЕСС ЗАПОЛНЕННОСТИ ТУРА
 ========================== */
 async function updateTourCompletionIndicator(tourIndex) {
+        const wrapper = document.getElementById('tourCompletionWrapper');
     const bar = document.getElementById('tourCompletionBar');
-    if (!bar) return;
+    if (!wrapper || !bar) return;
 
     const matches = await getMatchesByTour(tourIndex);
     if (!matches || matches.length === 0) {
@@ -2113,7 +2133,7 @@ async function updateTourCompletionIndicator(tourIndex) {
         return;
     }
 
-    let completed = 0;
+        let completed = 0;
 
     matches.forEach(match => {
 
@@ -2128,8 +2148,11 @@ async function updateTourCompletionIndicator(tourIndex) {
         }
     });
 
-    const percent = Math.round((completed / matches.length) * 100);
+    const total = matches.length;
+    const percent = Math.round((completed / total) * 100);
+
     bar.style.width = `${percent}%`;
+    wrapper.title = `${completed} из ${total} (${percent}%)`;
 }
 
 /**

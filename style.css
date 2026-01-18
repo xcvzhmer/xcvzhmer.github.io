@@ -872,6 +872,7 @@ body.teams-hidden .team-name {
     background: #2a2a2a;
     border-radius: 4px;
     overflow: hidden;
+    cursor: pointer;          /* 👈 важно */
 }
 
 #tourCompletionBar {
@@ -883,4 +884,14 @@ body.teams-hidden .team-name {
         #8bc34a
     );
     transition: width 0.35s ease;
+}
+
+/* === ФОРМА: ВСЕ 5 СИМВОЛОВ В ОДНУ СТРОКУ === */
+.form-icons {
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.form-icons span {
+    display: inline-block;
 }
