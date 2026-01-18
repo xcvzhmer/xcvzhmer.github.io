@@ -2023,6 +2023,7 @@ async function handleSaveOrUpdateScore(event) {
 
         // Проверка статистики тура
         await checkTourStatsAndDisplay(tournamentData.currentTourIndex);
+        updateTourCompletionIndicator(tournamentData.currentTourIndex);
 
         // Обновляем UI модального окна, если оно открыто
         if (fullScheduleModal.style.display === 'block') {
@@ -2088,6 +2089,47 @@ async function checkTourStatsAndDisplay(tourIndex) {
     } else {
         tourStatsDiv.classList.remove('error');
     }
+}
+
+async function checkTourStatsAndDisplay(tourIndex) {
+    let statsMessage = "";
+    let isError = false;
+
+    const currentTourMatches = await getMatchesByTour(tourIndex);
+    // ...
+    tourStatsDiv.innerHTML = statsMessage ? `<span class="${isError ? 'error' : ''}">${statsMessage.trim()}</span>` : "Статистика тура: OK";
+}
+
+/* ==========================
+   📊 ПРОГРЕСС ЗАПОЛНЕННОСТИ ТУРА
+========================== */
+async function updateTourCompletionIndicator(tourIndex) {
+    const bar = document.getElementById('tourCompletionBar');
+    if (!bar) return;
+
+    const matches = await getMatchesByTour(tourIndex);
+    if (!matches || matches.length === 0) {
+        bar.style.width = '0%';
+        return;
+    }
+
+    let completed = 0;
+
+    matches.forEach(match => {
+
+        // ✅ BYE и технички считаем завершёнными
+        if (match.isBye) {
+            completed++;
+            return;
+        }
+
+        if (match.score1 !== null && match.score2 !== null) {
+            completed++;
+        }
+    });
+
+    const percent = Math.round((completed / matches.length) * 100);
+    bar.style.width = `${percent}%`;
 }
 
 /**
@@ -2223,6 +2265,7 @@ generateBtn.addEventListener('click', async () => {
         await displayTour(0);
         updateTourNavigation();
         enableButtons();
+        updateTourCompletionIndicator(0);
     } catch (error) {
         console.error("Ошибка при генерации расписания:", error);
         alert("Не удалось сгенерировать расписание.");
@@ -2239,6 +2282,8 @@ prevTourBtn.addEventListener('click', async () => {
         await displayTour(tournamentData.currentTourIndex);
         updateTourNavigation();
         await checkTourStatsAndDisplay(tournamentData.currentTourIndex);
+    updateTourCompletionIndicator(tournamentData.currentTourIndex);
+
         // Сохраняем текущий индекс тура
         await saveSettings({ ...await loadSettings(), currentTourIndex: tournamentData.currentTourIndex });
     }
