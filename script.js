@@ -14,6 +14,8 @@ let currentTourIndex = null;
 let activeScoreFilter = null;
 // 🎯 активный фильтр таблицы
 let activeStandingsRange = null;
+// 🎯 feat. / solo
+let activeStandingsArtistType = null; 
 // 🎯 активный фильтр по Артисту
 let activeArtistFilter = null;
 let artistFilterInitialized = false;
@@ -703,10 +705,15 @@ async function renderStandingsFromDB() {
         sortedTeams.forEach((teamName, index) => {
     const stats = standings[teamName];
     const row = standingsBody.insertRow();
+
+    // ⬇⬇⬇ ВАЖНО: сохраняем ИСХОДНОЕ имя трека ⬇⬇⬇
+    row.dataset.track = teamName;
+    // ⬆⬆⬆ ЭТО КЛЮЧЕВАЯ СТРОКА ⬆⬆⬆
+
     // пометка стиля для inactive команд
     const isInactive = !!inactiveMap[teamName];
     if (isInactive) {
-        row.classList.add('bye-match'); // для визуального выделения
+        row.classList.add('bye-match');
         row.style.textDecoration = 'line-through';
     }
 
@@ -2356,37 +2363,54 @@ if (applyYellowBtn && applyRedBtn) {
 initArtistFilter();
 initArtistFilterT9();
 
-document.querySelectorAll('.standings-focus-controls button[data-range]')
+document.querySelectorAll('.standings-focus-controls button')
 .forEach(btn => {
     btn.addEventListener('click', () => {
-        const type = btn.dataset.range;
 
-        const total = document.querySelectorAll("#standingsBody tr").length;
+        const range = btn.dataset.range;
+        const artistType = btn.dataset.artistType;
 
-        if (type === 'all') {
-            activeStandingsRange = null;
-        }
+        // feat. / solo
+        if (artistType) {
+            activeStandingsArtistType = artistType;
 
-        else if (type === '100') {
-            activeStandingsRange = total >= 100 ? { from: 1, to: 100 } : null;
-        }
+            document
+                .querySelectorAll('.standings-focus-controls button[data-artist-type]')
+                .forEach(b => b.classList.remove('active'));
 
-        else if (type === '40') {
-            activeStandingsRange = total >= 40 ? { from: 1, to: 40 } : null;
-        }
-
-        else if (type === '10') {
-            activeStandingsRange = total >= 10 ? { from: 1, to: 10 } : null;
-        }
-
-        else if (type === 'nq') {
-            activeStandingsRange = total >= 150 ? { from: 101, to: 150 } : null;
-        }
-
-        else if (type === 'custom') {
-            document.querySelector('.custom-range-inputs').style.display = 'flex';
+            btn.classList.add('active');
+            applyStandingsVisibilityFilter();
             return;
         }
+
+        // диапазоны
+        const total = document.querySelectorAll("#standingsBody tr").length;
+
+        if (range === 'all') {
+            activeStandingsRange = null;
+            activeStandingsArtistType = null;
+        }
+
+        else if (range === '100') {
+    activeStandingsRange = total >= 100 ? { from: 1, to: 100 } : null;
+    }
+
+        else if (range === '40') {
+    activeStandingsRange = total >= 40 ? { from: 1, to: 40 } : null;
+    }
+
+        else if (range === '10') {
+    activeStandingsRange = total >= 10 ? { from: 1, to: 10 } : null;
+    }
+
+        else if (range === 'nq') {
+    activeStandingsRange = total >= 150 ? { from: 101, to: 150 } : null;
+    }
+
+    else if (range === 'custom') {
+    document.querySelector('.custom-range-inputs').style.display = 'flex';
+    return;
+    }
 
         document.querySelector('.custom-range-inputs').style.display = 'none';
         applyStandingsVisibilityFilter();
@@ -2553,31 +2577,74 @@ async function applyRelegationZonesToStandings() {
     });
 }
 
+function isFeatTrack(name) {
+    if (!name) return false;
+
+    const n = name.toLowerCase();
+
+    // разделители артистов
+    return (
+        n.includes(' feat.') ||
+        n.includes(' feat ') ||
+        n.includes(',') ||
+        n.includes(' x ') ||
+        n.includes(' х ') ||
+        n.includes('&')
+    );
+}
+
 function applyStandingsVisibilityFilter() {
+
+    // все строки таблицы standings
     const rows = document.querySelectorAll("#standingsBody tr");
     const total = rows.length;
 
     rows.forEach((row, index) => {
+
+        // место в таблице (1, 2, 3...)
         const place = index + 1;
 
-        if (!activeStandingsRange) {
-            row.style.display = "";
-            return;
+        let visible = true;
+
+        // ФИЛЬТР ПО ДИАПАЗОНУ
+        // (Все / 100 / 40 / 10 / NQ / Custom)
+        if (activeStandingsRange) {
+
+            const { from, to } = activeStandingsRange;
+
+            // если таблица меньше диапазона — ничего не скрываем
+            if (total >= from) {
+
+                // если место не входит в диапазон
+                if (place < from || place > to) {
+                    visible = false;
+                }
+            }
         }
 
-        const { from, to } = activeStandingsRange;
+        // ПОЛУЧАЕМ ИМЯ ТРЕКА
+        const trackName =
+            row.dataset.track ||        // ← ИСХОДНОЕ НАЗВАНИЕ (ВАЖНО)
+            row.dataset.team ||         // запасной вариант
+            row.querySelector('.team-name')?.textContent ||
+            "";
 
-        // если таблица меньше диапазона — показываем всё
-        if (total < from) {
-            row.style.display = "";
-            return;
+        // ФИЛЬТР FEAT.
+        if (activeStandingsArtistType === 'feat') {
+            if (!isFeatTrack(trackName)) {
+                visible = false;
+            }
         }
 
-        if (place >= from && place <= to) {
-            row.style.display = "";
-        } else {
-            row.style.display = "none";
+        // ФИЛЬТР SOLO
+        if (activeStandingsArtistType === 'solo') {
+            if (isFeatTrack(trackName)) {
+                visible = false;
+            }
         }
+
+        // применяем видимость
+        row.style.display = visible ? "" : "none";
     });
 }
 
@@ -2983,6 +3050,18 @@ function parseArtistAndTrack(line) {
     const artist = normalized.slice(0, match.index).trim();
 
     return { artist, track };
+}
+
+function getArtistPart(trackName) {
+    if (!trackName) return '';
+    return trackName.split('–')[0].trim();
+}
+
+function isFeatTrack(trackName) {
+    const artistPart = getArtistPart(trackName).toLowerCase();
+
+    // единый regex для feat
+    return /,|\sx\s|\sх\s|&|\sfeat\.?\s|\sft\.?\s/.test(artistPart);
 }
 
 // 🎯 управление фильтром по счёту

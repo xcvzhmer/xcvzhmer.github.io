@@ -1050,3 +1050,20 @@ body.teams-hidden .team-name {
     text-align: center;         /* центр */
     line-height: normal;
 }
+
+/* кнопки feat. / solo в standings */
+.standings-focus-controls button[data-artist-type] {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    background-color: #3a3a3a;
+    color: #e0e0e0;
+    border: 1px solid #555;
+    cursor: pointer;
+}
+
+.standings-focus-controls button[data-artist-type].active {
+    background-color: #8bc34a;
+    color: #121212;
+    border-color: #8bc34a;
+}
