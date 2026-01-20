@@ -384,7 +384,7 @@ textarea {
     align-items: center;
 }
 
-/* === Поиск по артисту === */
+/* === T9 Поиск по артисту Т9 === */
 .artist-search {
     margin-top: 14px;
     display: flex;
@@ -431,7 +431,7 @@ textarea {
     background-color: #3a3a3a;
 }
 
-/* === Поиск артиста + список треков === */
+/* === Поиск aртиста + список треков === */
 .artist-search-wrapper {
     display: flex;
     gap: 20px;
@@ -441,7 +441,7 @@ textarea {
     margin-bottom: 25px;
 }
 
-/* === Блок треков артиста === */
+/* === Блок треков aртиста === */
 .artist-tracks {
     min-width: 260px;
     max-width: 320px;
@@ -859,11 +859,11 @@ body.teams-hidden .team-name {
    📊 ИНДИКАТОР ЗАПОЛНЕННОСТИ ТУРА
 ========================== */
 
-.tour-visual-controls {
+.tour-visual-top {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin: 10px 0 16px;
+    width: 100%;
 }
 
 #tourCompletionWrapper {
@@ -940,12 +940,6 @@ body.teams-hidden .team-name {
     border-color: #8bc34a;
 }
 
-.score-filter {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-}
-
 .score-filter-btn {
     padding: 6px 10px;
     border-radius: 6px;
@@ -961,23 +955,98 @@ body.teams-hidden .team-name {
     font-weight: 600;
 }
 
-/* фильтр таблицы | кнопки 6 верхние */
+/* Контейнер всех фильтров */
+.score-filter-wrapper {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 10px;
+}
 
-.standings-focus-controls {
+/* Сетка фильтров 3×2 + артист сверху */
+
+.score-filter-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 6px;
-    margin-top: 8px;
+    max-width: 420px;
+    width: 100%;
 }
 
-.standings-focus-controls button {
-    padding: 4px 6px;
-    cursor: pointer;
+/* Фильтр матчей по aртисту (занимает всю строку сетки 3x3) */
+.artist-filter-wrapper {
+    grid-column: 1 / 4;
+    position: relative;
 }
+
+/* кнопка Артист визуально = кнопка счёта */
+.artist-btn {
+    width: 100%;
+}
+
+/* input поле для ввода aртиста
+(появляется вместо кнопки и по размеру и стилю как поиск T9) */
+
+.artist-filter-input {
+    width: 100%;
+    padding: 8px 10px;
+    background-color: #3a3a3a;
+    border: 1px solid #555;
+    color: #fff;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 0.95rem;
+}
+
+/* Подсказки T9 для фильтра по артисту */
+
+.artist-filter-wrapper .artist-suggestions {
+    width: 100%;
+    position: absolute;
+    top: 42px;
+    left: 0;
+    z-index: 20;
+}
+
+
+/* === Custom диапазон (как зоны вылета) === */
 
 .custom-range-inputs {
-    grid-column: span 3;
     display: flex;
+    align-items: center;
     gap: 6px;
-    margin-top: 4px;
+    background-color: #2c2c2c;
+    padding: 8px 10px;
+    border-radius: 6px;
+    justify-content: center;
+}
+
+/* input — ОСТАЁТСЯ КАК ЕСТЬ (НЕ ТРОГАЕМ) */
+
+.custom-range-inputs button {
+    width: 36px;
+    height: 36px;
+    background-color: #8bc34a; /* можно сменить, если захочешь */
+    color: #121212;
+    font-weight: bold;
+    font-size: 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    border: none;
+}
+
+/* Результат фильтра:
+   "Матчей с этим артистом в этом туре: N"
+   без подчёркивающей линии */
+
+#artistFilterResult {
+    font-size: 0.9rem;          /* как .artist-search-result */
+    color: #bdbdbd;
+    min-height: 18px;           /* убирает "линию", но даёт высоту */
+    margin-top: 6px;            /* такой же отступ вниз */
+    text-align: center;         /* центр */
+    line-height: normal;
 }

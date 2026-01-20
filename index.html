@@ -127,7 +127,7 @@ https://open.spotify.com/track/4"></textarea>
     </div>
 </div>
 
-        <!-- Поиск артиста + треки -->
+        <!-- Т9 Поиск артиста + треки T9 -->
 <div class="artist-search-wrapper">
 
     <!-- Левая колонка: поиск -->
@@ -174,24 +174,49 @@ https://open.spotify.com/track/4"></textarea>
 <!-- 🎨 КНОПКА ВИЗУАЛЬНОЙ ПРОВЕРКИ + ПРОГРЕСС ТУРА -->
 <div class="tour-visual-controls">
 
-    <button id="hideTeamsBtn" class="rainbow-x-btn" title="Скрыть названия команд">
-        X
-    </button>
+    <div class="tour-visual-top">
+        <button id="hideTeamsBtn" class="rainbow-x-btn">X</button>
 
-    <div id="tourCompletionWrapper">
-        <div id="tourCompletionBar"></div>
+        <div id="tourCompletionWrapper">
+            <div id="tourCompletionBar"></div>
+        </div>
     </div>
 
-    <!-- 🎯 ФИЛЬТР МАТЧЕЙ ПО СЧЁТУ -->
-    <div class="score-filter">
-    <button class="score-filter-btn all active" data-score="all">Все</button>
-    <button class="score-filter-btn" data-score="3:0">3:0</button>
-    <button class="score-filter-btn" data-score="2:1">2:1</button>
+    <!-- 🎯 ФИЛЬТРЫ СТРОГО ПОД ПОЛОСКОЙ -->
+    <div class="score-filter-wrapper">
+        <div class="score-filter-grid">
 
-    <button class="score-filter-btn" data-score="4:0">4:0</button>
-    <button class="score-filter-btn" data-score="2:2">2:2</button>
-    <button class="score-filter-btn" data-score="other">Другое</button>
+            <!-- Артист -->
+            <div class="artist-filter-wrapper">
+    <button id="artistFilterBtn" class="score-filter-btn artist-btn">
+        Артист
+    </button>
+
+    <input
+        id="artistFilterInput"
+        type="text"
+        placeholder="Введите артиста"
+        class="artist-filter-input"
+        style="display:none;"
+        autocomplete="off"
+    />
+
+    <div id="artistFilterSuggestions" class="artist-suggestions"></div>
+
+    <!-- Результат фильтра по артисту (без подчёркивающей линии) -->
+    <div id="artistFilterResult"></div>
 </div>
+
+            <button class="score-filter-btn all active" data-score="all">Все</button>
+            <button class="score-filter-btn" data-score="3:0">3:0</button>
+            <button class="score-filter-btn" data-score="2:1">2:1</button>
+
+            <button class="score-filter-btn" data-score="4:0">4:0</button>
+            <button class="score-filter-btn" data-score="0">0</button>
+            <button class="score-filter-btn" data-score="other">Другое</button>
+
+        </div>
+    </div>
 
 </div>
 
