@@ -15,7 +15,10 @@ let activeScoreFilter = null;
 // 🎯 активный фильтр таблицы
 let activeStandingsRange = null;
 // 🎯 feat. / solo
-let activeStandingsArtistType = null; 
+let activeStandingsArtistType = null;
+// 🆚 сравнение команд
+let selectedCompareTeamA = null;
+let selectedCompareTeamB = null;
 // 🎯 активный фильтр по Артисту
 let activeArtistFilter = null;
 let artistFilterInitialized = false;
@@ -470,10 +473,16 @@ async function clearAllData() {
         totalToursNumSpan.textContent = '0';
         tourJumpInput.value = '';
 
-        // Сбрасываем глобальные переменные
+                // Сбрасываем глобальные переменные
         tournamentData.teams = [];
         tournamentData.schedule = [];
-        tournamentData.standings = {};
+
+        tournamentData.standings = {}; // ⚠️ НЕ ТРОГАЕМ — логика таблицы
+
+        // ✅ НОВЫЕ ХРАНИЛИЩА ДЛЯ СРАВНЕНИЯ
+        tournamentData.standingsTable = [];
+        tournamentData.standingsHistory = [];
+
         tournamentData.currentTourIndex = 0;
         tournamentData.totalTours = 0;
 
@@ -613,6 +622,13 @@ async function renderStandingsFromDB() {
         return; // Нечего отображать
     }
 
+    // ✅ ГЛОБАЛЬНОЕ ХРАНИЛИЩЕ АКТУАЛЬНОЙ ТАБЛИЦЫ
+if (!window.tournamentData) window.tournamentData = {};
+window.tournamentData.standings = [];
+
+    // 🔒 ВСЕГДА начинаем с чистой таблицы
+tournamentData.standingsTable = [];
+
     // Сначала нужно рассчитать статистику, основываясь на сохраненных матчах
     const standings = {};
     // собираем карту inactive по имени команды (teamName уникален)
@@ -629,6 +645,12 @@ async function renderStandingsFromDB() {
 
     getAllRequest.onsuccess = (event) => {
         const allMatches = event.target.result;
+    tournamentData.allMatches = allMatches;
+    tournamentData.allTeams = allTeams;
+
+// ✅ СКОЛЬКО ТУРОВ РЕАЛЬНО СЫГРАНО
+tournamentData.completedTours = getCompletedToursCount(allMatches);
+
         allMatches.forEach(match => {
             // Если матч BYE и не технический и нет оценок — пропускаем
             if ((match.team1 === 'BYE' || match.team2 === 'BYE') && !match.technical) {
@@ -704,6 +726,21 @@ async function renderStandingsFromDB() {
         // Рендерим строки таблицы
         sortedTeams.forEach((teamName, index) => {
     const stats = standings[teamName];
+
+    // ✅ СОХРАНЯЕМ ДАННЫЕ ДЛЯ СРАВНЕНИЯ (ПРАВИЛЬНО)
+    if (!Array.isArray(tournamentData.standingsTable)) {
+        tournamentData.standingsTable = [];
+    }
+
+    tournamentData.standingsTable.push({
+        team: teamName,
+        position: index + 1,
+        points: stats.points,
+        goalsFor: stats.goalsFor,
+        goalsAgainst: stats.goalsAgainst,
+        goalDifference: stats.goalDifference
+    });
+
     const row = standingsBody.insertRow();
 
     // ⬇⬇⬇ ВАЖНО: сохраняем ИСХОДНОЕ имя трека ⬇⬇⬇
@@ -787,6 +824,121 @@ rows.forEach((r, idx) => {
         console.error("Ошибка при загрузке всех матчей для расчета статистики:", event.target.error);
         alert("Не удалось рассчитать статистику турнира.");
     };
+}
+
+function getCompletedToursCount(allMatches) {
+    const tours = {};
+
+    allMatches.forEach(m => {
+        if (!tours[m.tourIndex]) tours[m.tourIndex] = [];
+        tours[m.tourIndex].push(m);
+    });
+
+    let completed = 0;
+
+    Object.keys(tours).forEach(tourIndex => {
+        const matches = tours[tourIndex];
+        const allPlayed = matches.every(m => {
+    // BYE-матчи не участвуют в проверке
+    if (m.team1 === 'BYE' || m.team2 === 'BYE') return true;
+
+    // технические считаем сыгранными, если есть счёт
+    if (m.technical) {
+        return m.score1 !== null && m.score2 !== null;
+    }
+
+    // обычные
+    return m.score1 !== null && m.score2 !== null;
+});
+        if (allPlayed) completed++;
+    });
+
+    return completed;
+}
+
+/**
+ * Строит таблицу standings ДО указанного тура (не включая следующий)
+ */
+function buildStandingsUpToTour(allMatches, allTeams, tourLimit) {
+    const standings = {};
+
+    allTeams.forEach(team => {
+        standings[team.teamName] = {
+            team: team.teamName,
+            wins: 0,
+            draws: 0,
+            losses: 0,
+            points: 0,
+            goalsFor: 0,
+            goalsAgainst: 0
+        };
+    });
+
+    allMatches.forEach(match => {
+        if (match.tourIndex >= tourLimit) return;
+        if (match.team1 === 'BYE' || match.team2 === 'BYE') return;
+        if (match.score1 === null || match.score2 === null) return;
+
+        const t1 = standings[match.team1];
+        const t2 = standings[match.team2];
+        if (!t1 || !t2) return;
+
+        t1.goalsFor += match.score1;
+        t1.goalsAgainst += match.score2;
+        t2.goalsFor += match.score2;
+        t2.goalsAgainst += match.score1;
+
+        if (match.score1 > match.score2) {
+            t1.wins++; t1.points += 3;
+            t2.losses++;
+        } else if (match.score1 < match.score2) {
+            t2.wins++; t2.points += 3;
+            t1.losses++;
+        } else {
+            t1.draws++; t2.draws++;
+            t1.points++; t2.points++;
+        }
+    });
+
+    return Object.values(standings)
+        .sort((a, b) =>
+            b.points - a.points ||
+            (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst) ||
+            b.goalsFor - a.goalsFor
+        )
+        .map((t, i) => ({
+            team: t.team,
+            position: i + 1
+        }));
+}
+
+function saveStandingsSnapshot() {
+    if (!window.tournamentData) return;
+    if (!Array.isArray(tournamentData.standingsTable)) return;
+
+    if (!Array.isArray(tournamentData.standingsHistory)) {
+        tournamentData.standingsHistory = [];
+    }
+
+const expected = tournamentData.completedTours;
+
+    // 🔒 не сохраняем пустоту
+    if (tournamentData.standingsTable.length === 0) return;
+
+    if (tournamentData.standingsHistory.length < expected) {
+
+    const snapshotIndex = tournamentData.standingsHistory.length;
+
+    const snapshot = buildStandingsUpToTour(
+        tournamentData.allMatches,
+        tournamentData.allTeams,
+        snapshotIndex + 1
+    );
+
+    tournamentData.standingsHistory.push(snapshot);
+
+    console.log(`📸 Снапшот тура ${snapshotIndex + 1} сохранён`);
+  }
 }
 
 /* ======================================================
@@ -2128,9 +2280,16 @@ async function handleSaveOrUpdateScore(event) {
         await displayTour(tournamentData.currentTourIndex);
         updateTourNavigation();
 
-        // Проверка статистики тура
-        await checkTourStatsAndDisplay(tournamentData.currentTourIndex);
-        updateTourCompletionIndicator(tournamentData.currentTourIndex);
+        const tourIndex = tournamentData.currentTourIndex;
+
+// проверка статистики тура
+const statsOk = await checkTourStatsAndDisplay(tourIndex);
+updateTourCompletionIndicator(tourIndex);
+
+// 📸 ФИКСИРУЕМ ТУР ТОЛЬКО ОДИН РАЗ
+if (statsOk) {
+    saveStandingsSnapshot();
+}
 
         // Обновляем UI модального окна, если оно открыто
         if (fullScheduleModal.style.display === 'block') {
@@ -2146,8 +2305,10 @@ async function handleSaveOrUpdateScore(event) {
 /**
  * Проверяет статистику тура и отображает результат.
  * @param {number} tourIndex - Индекс тура.
+ * @returns {Promise<boolean>} true если тур валиден
  */
 async function checkTourStatsAndDisplay(tourIndex) {
+
     let statsMessage = "";
     let isError = false;
 
@@ -2158,24 +2319,22 @@ async function checkTourStatsAndDisplay(tourIndex) {
     let totalScore4Matches = 0;
 
     currentTourMatches.forEach(match => {
-    if (!match.isBye) {
-        if (match.score1 === null || match.score2 === null) {
-            unfilledScores++;
-        } else {
-            if (match.score1 === match.score2) {
-                draws++;
-            }
-
-            // ✅ тотал 4, но НЕ ничья 2:2
-            if (
-                match.score1 + match.score2 === 4 &&
-                match.score1 !== match.score2
-            ) {
-                totalScore4Matches++;
+        if (!match.isBye) {
+            if (match.score1 === null || match.score2 === null) {
+                unfilledScores++;
+            } else {
+                if (match.score1 === match.score2) {
+                    draws++;
+                }
+                if (
+                    match.score1 + match.score2 === 4 &&
+                    match.score1 !== match.score2
+                ) {
+                    totalScore4Matches++;
+                }
             }
         }
-    }
-});
+    });
 
     if (unfilledScores > 0) {
         statsMessage += `Есть ${unfilledScores} незаполненных матчей. `;
@@ -2190,21 +2349,13 @@ async function checkTourStatsAndDisplay(tourIndex) {
         isError = true;
     }
 
-    tourStatsDiv.innerHTML = statsMessage ? `<span class="${isError ? 'error' : ''}">${statsMessage.trim()}</span>` : "Статистика тура: OK";
-    if (isError) {
-        tourStatsDiv.classList.add('error');
-    } else {
-        tourStatsDiv.classList.remove('error');
-    }
-}
+    tourStatsDiv.innerHTML = statsMessage
+        ? `<span class="${isError ? 'error' : ''}">${statsMessage.trim()}</span>`
+        : "Статистика тура: OK";
 
-async function checkTourStatsAndDisplay(tourIndex) {
-    let statsMessage = "";
-    let isError = false;
+    tourStatsDiv.classList.toggle('error', isError);
 
-    const currentTourMatches = await getMatchesByTour(tourIndex);
-    // ...
-    tourStatsDiv.innerHTML = statsMessage ? `<span class="${isError ? 'error' : ''}">${statsMessage.trim()}</span>` : "Статистика тура: OK";
+    return !isError;
 }
 
 /* ==========================
@@ -2951,12 +3102,16 @@ else if (t1Returned || t2Returned) {
 
 nextTourBtn.addEventListener('click', async () => {
     if (tournamentData.currentTourIndex < tournamentData.totalTours - 1) {
+
         tournamentData.currentTourIndex++;
         await displayTour(tournamentData.currentTourIndex);
         updateTourNavigation();
         await checkTourStatsAndDisplay(tournamentData.currentTourIndex);
-        // Сохраняем текущий индекс тура
-        await saveSettings({ ...await loadSettings(), currentTourIndex: tournamentData.currentTourIndex });
+
+        await saveSettings({
+            ...await loadSettings(),
+            currentTourIndex: tournamentData.currentTourIndex
+        });
     }
 });
 
@@ -3024,11 +3179,41 @@ window.addEventListener('click', (event) => {
         fullScheduleModal.style.display = 'none';
     }
 
-    // 🔴 ВСТАВКА — второй модал
+    // 🔴 Форма и серия (второй модал)
     if (event.target === formStatsModal) {
         formStatsModal.style.display = 'none';
     }
-})
+
+    // 🆚 Сравнение (третий модал)
+    const compareModal = document.getElementById('compareModal');
+    if (event.target === compareModal) {
+        compareModal.style.display = 'none';
+    }
+});
+
+// ===============================
+// 🆚 Модaл "Сравнение"
+// ===============================
+
+const openCompareBtn  = document.getElementById('openCompareModal');
+const closeCompareBtn = document.getElementById('closeCompareModal');
+const compareModalEl  = document.getElementById('compareModal');
+
+if (openCompareBtn && compareModalEl) {
+    openCompareBtn.addEventListener('click', () => {
+
+        // 🔧 гарантируем историю позиций
+        ensureStandingsHistory();
+
+        compareModalEl.style.display = 'block';
+    });
+}
+
+if (closeCompareBtn && compareModalEl) {
+    closeCompareBtn.addEventListener('click', () => {
+        compareModalEl.style.display = 'none';
+    });
+}
 
 function parseArtistAndTrack(line) {
     if (!line) return { artist: '', track: '' };
@@ -3051,6 +3236,205 @@ function parseArtistAndTrack(line) {
 
     return { artist, track };
 }
+
+/* 🔧 НОРМАЛИЗАЦИЯ ИМЕНИ КОМАНДЫ
+   всегда возвращает
+   "ARTIST – TRACK"*/
+function normalizeTeamName(team) {
+    if (!team) return null;
+
+    const { artist, track } = parseArtistAndTrack(team);
+    if (!artist || !track) return null;
+
+    return `${stripInlineColors(artist)} – ${stripInlineColors(track)}`;
+}
+
+function findHeadToHeadMatch(teamA, teamB) {
+    if (!teamA || !teamB) return null;
+
+    for (const tour of tournamentData.schedule) {
+        if (!tour) continue;
+
+        for (const match of tour) {
+            const t1 = match.team1;
+            const t2 = match.team2;
+
+            if (
+                (t1 === teamA && t2 === teamB) ||
+                (t1 === teamB && t2 === teamA)
+            ) {
+                return match;
+            }
+        }
+    }
+
+    return null;
+}
+
+/* ===============================
+   🔍 СУПЕР-T9 ДЛЯ ТРЕКОВ
+=============================== */
+
+function getAllArtistTrackPairs() {
+    const pairs = [];
+
+    tournamentData.schedule.forEach(tour => {
+        if (!tour) return;
+
+        tour.forEach(match => {
+            [match.team1, match.team2].forEach(team => {
+                if (!team || !team.includes('–')) return;
+
+                const { artist, track } = parseArtistAndTrack(team);
+                if (!artist || !track) return;
+
+                const artistSearch = stripInlineColors(artist)
+                    .toLowerCase()
+                    .replace(/ё/g, 'е')
+                    .replace(/feat\.?/gi, '')
+                    .replace(/ft\.?/gi, '')
+                    .replace(/&/g, ' ')
+                    .replace(/,/g, ' ')
+                    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+
+                const trackClean = stripInlineColors(track)
+                    .toLowerCase()
+                    .replace(/ё/g, 'е')
+                    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+
+                pairs.push({
+                    search: `${artistSearch} ${trackClean}`,
+                    track: stripInlineColors(track)
+                });
+            });
+        });
+    });
+
+    return pairs;
+}
+
+/* ===============================
+   🆚 T9 ПОИСК ТРЕКОВ (СРАВНЕНИЕ)
+=============================== */
+
+function initCompareTrackT9(inputId, suggestionsId) {
+    const input = document.getElementById(inputId);
+    const suggestions = document.getElementById(suggestionsId);
+
+    if (!input || !suggestions) return;
+
+    input.addEventListener('input', () => {
+        const query = input.value
+    .trim()
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ');
+
+        suggestions.innerHTML = '';
+
+        if (!query) return;
+
+        const pairs = getAllArtistTrackPairs();
+        const safe = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(safe.split('').join('.*'), 'i');
+
+        const matches = pairs
+            .filter(p => regex.test(p.search))
+            .slice(0, 6);
+
+        matches.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'artist-suggestion';
+            div.textContent = p.track;
+
+            div.addEventListener('click', () => {
+                input.value = p.track;
+                suggestions.innerHTML = '';
+                input.dispatchEvent(new Event('change'));
+            });
+
+            suggestions.appendChild(div);
+        });
+    });
+
+    // 🧠 ручной ввод → авто-подстановка
+    input.addEventListener('blur', () => {
+        const query = input.value
+    .trim()
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ');
+
+        if (!query) return;
+
+        const pairs = getAllArtistTrackPairs();
+        const safe = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(safe.split('').join('.*'), 'i');
+
+        const matches = pairs.filter(p => regex.test(p.search));
+
+        if (matches.length === 1) {
+            input.value = matches[0].track;
+        }
+    });
+
+    // клик вне — скрыть подсказки
+    document.addEventListener('click', (e) => {
+        if (!input.contains(e.target) && !suggestions.contains(e.target)) {
+            suggestions.innerHTML = '';
+        }
+    });
+}
+
+initCompareTrackT9('compareTeamA', 'compareT9A');
+initCompareTrackT9('compareTeamB', 'compareT9B');
+
+// ===== 🆚 СВЯЗЬ T9 → HEAD-TO-HEAD =====
+function bindCompareInput(inputId, side) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    input.addEventListener('change', () => {
+        const track = stripInlineColors(input.value);
+
+        const fullTeam = tournamentData.schedule
+            .flat()
+            .filter(Boolean)
+            .flatMap(m => [m.team1, m.team2])
+            .find(team => {
+                const { track: t } = parseArtistAndTrack(team);
+                return stripInlineColors(t) === track;
+            });
+
+        if (!fullTeam) return;
+
+        if (side === 'A') {
+    selectedCompareTeamA = fullTeam;
+
+    const { track } = parseArtistAndTrack(fullTeam);
+    document.getElementById('compareNameA').textContent =
+        stripInlineColors(track);
+} else {
+    selectedCompareTeamB = fullTeam;
+
+    const { track } = parseArtistAndTrack(fullTeam);
+    document.getElementById('compareNameB').textContent =
+        stripInlineColors(track);
+}
+
+        renderVSResult();
+        renderCompareStats();
+    });
+}
+
+bindCompareInput('compareTeamA', 'A');
+bindCompareInput('compareTeamB', 'B');
 
 function getArtistPart(trackName) {
     if (!trackName) return '';
@@ -3425,6 +3809,287 @@ function initArtistFilterT9() {
         }
     });
 }
+
+// модaл Сравнение (вспомогательная функция)
+
+function getAllTrackNames() {
+    return teamsInput.value
+        .split('\n')
+        .map(l => l.trim())
+        .filter(Boolean)
+        .map(line => {
+            const { track } = parseArtistAndTrack(line);
+            return track ? stripInlineColors(track) : null;
+        })
+        .filter(Boolean);
+}
+
+// Т9 🆚 T9
+
+function initCompareT9(inputId, suggestionsId, side) {
+    const input = document.getElementById(inputId);
+    const suggestions = document.getElementById(suggestionsId);
+
+    if (!input || !suggestions) return;
+
+    input.addEventListener('input', () => {
+        const query = input.value
+    .trim()
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ');
+
+        suggestions.innerHTML = '';
+
+        if (!query) return;
+
+        const tracks = getAllTrackNames();
+        const regex = new RegExp(
+            query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+            'i'
+        );
+
+        tracks
+            .filter(t => regex.test(t))
+            .slice(0, 6)
+            .forEach(track => {
+                const div = document.createElement('div');
+                div.className = 'artist-suggestion';
+                div.textContent = track;
+
+                div.addEventListener('click', () => {
+                    input.value = track;
+                    suggestions.innerHTML = '';
+
+                    if (side === 'A') {
+                        selectedCompareTeamA = teamsInput.value
+    .split('\n')
+    .map(l => l.trim())
+    .find(line => {
+        const { track: t } = parseArtistAndTrack(line);
+        return stripInlineColors(t) === track;
+    });
+
+                        renderVSResult();
+                        renderCompareStats();
+
+                        document.getElementById('compareNameA').textContent = track;
+                    } else {
+                        selectedCompareTeamB = teamsInput.value
+    .split('\n')
+    .map(l => l.trim())
+    .find(line => {
+        const { track: t } = parseArtistAndTrack(line);
+        return stripInlineColors(t) === track;
+    });
+
+                        renderVSResult();
+                        renderCompareStats();
+
+                        document.getElementById('compareNameB').textContent = track;
+                    }
+                });
+
+                suggestions.appendChild(div);
+            });
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!input.contains(e.target) && !suggestions.contains(e.target)) {
+            suggestions.innerHTML = '';
+        }
+    });
+}
+
+function renderVSResult() {
+    const leftEl  = document.getElementById('compareScoreLeft');
+    const rightEl = document.getElementById('compareScoreRight');
+
+    leftEl.textContent  = '';
+    rightEl.textContent = '';
+
+    if (!selectedCompareTeamA || !selectedCompareTeamB) return;
+
+    // ищем единственный матч A vs B
+    for (const tour of tournamentData.schedule) {
+        if (!tour) continue;
+
+        for (const match of tour) {
+            if (!match || match.isBye) continue;
+
+            const t1 = match.team1;
+            const t2 = match.team2;
+
+            if (
+                (t1 === selectedCompareTeamA && t2 === selectedCompareTeamB) ||
+                (t2 === selectedCompareTeamA && t1 === selectedCompareTeamB)
+            ) {
+                if (match.score1 === null || match.score2 === null) return;
+
+                // нормализуем сторону
+                const leftScore  = t1 === selectedCompareTeamA ? match.score1 : match.score2;
+                const rightScore = t1 === selectedCompareTeamA ? match.score2 : match.score1;
+
+                leftEl.textContent  = leftScore;
+                rightEl.textContent = rightScore;
+                return;
+            }
+        }
+    }
+}
+
+function formatPoints(points) {
+    if (points === null || points === undefined) return '—';
+
+    const mod10 = points % 10;
+    const mod100 = points % 100;
+
+    let word = 'очков';
+    if (mod10 === 1 && mod100 !== 11) word = 'очко';
+    else if ([2,3,4].includes(mod10) && ![12,13,14].includes(mod100)) {
+        word = 'очка';
+    }
+
+    return `${points} ${word}`;
+}
+
+// СТАТИСТИКА (Шаг 3)
+
+function getTeamStanding(teamName) {
+    if (
+        !teamName ||
+        !tournamentData ||
+        !Array.isArray(tournamentData.standingsTable)
+    ) {
+        return null;
+    }
+
+    return tournamentData.standingsTable.find(
+        row => row.team === teamName
+    ) || null;
+}
+
+function getGoalsString(team) {
+    if (!team) return '—';
+    const diff = team.goalsFor - team.goalsAgainst;
+    return `${diff} (${team.goalsFor}/${team.goalsAgainst})`;
+}
+
+function ensureStandingsHistory() {
+    if (!tournamentData || tournamentData.completedTours === 0) {
+        return;
+    }
+
+    if (!Array.isArray(tournamentData.standingsHistory)) {
+        tournamentData.standingsHistory = [];
+    }
+
+    if (tournamentData.standingsHistory.length > 0) {
+        return;
+    }
+
+    for (let tour = 1; tour <= tournamentData.completedTours; tour++) {
+        const snapshot = buildStandingsUpToTour(
+            tournamentData.allMatches,
+            tournamentData.allTeams,
+            tour
+        );
+        tournamentData.standingsHistory.push(snapshot);
+    }
+
+    console.log(
+        '📸 standingsHistory восстановлен:',
+        tournamentData.standingsHistory.length
+    );
+}
+
+function getBestPosition(teamName) {
+    let bestPos = Infinity;
+    let bestTour = null;
+
+    if (
+        !tournamentData ||
+        !Array.isArray(tournamentData.standingsHistory)
+    ) {
+        return '—';
+    }
+
+    tournamentData.standingsHistory.forEach((table, tourIndex) => {
+        if (!Array.isArray(table)) return;
+
+        const row = table.find(r => r.team === teamName);
+        if (!row) return;
+
+        if (row.position < bestPos) {
+            bestPos = row.position;
+            bestTour = tourIndex + 1;
+        }
+    });
+
+    if (!bestTour) return '—';
+
+    return `#${bestPos} (в ${bestTour} туре)`;
+}
+
+/* ===============================
+   📊 ФОРМА КОМАНДЫ (ШАГ 3)
+   использует ту же логику,
+   что и модал "Форма и серия"
+=============================== */
+async function getTeamFormIcons(teamName, limit = 5) {
+    const matches = await getLastPlayedMatchesFromDB(teamName, limit);
+    if (!matches.length) return '—';
+
+    return matches.map(m => {
+        const scored   = m.team1 === teamName ? m.score1 : m.score2;
+        const conceded = m.team1 === teamName ? m.score2 : m.score1;
+
+        if (scored > conceded) return '✅';
+        if (scored < conceded) return '❌';
+        return '🟨';
+    }).join('');
+}
+
+function renderCompareStats() {
+    if (!selectedCompareTeamA || !selectedCompareTeamB) return;
+
+    // ✅ ИМЕННО ТАК имена лежат в standings и standingsHistory
+    const teamAName = normalizeTeamName(selectedCompareTeamA);
+    const teamBName = normalizeTeamName(selectedCompareTeamB);
+
+    if (!teamAName || !teamBName) return;
+
+    const teamA = getTeamStanding(teamAName);
+    const teamB = getTeamStanding(teamBName);
+
+            // ЛЕВАЯ
+document.getElementById('comparePointsA').textContent =
+    teamA ? formatPoints(teamA.points) : '—';
+
+document.getElementById('compareGoalsA').textContent =
+    teamA ? getGoalsString(teamA) : '—';
+
+getTeamFormIcons(teamAName)
+    .then(html => document.getElementById('compareFormA').textContent = html);
+
+document.getElementById('compareBestPosA').textContent =
+    getBestPosition(teamAName);
+
+            // ПРАВАЯ
+document.getElementById('comparePointsB').textContent =
+    teamB ? formatPoints(teamB.points) : '—';
+
+document.getElementById('compareGoalsB').textContent =
+    teamB ? getGoalsString(teamB) : '—';
+
+getTeamFormIcons(teamBName)
+    .then(html => document.getElementById('compareFormB').textContent = html);
+
+document.getElementById('compareBestPosB').textContent =
+    getBestPosition(teamBName);
+}
+
 
 // --- Конец скрипта ---
 // Вся логика работы с IndexedDB, генерация расписания, отображение туров,

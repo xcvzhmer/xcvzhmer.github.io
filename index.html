@@ -127,6 +127,11 @@ https://open.spotify.com/track/4"></textarea>
         <button id="showFormStatsBtn" class="orange-btn">
             Форма и серия
         </button>
+
+        <button id="openCompareModal" class="turquoise-btn">
+            Сравнение
+        </button>
+
         </div>
     </div>
 </div>
@@ -261,6 +266,78 @@ https://open.spotify.com/track/4"></textarea>
                 <tbody id="formStandingsBody"></tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<!-- Сравнение (модал) -->
+<div id="compareModal" class="modal">
+    <div class="modal-content modal-turquoise">
+
+        <span class="close-button" id="closeCompareModal">&times;</span>
+        <h2>Сравнение команд</h2>
+
+        <!-- ВЫБОР КОМАНД -->
+        <div class="compare-inputs">
+
+            <div class="compare-input">
+                <input
+                    type="text"
+                    id="compareTeamA"
+                    placeholder="Команда слева"
+                    autocomplete="off"
+                >
+                <div class="t9-suggestions" id="compareT9A"></div>
+            </div>
+
+            <div class="compare-vs-block">
+    <div class="compare-vs-names">
+        <span id="compareNameA">—</span>
+        <span class="vs-text">VS</span>
+        <span id="compareNameB">—</span>
+    </div>
+
+    <div class="compare-vs-score">
+        <span id="compareScoreLeft"></span>
+        <span class="vs-text">–</span>
+        <span id="compareScoreRight"></span>
+    </div>
+</div>
+
+
+            <div class="compare-input">
+                <input
+                    type="text"
+                    id="compareTeamB"
+                    placeholder="Команда справа"
+                    autocomplete="off"
+                >
+                <div class="t9-suggestions" id="compareT9B"></div>
+            </div>
+
+        </div>
+
+        <!-- СТАТИСТИКА -->
+        <div class="compare-stats">
+
+            <!-- ЛЕВАЯ КОМАНДА -->
+            <div class="compare-team left">
+                <div class="compare-row" id="comparePointsA"></div>
+                <div class="compare-row" id="compareGoalsA"></div>
+                <div class="compare-row form-icons" id="compareFormA"></div>
+                <div class="compare-row" id="compareBestPosA"></div>
+            </div>
+
+            <!-- ПРАВАЯ КОМАНДА -->
+            <div class="compare-team right">
+
+                <div class="compare-row" id="comparePointsB"></div>
+                <div class="compare-row" id="compareGoalsB"></div>
+                <div class="compare-row form-icons" id="compareFormB"></div>
+                <div class="compare-row" id="compareBestPosB"></div>
+            </div>
+
+        </div>
+
     </div>
 </div>
 
