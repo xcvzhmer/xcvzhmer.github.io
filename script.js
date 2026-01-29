@@ -952,21 +952,30 @@ async function getLastPlayedMatchesFromDB(teamName, limit = 5) {
 
     return new Promise(resolve => {
         req.onsuccess = () => {
-            const all = req.result.filter(m =>
-    !m.isBye &&
-    m.score1 !== null &&
-    m.score2 !== null &&
-    (m.team1 === teamName || m.team2 === teamName)
-);
+    const cleanTeam = stripInlineColors(teamName);
 
-const lastTour = Math.max(...all.map(m => m.tourIndex));
+    const all = req.result.filter(m =>
+        !m.isBye &&
+        m.score1 !== null &&
+        m.score2 !== null &&
+        (
+            stripInlineColors(m.team1) === cleanTeam ||
+            stripInlineColors(m.team2) === cleanTeam
+        )
+    );
 
-const matches = all
-    .filter(m => m.tourIndex >= lastTour - (limit - 1))
-    .sort((a, b) => a.tourIndex - b.tourIndex);
+            if (!all.length) {
+                resolve([]);
+                return;
+            }
 
-resolve(matches);
+            const lastTour = Math.max(...all.map(m => m.tourIndex));
 
+            const matches = all
+                .filter(m => m.tourIndex >= lastTour - (limit - 1))
+                .sort((a, b) => a.tourIndex - b.tourIndex);
+
+            resolve(matches);
         };
     });
 }
@@ -979,20 +988,26 @@ async function getStreaksFromDB(teamName) {
     return new Promise(resolve => {
         req.onsuccess = () => {
 
-            let win = 0;
-            let clean = 0;
-            let golden = 0;
+    const cleanTeam = stripInlineColors(teamName);
 
-            let cleanActive = true;
-            let goldenActive = true;
+    let win = 0;
+    let clean = 0;
+    let golden = 0;
 
-            const matches = req.result
-                .filter(m =>
-                    !m.isBye &&
-                    m.score1 !== null &&
-                    m.score2 !== null &&
-                    (m.team1 === teamName || m.team2 === teamName)
-                )
+        // ⬇️ ВОТ ЭТИ ДВЕ СТРОКИ ПРОПАЛИ
+    let cleanActive = true;
+    let goldenActive = true;
+
+    const matches = req.result
+        .filter(m =>
+            !m.isBye &&
+            m.score1 !== null &&
+            m.score2 !== null &&
+            (
+                stripInlineColors(m.team1) === cleanTeam ||
+                stripInlineColors(m.team2) === cleanTeam
+            )
+        )
                 .sort((a, b) => b.tourIndex - a.tourIndex); // последний тур → назад
 
             for (const m of matches) {
@@ -1213,7 +1228,8 @@ async function renderFormStandingsFromDB() {
 const formItems = [];
 
 for (const m of matches) {
-    const isTeamLeft = m.team1 === team;
+    const isTeamLeft =
+    stripInlineColors(m.team1) === stripInlineColors(team);
 
 const leftTeam  = stripInlineColors(team);
 const rightTeam = stripInlineColors(isTeamLeft ? m.team2 : m.team1);
@@ -2844,14 +2860,6 @@ async function restoreRelegationZonesUI() {
 
 /**
  * Обновляет статусы команд согласно списку в textarea:
- * команды со значком ❌ → дисквалифицированы.
- * 1) Проставляет inactive в хранилище teams
- * 2) Меняет матчи на технические
- * 3) Обновляет tournamentData.schedule
- */
-
-/**
- * Обновляет статусы команд согласно списку в textarea:
  * - команды со значком ❌ → inactive = true в store 'teams'
  * - их матчи в 'schedule' помечаются как BYE / technical (3:0 у соперника)
  * - если дисквалификация отменена (❌ удалён), восстанавливаем оригинальные результаты (если они были сохранены при дисквалификации)
@@ -3965,9 +3973,11 @@ function getTeamStanding(teamName) {
         return null;
     }
 
-    return tournamentData.standingsTable.find(
-        row => row.team === teamName
-    ) || null;
+    return (
+        tournamentData.standingsTable.find(
+            row => stripInlineColors(row.team) === stripInlineColors(teamName)
+        ) || null
+    );
 }
 
 function getGoalsString(team) {
@@ -4015,11 +4025,15 @@ function getBestPosition(teamName) {
         return '—';
     }
 
+    const cleanTarget = stripInlineColors(teamName);
+
     tournamentData.standingsHistory.forEach((table, tourIndex) => {
         if (!Array.isArray(table)) return;
 
-        const row = table.find(r => r.team === teamName);
-        if (!row) return;
+        const row = table.find(r =>
+        stripInlineColors(r.team) === cleanTarget
+    );
+    if (!row) return;
 
         if (row.position < bestPos) {
             bestPos = row.position;
@@ -4041,20 +4055,23 @@ async function getTeamFormIcons(teamName, limit = 5) {
     const matches = await getLastPlayedMatchesFromDB(teamName, limit);
     if (!matches.length) return '—';
 
-    return matches.map(m => {
-        const scored   = m.team1 === teamName ? m.score1 : m.score2;
-        const conceded = m.team1 === teamName ? m.score2 : m.score1;
+    const icons = matches.map(m => {
+        const isLeft =
+    stripInlineColors(m.team1) === stripInlineColors(teamName);
+        const scored = isLeft ? m.score1 : m.score2;
+        const conceded = isLeft ? m.score2 : m.score1;
 
         if (scored > conceded) return '✅';
         if (scored < conceded) return '❌';
         return '🟨';
     }).join('');
+
+    return icons;
 }
 
 function renderCompareStats() {
     if (!selectedCompareTeamA || !selectedCompareTeamB) return;
 
-    // ✅ ИМЕННО ТАК имена лежат в standings и standingsHistory
     const teamAName = normalizeTeamName(selectedCompareTeamA);
     const teamBName = normalizeTeamName(selectedCompareTeamB);
 
@@ -4063,31 +4080,35 @@ function renderCompareStats() {
     const teamA = getTeamStanding(teamAName);
     const teamB = getTeamStanding(teamBName);
 
-            // ЛЕВАЯ
-document.getElementById('comparePointsA').textContent =
-    teamA ? formatPoints(teamA.points) : '—';
+    // POINTS
+    document.getElementById('comparePointsA').textContent =
+        teamA ? formatPoints(teamA.points) : '—';
 
-document.getElementById('compareGoalsA').textContent =
-    teamA ? getGoalsString(teamA) : '—';
+    document.getElementById('comparePointsB').textContent =
+        teamB ? formatPoints(teamB.points) : '—';
 
-getTeamFormIcons(teamAName)
-    .then(html => document.getElementById('compareFormA').textContent = html);
+    // GOALS
+    document.getElementById('compareGoalsA').textContent =
+        teamA ? getGoalsString(teamA) : '—';
 
-document.getElementById('compareBestPosA').textContent =
-    getBestPosition(teamAName);
+    document.getElementById('compareGoalsB').textContent =
+        teamB ? getGoalsString(teamB) : '—';
 
-            // ПРАВАЯ
-document.getElementById('comparePointsB').textContent =
-    teamB ? formatPoints(teamB.points) : '—';
+    // FORM (ВАЖНО)
+    getTeamFormIcons(teamAName).then(res => {
+        document.getElementById('compareFormA').textContent = res;
+    });
 
-document.getElementById('compareGoalsB').textContent =
-    teamB ? getGoalsString(teamB) : '—';
+    getTeamFormIcons(teamBName).then(res => {
+        document.getElementById('compareFormB').textContent = res;
+    });
 
-getTeamFormIcons(teamBName)
-    .then(html => document.getElementById('compareFormB').textContent = html);
+    // BEST POSITION
+    document.getElementById('compareBestPosA').textContent =
+        getBestPosition(teamAName);
 
-document.getElementById('compareBestPosB').textContent =
-    getBestPosition(teamBName);
+    document.getElementById('compareBestPosB').textContent =
+        getBestPosition(teamBName);
 }
 
 
