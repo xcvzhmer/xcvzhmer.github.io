@@ -277,19 +277,33 @@ https://open.spotify.com/track/4"></textarea>
         <h2>Сравнение команд</h2>
 
         <!-- ВЫБОР КОМАНД -->
-        <div class="compare-inputs">
+        <!-- ВЫБОР КОМАНД -->
+<div class="compare-inputs">
 
-            <div class="compare-input">
-                <input
-                    type="text"
-                    id="compareTeamA"
-                    placeholder="Команда слева"
-                    autocomplete="off"
-                >
-                <div class="t9-suggestions" id="compareT9A"></div>
-            </div>
+    <div class="compare-input">
+        <input
+            type="text"
+            id="compareTeamA"
+            placeholder="Команда слева"
+            autocomplete="off"
+        >
+        <div class="t9-suggestions" id="compareT9A"></div>
+    </div>
 
-            <div class="compare-vs-block">
+    <div class="compare-input">
+        <input
+            type="text"
+            id="compareTeamB"
+            placeholder="Команда справа"
+            autocomplete="off"
+        >
+        <div class="t9-suggestions" id="compareT9B"></div>
+    </div>
+
+</div>
+
+<!-- VS БЛОК -->
+<div class="compare-vs-block">
     <div class="compare-vs-names">
         <span id="compareNameA">—</span>
         <span class="vs-text">VS</span>
@@ -302,19 +316,6 @@ https://open.spotify.com/track/4"></textarea>
         <span id="compareScoreRight"></span>
     </div>
 </div>
-
-
-            <div class="compare-input">
-                <input
-                    type="text"
-                    id="compareTeamB"
-                    placeholder="Команда справа"
-                    autocomplete="off"
-                >
-                <div class="t9-suggestions" id="compareT9B"></div>
-            </div>
-
-        </div>
 
         <!-- СТАТИСТИКА -->
         <div class="compare-stats">
