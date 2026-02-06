@@ -491,6 +491,47 @@ textarea {
 .special-track-cell {
     position: relative;
     overflow: hidden;
+
+    padding-right: 3.6em;
+    container-type: inline-size; /* ⬅️ КРИТИЧНО */
+}
+
+/* 📅 ГОД */
+.special-track-cell .track-year {
+    position: absolute;
+    right: 10px;
+    bottom: 6px;
+
+    font-size: 22px;
+    font-weight: 700;
+    opacity: 0.85;
+
+    pointer-events: none;
+    user-select: none;
+
+    transition: opacity 0.15s ease;
+    z-index: 1;
+}
+
+/* 🎵 НАЗВАНИЕ */
+.special-track-cell .track-title {
+    position: relative;
+    z-index: 2;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ⬇️ РЕАЛЬНО РАБОТАЕТ */
+@container (max-width: 220px) {
+    .special-track-cell {
+        padding-right: 0.5em;
+    }
+
+    .special-track-cell .track-year {
+        opacity: 0;
+    }
 }
 
 .special-track-cell::before {

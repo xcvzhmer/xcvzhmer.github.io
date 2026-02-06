@@ -1971,37 +1971,89 @@ if (s1 !== null && s2 !== null) {
 }
 
 const SPECIAL_TRACK_HIGHLIGHTS = {
+  // 1
   "fonforino|темный принц|черный": ["#050016ff", "#051836d3"],
-
+  // 2
   "madk1d|мориарти": ["#cd04dfff", "#9f11c690"],
-
+  // 3
   "шипы|стрипсы": ["#7aafe3", "#eedba6", "#f6f7ec"],
-
+  // 4
   "zavet|buy me": ["#27a5ad", "#0d211ce3"],
-
+  // 5
   "шипы|cowboyclicker|thepolepositionclub": ["#ff3c06", "#001b60d6", "#efa105"],
-
-  "mindless self indulgence|shut me up": ["#050608f0","#5b292b", "#eed80ff1"],
-
+  // 6
+  "mindless self indulgence|shut me up": ["#050608f0", "#5b292b", "#eed80ff1"],
+  // 7
   "marjorie -w c sinclair|noah's ark": ["#b79f99", "#bebebe", "#e9e9e9"],
-
+  // 8
   "arlekin 40 000|data404|lottery billz|p2p": ["#850a11", "#dd0f19e7", "#f2d985"],
-
+  // 9
   "a v g|goro|она близко": ["#1a191e", "#412a27ff", "#d2ac85"],
-
+  // 10
   "cmh|слава кпсс|сэлфхарм": ["#5f657cff", "#d5dbe4ff"],
-
+  // 11
   "пошлая молли|самый лучший эмо панк": ["#955f39", "#e99dbd", "#fefefe"],
-
-  "9mice|kai angel|fountainebleau": ["#131315","#e2e4e5"],
-
-  "ken carson|rockstar lifestyle": ["#141314ff","#4d464eff"],
-
+  // 12
+  "9mice|kai angel|fountainebleau|i wanna be your dog": ["#131315", "#e2e4e5"],
+  // 13
+  "ken carson|rockstar lifestyle": ["#141314ff", "#4d464eff"],
+  // 14
   "2hollis|poster boy": ["#ffffff", "#cb2929ff"],
-
+  // 15
   "benjamingotbenz|supernova": ["#186db9", "#e16a09ff", "#fdf6ed"],
-
+  // 16
+  "sqwore|бардак": ["#2b2b2b", "#6e6e6e"],
+  // 17
+  "tonser|exx": ["#0f1c2e", "#1f6fb2"],
+  // 18
+  "angelik|revetg|ss25": ["#1c1c1c", "#8b5cf6", "#e5e7eb"],
+  // 19
   "хестон|benjamingotbenz|bratz": ["#f2bcc9", "#c7a991", "#8e6153"]
+};
+
+/* ==========================
+   📅 ГОДЫ РЕЛИЗА ИСКЛЮЧЕНИЙ
+   (пока рандом 2020–2024)
+========================== */
+const SPECIAL_TRACK_YEARS = {
+  // 1
+  "fonforino|темный принц|черный": 2024,
+  // 2
+  "madk1d|мориарти": 2024,
+  // 3
+  "шипы|стрипсы": 2024,
+  // 4
+  "zavet|buy me": 2021,
+  // 5
+  "шипы|cowboyclicker|thepolepositionclub": 2023,
+  // 6
+  "mindless self indulgence|shut me up": 2006,
+  // 7
+  "marjorie -w c sinclair|noah's ark": 2022,
+  // 8
+  "arlekin 40 000|data404|lottery billz|p2p": 2024,
+  // 9
+  "a v g|goro|она близко": 2023,
+  // 10
+  "cmh|слава кпсс|сэлфхарм": 2023,
+  // 11
+  "пошлая молли|самый лучший эмо панк": 2020,
+  // 12
+  "9mice|kai angel|fountainebleau|i wanna be your dog": 2024,
+  // 13
+  "ken carson|rockstar lifestyle": 2023,
+  // 14
+  "2hollis|poster boy": 2023,
+  // 15
+  "benjamingotbenz|supernova": 2020,
+  // 16
+  "sqwore|бардак": 2024,
+  // 17
+  "tonser|exx": 2024,
+  // 18
+  "angelik|revetg|ss25": 2024,
+  // 19
+  "хестон|benjamingotbenz|bratz": 2022
 };
 
 // ==========================
@@ -2174,9 +2226,23 @@ function applySpecialTrackHighlight(cell, teamText) {
             SPECIAL_TRACK_HIGHLIGHTS[key]
         );
         cell.classList.add('special-track-cell');
-        cell.style.backgroundRepeat = "no-repeat";
+                cell.style.backgroundRepeat = "no-repeat";
         cell.style.backgroundSize = "100% 100%";
         cell.style.backgroundColor = "transparent";
+
+        // 📅 добавляем год релиза
+        const year = SPECIAL_TRACK_YEARS[key];
+        if (year && !cell.querySelector('.track-year')) {
+            const yearEl = document.createElement('span');
+            yearEl.className = 'track-year';
+            yearEl.textContent = year;
+
+            // 🎨 цвет = первый (левый) цвет бленда
+            yearEl.style.color = SPECIAL_TRACK_HIGHLIGHTS[key][0];
+
+            cell.appendChild(yearEl);
+        }
+
         return;
     }
 }
