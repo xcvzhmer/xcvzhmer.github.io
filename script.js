@@ -2155,12 +2155,24 @@ function buildVerticalBlend(colors) {
 /* ==========================
    🧩 ВСПОМОГАТЕЛЬНЫЕ
 ========================== */
-function hexToRGBA(hex, alpha) {
+function hexToRGBA(hex, alphaOverride) {
     hex = hex.replace('#', '');
-    if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
-    const r = parseInt(hex.slice(0,2),16);
-    const g = parseInt(hex.slice(2,4),16);
-    const b = parseInt(hex.slice(4,6),16);
+
+    if (hex.length === 3) {
+        hex = hex.split('').map(c => c + c).join('');
+    }
+
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+
+    // если есть встроенная альфа (#RRGGBBAA)
+    let alpha = alphaOverride;
+    if (hex.length === 8) {
+        const a = parseInt(hex.slice(6, 8), 16);
+        alpha = (a / 255) * alphaOverride;
+    }
+
     return `rgba(${r},${g},${b},${alpha})`;
 }
 
@@ -2178,17 +2190,12 @@ function normalizeText(str) {
         .trim();
 }
 
-// 🧹 УДАЛЕНИЕ hex-ЦВЕТОВ ИЗ ТЕКСТА
-function stripInlineColors(str) {
-    if (!str) return '';
-    return str.replace(/\s*\([^)]*\)\s*/g, '').trim();
-}
-
-/* ==========================
-   ✂️ ОЧИСТКА НАЗВАНИЯ КОМАНДЫ
-========================== */
+// 🧹 УДАЛЕНИЕ inline-HEX ЦВЕТОВ ИЗ ТЕКСТА (Единая версия)
 function stripInlineColors(text) {
-    return text.replace(/\s*\([^)]*\)\s*$/, '').trim();
+    if (!text) return '';
+    return String(text)
+        .replace(/\s*\([^)]*\)\s*/g, '')
+        .trim();
 }
 
 /* ==========================
@@ -3504,6 +3511,15 @@ function bindCompareInput(inputId, side) {
 
         renderVSResult();
         renderCompareStats();
+
+        // 🧹 очищаем поля ПОСЛЕ полной логики
+        if (selectedCompareTeamA && selectedCompareTeamB) {
+            const inputA = document.getElementById('compareTeamA');
+            const inputB = document.getElementById('compareTeamB');
+
+            if (inputA) inputA.value = '';
+            if (inputB) inputB.value = '';
+        }
     });
 }
 
@@ -3933,37 +3949,34 @@ function initCompareT9(inputId, suggestionsId, side) {
                 div.textContent = track;
 
                 div.addEventListener('click', () => {
-                    input.value = track;
-                    suggestions.innerHTML = '';
+    input.value = track;
+    suggestions.innerHTML = '';
 
-                    if (side === 'A') {
-                        selectedCompareTeamA = teamsInput.value
-    .split('\n')
-    .map(l => l.trim())
-    .find(line => {
-        const { track: t } = parseArtistAndTrack(line);
-        return stripInlineColors(t) === track;
-    });
+    if (side === 'A') {
+        selectedCompareTeamA = teamsInput.value
+            .split('\n')
+            .map(l => l.trim())
+            .find(line => {
+                const { track: t } = parseArtistAndTrack(line);
+                return stripInlineColors(t) === track;
+            });
 
-                        renderVSResult();
-                        renderCompareStats();
+        document.getElementById('compareNameA').textContent = track;
+    } else {
+        selectedCompareTeamB = teamsInput.value
+            .split('\n')
+            .map(l => l.trim())
+            .find(line => {
+                const { track: t } = parseArtistAndTrack(line);
+                return stripInlineColors(t) === track;
+            });
 
-                        document.getElementById('compareNameA').textContent = track;
-                    } else {
-                        selectedCompareTeamB = teamsInput.value
-    .split('\n')
-    .map(l => l.trim())
-    .find(line => {
-        const { track: t } = parseArtistAndTrack(line);
-        return stripInlineColors(t) === track;
-    });
+        document.getElementById('compareNameB').textContent = track;
+    }
 
-                        renderVSResult();
-                        renderCompareStats();
-
-                        document.getElementById('compareNameB').textContent = track;
-                    }
-                });
+    renderVSResult();
+    renderCompareStats();
+});
 
                 suggestions.appendChild(div);
             });
@@ -4135,6 +4148,26 @@ async function getTeamFormIcons(teamName, limit = 5) {
     return icons;
 }
 
+/* ===============================
+   🆚 COMPARE — ЛОГИКА ПОДСВЕТКИ
+=============================== */
+function setBetter(rowA, rowB, valueA, valueB, reverse = false) {
+    if (!rowA || !rowB) return;
+
+    rowA.classList.remove('better');
+    rowB.classList.remove('better');
+
+    if (valueA === valueB) return;
+
+    if (!reverse) {
+        if (valueA > valueB) rowA.classList.add('better');
+        else rowB.classList.add('better');
+    } else {
+        if (valueA < valueB) rowA.classList.add('better');
+        else rowB.classList.add('better');
+    }
+}
+
 function renderCompareStats() {
     if (!selectedCompareTeamA || !selectedCompareTeamB) return;
 
@@ -4175,6 +4208,52 @@ function renderCompareStats() {
 
     document.getElementById('compareBestPosB').textContent =
         getBestPosition(teamBName);
+
+                /* 
+        ====    ===================
+       🆚 ПРИМЕНЯЕМ ПОДСВЕТКУ
+    =============================== */
+
+    const rowPointsA = document.getElementById('comparePointsA').closest('.compare-row');
+    const rowPointsB = document.getElementById('comparePointsB').closest('.compare-row');
+
+    const rowGoalsA = document.getElementById('compareGoalsA').closest('.compare-row');
+    const rowGoalsB = document.getElementById('compareGoalsB').closest('.compare-row');
+
+    const rowFormA = document.getElementById('compareFormA').closest('.compare-row');
+    const rowFormB = document.getElementById('compareFormB').closest('.compare-row');
+
+    const rowBestA = document.getElementById('compareBestPosA').closest('.compare-row');
+    const rowBestB = document.getElementById('compareBestPosB').closest('.compare-row');
+
+    const pointsA = teamA ? teamA.points : 0;
+    const pointsB = teamB ? teamB.points : 0;
+
+    setBetter(rowPointsA, rowPointsB, pointsA, pointsB);
+
+    const diffA = teamA ? (teamA.goalsFor - teamA.goalsAgainst) : 0;
+    const diffB = teamB ? (teamB.goalsFor - teamB.goalsAgainst) : 0;
+
+    setBetter(rowGoalsA, rowGoalsB, diffA, diffB);
+
+    Promise.all([
+        getTeamFormIcons(teamAName),
+        getTeamFormIcons(teamBName)
+    ]).then(([formA, formB]) => {
+        const getFormPoints = str =>
+            [...str].reduce((acc, ch) =>
+                acc + (ch === '✅' ? 3 : ch === '🟨' ? 1 : 0), 0);
+
+        setBetter(rowFormA, rowFormB,
+            getFormPoints(formA),
+            getFormPoints(formB)
+        );
+    });
+
+    const bestA = parseInt((getBestPosition(teamAName).match(/\d+/) || [999])[0]);
+    const bestB = parseInt((getBestPosition(teamBName).match(/\d+/) || [999])[0]);
+
+    setBetter(rowBestA, rowBestB, bestA, bestB, true);
 }
 
 

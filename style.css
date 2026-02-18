@@ -1280,3 +1280,26 @@ body.teams-hidden .team-name {
     flex-direction: column;
     align-items: center;
 }
+
+/* === ПОДСВЕТКА ЛУЧШЕГО ПОКАЗАТЕЛЯ === */
+
+.compare-row.better {
+    position: relative;
+}
+
+.compare-row.better::after {
+    content: "";
+    position: absolute;
+    bottom: -3px;
+    left: 15%;
+    width: 70%;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 2px;
+    animation: fadeInLine 0.25s ease-in-out;
+}
+
+@keyframes fadeInLine {
+    from { opacity: 0; transform: scaleX(0.6); }
+    to { opacity: 1; transform: scaleX(1); }
+}
