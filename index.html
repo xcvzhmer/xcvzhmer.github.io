@@ -106,36 +106,6 @@ https://open.spotify.com/track/4"></textarea>
             </table>
         </div>
 
-        <div class="schedule-control">
-            <h2>Расписание матчей</h2>
-
-            <div class="tour-navigation">
-                <button id="prevTourBtn" disabled>&lt; Предыдущий тур</button>
-                <span class="tour-info">Тур <span id="currentTourNum">1</span> из <span id="totalToursNum">0</span></span>
-                <button id="nextTourBtn" disabled>Следующий тур &gt;</button>
-
-                <div class="tour-jump">
-                    <input type="number" id="tourJumpInput" min="1" placeholder="№">
-                    <button id="jumpToTourBtn">Перейти</button>
-                </div>
-
-                <div id="tourStats" class="tour-stats"></div>
-            </div>
-
-            <button id="showFullScheduleBtn" disabled>Полное расписание</button>
-        
-        <button id="showFormStatsBtn" class="orange-btn">
-            Форма и серия
-        </button>
-
-        <button id="openCompareModal" class="turquoise-btn">
-            Сравнение
-        </button>
-
-        </div>
-    </div>
-</div>
-
         <!-- Т9 Поиск артиста + треки T9 -->
 <div class="artist-search-wrapper">
 
@@ -190,6 +160,36 @@ https://open.spotify.com/track/4"></textarea>
             <div id="tourCompletionBar"></div>
         </div>
     </div>
+
+    <div class="schedule-control">
+            <h2>Расписание матчей</h2>
+
+            <div class="tour-navigation">
+                <button id="prevTourBtn" disabled>&lt; Предыдущий тур</button>
+                <span class="tour-info">Тур <span id="currentTourNum">1</span> из <span id="totalToursNum">0</span></span>
+                <button id="nextTourBtn" disabled>Следующий тур &gt;</button>
+
+                <div class="tour-jump">
+                    <input type="number" id="tourJumpInput" min="1" placeholder="№">
+                    <button id="jumpToTourBtn">Перейти</button>
+                </div>
+
+                <div id="tourStats" class="tour-stats"></div>
+            </div>
+
+            <button id="showFullScheduleBtn" disabled>Полное расписание</button>
+        
+        <button id="showFormStatsBtn" class="orange-btn">
+            Форма и серия
+        </button>
+
+        <button id="openCompareModal" class="turquoise-btn">
+            Сравнение
+        </button>
+
+        </div>
+    </div>
+</div>
 
     <!-- 🎯 ФИЛЬТРЫ СТРОГО ПОД ПОЛОСКОЙ -->
     <div class="score-filter-wrapper">

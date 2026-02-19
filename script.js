@@ -4134,18 +4134,30 @@ async function getTeamFormIcons(teamName, limit = 5) {
     const matches = await getLastPlayedMatchesFromDB(teamName, limit);
     if (!matches.length) return '—';
 
-    const icons = matches.map(m => {
+    const items = matches.map(m => {
         const isLeft =
-    stripInlineColors(m.team1) === stripInlineColors(teamName);
-        const scored = isLeft ? m.score1 : m.score2;
-        const conceded = isLeft ? m.score2 : m.score1;
+            stripInlineColors(m.team1) === stripInlineColors(teamName);
 
-        if (scored > conceded) return '✅';
-        if (scored < conceded) return '❌';
-        return '🟨';
-    }).join('');
+        const leftTeam  = stripInlineColors(teamName);
+        const rightTeam = stripInlineColors(isLeft ? m.team2 : m.team1);
 
-    return icons;
+        const leftGoals  = isLeft ? m.score1 : m.score2;
+        const rightGoals = isLeft ? m.score2 : m.score1;
+
+        const scored   = leftGoals;
+        const conceded = rightGoals;
+
+        let icon = '🟨';
+        if (scored > conceded) icon = '✅';
+        else if (scored < conceded) icon = '❌';
+
+        const title =
+            `${m.tourIndex + 1} тур, ${leftTeam} ${leftGoals} – ${rightGoals} ${rightTeam}`;
+
+        return `<span title="${title}">${icon}</span>`;
+    });
+
+    return items.join('');
 }
 
 /* ===============================
@@ -4195,12 +4207,12 @@ function renderCompareStats() {
 
     // FORM (ВАЖНО)
     getTeamFormIcons(teamAName).then(res => {
-        document.getElementById('compareFormA').textContent = res;
-    });
+    document.getElementById('compareFormA').innerHTML = res;
+});
 
     getTeamFormIcons(teamBName).then(res => {
-        document.getElementById('compareFormB').textContent = res;
-    });
+    document.getElementById('compareFormB').innerHTML = res;
+});
 
     // BEST POSITION
     document.getElementById('compareBestPosA').textContent =
@@ -4240,9 +4252,13 @@ function renderCompareStats() {
         getTeamFormIcons(teamAName),
         getTeamFormIcons(teamBName)
     ]).then(([formA, formB]) => {
-        const getFormPoints = str =>
-            [...str].reduce((acc, ch) =>
-                acc + (ch === '✅' ? 3 : ch === '🟨' ? 1 : 0), 0);
+        const getFormPoints = html => {
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+
+    return [...temp.textContent].reduce((acc, ch) =>
+        acc + (ch === '✅' ? 3 : ch === '🟨' ? 1 : 0), 0);
+};
 
         setBetter(rowFormA, rowFormB,
             getFormPoints(formA),
