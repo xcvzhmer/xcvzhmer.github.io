@@ -1203,9 +1203,13 @@ for (const key in bestMatchesByTour) {
     updateTourNavigation();
     await displayTour(0); // Показываем первый тур
     await renderStandingsFromDB(); // Отображаем таблицу
+
+    // 🔥 ДОБАВЛЕНО — подсветка после полной отрисовки
+    applyAuto33Relegation();
+    highlightMatchesWithRelegationTeams();
+
     enableButtons();
     generateBtn.disabled = false; // Отключаем кнопку генерации
-
 }
 
 /* ======================================================
@@ -2361,13 +2365,19 @@ async function handleSaveOrUpdateScore(event) {
             return;
         }
 
-        // Перерисовываем таблицу результатов
+// Перерисовываем таблицу результатов
         await renderStandingsFromDB();
         await repaintStandingsBannedRows();
 
-        // Перерисовываем текущий тур, чтобы обновить состояние кнопок и счетчиков
-        await displayTour(tournamentData.currentTourIndex);
-        updateTourNavigation();
+// 🔥 применяем авто-вылет
+applyAuto33Relegation();
+
+// Перерисовываем текущий тур
+await displayTour(tournamentData.currentTourIndex);
+updateTourNavigation();
+
+// 🔥 подсвечиваем матчи ПОСЛЕ displayTour
+highlightMatchesWithRelegationTeams();
 
         const tourIndex = tournamentData.currentTourIndex;
 
@@ -2696,8 +2706,15 @@ generateBtn.addEventListener('click', async () => {
     try {
         await generateAndSaveSchedule(numTeams);
         await renderStandingsFromDB();
+
+        applyAuto33Relegation();
+
         await displayTour(0);
         updateTourNavigation();
+
+        // 🔥 после displayTour
+        highlightMatchesWithRelegationTeams();
+
         enableButtons();
         updateTourCompletionIndicator(0);
     } catch (error) {
@@ -2715,8 +2732,12 @@ prevTourBtn.addEventListener('click', async () => {
         tournamentData.currentTourIndex--;
         await displayTour(tournamentData.currentTourIndex);
         updateTourNavigation();
+
+        // 🔥 подсветка
+        highlightMatchesWithRelegationTeams();
+
         await checkTourStatsAndDisplay(tournamentData.currentTourIndex);
-    updateTourCompletionIndicator(tournamentData.currentTourIndex);
+        updateTourCompletionIndicator(tournamentData.currentTourIndex);
 
         // Сохраняем текущий индекс тура
         await saveSettings({ ...await loadSettings(), currentTourIndex: tournamentData.currentTourIndex });
@@ -2752,9 +2773,16 @@ if (updateTeamsBtn) {
             await updateTeamsStatuses();
             alert("Статусы команд обновлены!");
             await renderStandingsFromDB();
+            await repaintStandingsBannedRows();
+
+            applyAuto33Relegation();
+
             await displayTour(tournamentData.currentTourIndex);
             updateTourNavigation();
-            await repaintStandingsBannedRows();
+
+            // 🔥 после displayTour
+            highlightMatchesWithRelegationTeams();
+
         } catch (error) {
             console.error("Ошибка при обновлении статусов команд:", error);
             alert("Не удалось обновить команды.");
@@ -2815,6 +2843,8 @@ async function applyRelegationZonesToStandings() {
             row.classList.add("relegation");
         }
     });
+    // 🔥 AUTO 33% (всегда поверх ручных зон)
+    applyAuto33Relegation();
 }
 
 function isFeatTrack(name) {
@@ -2929,6 +2959,114 @@ async function restoreRelegationZonesUI() {
     }
 
     await applyRelegationZonesToStandings();
+
+    // 🔥 AUTO 33% при загрузке страницы
+    applyAuto33Relegation()
+}
+
+// ===============================
+// 🔥 AUTO 33% RELEGATION (NEW)
+// не трогает старую систему зон
+// ===============================
+function applyAuto33Relegation() {
+
+    const allRows = Array.from(
+        document.querySelectorAll("#standingsBody tr")
+    );
+
+    // ❌ исключаем дисквалифицированные
+    const activeRows = allRows.filter(
+        row => !row.classList.contains("disqualified")
+    );
+
+    const activeTeams = activeRows.length;
+
+    if (activeTeams === 0) return;
+
+    // 33% снизу (округление вверх)
+    const relegationCount = Math.ceil(activeTeams * 0.22);
+
+    const startIndex = activeTeams - relegationCount;
+
+    // очищаем старые классы
+    allRows.forEach(row => {
+        row.classList.remove("auto-relegation-33");
+    });
+
+    // назначаем новые
+    activeRows.forEach((row, index) => {
+        if (index >= startIndex) {
+            row.classList.add("auto-relegation-33");
+        }
+    });
+}
+
+// =============================================
+// 🔥 Выделяем матчи с командами, из зоны вылета
+// =============================================
+function highlightMatchesWithRelegationTeams() {
+
+    // 1. Берём и НОРМАЛИЗУЕМ команды из зоны вылета
+    const relegationTeams = Array.from(
+        document.querySelectorAll("#standingsBody tr.auto-relegation-33")
+    ).map(row => {
+        const nameCell = row.querySelector("td:nth-child(2)");
+        if (!nameCell) return null;
+
+        return normalizeText(
+            stripInlineColors(nameCell.textContent)
+        );
+    }).filter(Boolean);
+
+    if (relegationTeams.length === 0) return;
+
+    // 2. Матчи
+    const matchRows = document.querySelectorAll(
+        "#currentTourOutput tbody tr"
+    );
+
+    matchRows.forEach(row => {
+
+    row.classList.remove("match-relegation");
+
+    const cells = row.querySelectorAll("td");
+    if (cells.length < 5) return;
+
+    // 🧹 очищаем предыдущую подсветку ячеек
+    cells.forEach(td => td.classList.remove("match-relegation-cell"));
+
+    // ❌ НЕ подсвечиваем BYE и технические матчи
+    if (
+        row.classList.contains("bye-match") ||
+        row.classList.contains("technical-match")
+    ) {
+        return;
+    }
+
+    const fullText = normalizeText(
+        stripInlineColors(row.textContent)
+    );
+
+    let shouldHighlight = false;
+
+    relegationTeams.forEach(team => {
+        if (fullText.includes(team)) {
+            shouldHighlight = true;
+        }
+    });
+
+    // 🔥 если найден матч с зоной вылета — красим только нужные ячейки
+    if (shouldHighlight) {
+        cells.forEach((td, index) => {
+
+            // ❌ игнорируем колонку Команда 1 и Команда 2
+            if (index === 1 || index === 2 || index === 5 || index === 6 || index === 7) return;
+
+            td.classList.add("match-relegation-cell");
+        });
+    }
+
+  });
 }
 
 /**
@@ -3187,6 +3325,10 @@ nextTourBtn.addEventListener('click', async () => {
         tournamentData.currentTourIndex++;
         await displayTour(tournamentData.currentTourIndex);
         updateTourNavigation();
+
+        // 🔥 подсветка
+        highlightMatchesWithRelegationTeams();
+
         await checkTourStatsAndDisplay(tournamentData.currentTourIndex);
 
         await saveSettings({
@@ -3202,7 +3344,11 @@ jumpToTourBtn.addEventListener('click', async () => {
         tournamentData.currentTourIndex = tourNum - 1;
         await displayTour(tournamentData.currentTourIndex);
         updateTourNavigation();
-        await checkTourStatsAndDisplay(tournamentData.currentTourIndex);
+
+        // 🔥 подсветка
+        highlightMatchesWithRelegationTeams();
+
+        await checkTourStatsAndDisplay(tournamentData.currentTourIndex); 
         // Сохраняем текущий индекс тура
         await saveSettings({ ...await loadSettings(), currentTourIndex: tournamentData.currentTourIndex });
         // Здесь можно добавить прокрутку к первому незаполненному матчу, если это необходимо
@@ -3234,15 +3380,34 @@ const closeFormModalBtn = document.getElementById('closeFormModal');
 document.addEventListener('DOMContentLoaded', () => {
 
     const hideTeamsBtn = document.getElementById('hideTeamsBtn');
-    if (!hideTeamsBtn) return;
+    const toggleRelegationBtn = document.getElementById('toggleRelegationBtn');
 
-    let teamsHidden = false;
+    if (hideTeamsBtn) {
+        hideTeamsBtn.addEventListener('click', () => {
+            document.body.classList.toggle('teams-hidden');
+        });
+    }
 
-    hideTeamsBtn.addEventListener('click', () => {
-    document.body.classList.toggle('teams-hidden');
+    // 🔴 ПЕРЕКЛЮЧАТЕЛЬ ПОДСВЕТКИ
+    let relegationHighlightEnabled = true;
+
+    if (toggleRelegationBtn) {
+
+        toggleRelegationBtn.addEventListener('click', () => {
+
+            relegationHighlightEnabled = !relegationHighlightEnabled;
+
+            document.body.classList.toggle(
+                'relegation-disabled',
+                !relegationHighlightEnabled
+            );
+
+        });
+
+    }
+
 });
 
-});
 /* ========================== */
 
 showFormStatsBtn.addEventListener('click', async () => {
