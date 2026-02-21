@@ -1208,6 +1208,12 @@ for (const key in bestMatchesByTour) {
     applyAuto33Relegation();
     highlightMatchesWithRelegationTeams();
 
+// 🔥 ВОССТАНАВЛИВАЕМ ПОДСВЕТКУ ИГРАЮЩЕГО ТРЕКА
+    const activeTrack = localStorage.getItem('currentTrackId');
+    if (activeTrack) {
+    highlightActiveTeamCell(activeTrack);
+}
+
     enableButtons();
     generateBtn.disabled = false; // Отключаем кнопку генерации
 }
@@ -1631,12 +1637,20 @@ function buildBestMatchLine(match, matchNumber) {
             : '- : -';
 
     const spotify1 = match.spotifyUrl1
-        ? `<a href="${match.spotifyUrl1}" target="_blank" class="spotify-link">S</a>`
-        : '';
+    ? `<a href="#"
+         class="spotify-link"
+         onclick="playInGlobalPlayer('${match.spotifyUrl1}'); return false;">
+         S
+       </a>`
+    : '';
 
     const spotify2 = match.spotifyUrl2
-        ? `<a href="${match.spotifyUrl2}" target="_blank" class="spotify-link">S</a>`
-        : '';
+    ? `<a href="#"
+         class="spotify-link"
+         onclick="playInGlobalPlayer('${match.spotifyUrl2}'); return false;">
+         S
+       </a>`
+    : '';
 
     return `
     <div class="best-match-line">
@@ -1692,16 +1706,23 @@ document.addEventListener('click', async e => {
  * Если url есть — зелёная ссылка (квадратная) с буквой S внутри.
  * Возвращает HTMLElement (a или button).
  */
+
 function createSpotifyButton(url) {
     const size = 28;
     if (url && url.length > 0) {
         const a = document.createElement('a');
-        a.href = url;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
+
+        a.href = "#";   // ← НЕ переходим со страницы
+        
         a.className = 'spotify-btn';
-        a.tabIndex = -1;                     // ← 🔥 ВАЖНО (tab)
-        a.title = 'Открыть в Spotify';
+        a.tabIndex = -1;
+        a.title = 'Play in tournament player';
+
+        a.addEventListener('click', function (e) {
+        e.preventDefault();
+        playInGlobalPlayer(url, this);
+});
+
         a.style.display = 'inline-flex';
         a.style.alignItems = 'center';
         a.style.justifyContent = 'center';
@@ -1829,8 +1850,21 @@ async function renderFullScheduleModal() {
                         scoreDisplay = '- : -';
                     }
 
-                    const spotify1Link = match.spotifyUrl1 ? `<a href="${match.spotifyUrl1}" target="_blank" class="spotify-link">S</a>` : '<span class="spotify-link disabled">S</span>';
-                    const spotify2Link = match.spotifyUrl2 ? `<a href="${match.spotifyUrl2}" target="_blank" class="spotify-link">S</a>` : '<span class="spotify-link disabled">S</span>';
+const spotify1Link = match.spotifyUrl1
+    ? `<a href="#"
+         class="spotify-link"
+         onclick="playInGlobalPlayer('${match.spotifyUrl1}'); return false;">
+         S
+       </a>`
+    : '<span class="spotify-link disabled">S</span>';
+
+const spotify2Link = match.spotifyUrl2
+    ? `<a href="#"
+         class="spotify-link"
+         onclick="playInGlobalPlayer('${match.spotifyUrl2}'); return false;">
+         S
+       </a>`
+    : '<span class="spotify-link disabled">S</span>';
 
 let team1Display = '';
 let team2Display = '';
@@ -1998,7 +2032,7 @@ const SPECIAL_TRACK_HIGHLIGHTS = {
   // 11
   "пошлая молли|самый лучший эмо панк": ["#955f39", "#e99dbd", "#fefefe"],
   // 12
-  "9mice|kai angel|fountainebleau|i wanna be your dog": ["#131315", "#e2e4e5"],
+  "9mice|kai angel|fountainebleau": ["#131315", "#e2e4e5"],
   // 13
   "ken carson|rockstar lifestyle": ["#141314ff", "#4d464eff"],
   // 14
@@ -2043,7 +2077,7 @@ const SPECIAL_TRACK_YEARS = {
   // 11
   "пошлая молли|самый лучший эмо панк": 2020,
   // 12
-  "9mice|kai angel|fountainebleau|i wanna be your dog": 2024,
+  "9mice|kai angel|fountainebleau": 2024,
   // 13
   "ken carson|rockstar lifestyle": 2023,
   // 14
@@ -2114,46 +2148,101 @@ function buildLayerBlend(colors) {
    • сверху вниз
    • проценты/процентаж/полоски
 ========================== */
+
+//                              🔧 РЕГУЛЯТОР МЫЛА           (0.00 – 1.00)
+// 0.00  = идеально резкие полосы
+// 0.60+ = сильно мыльно
+
+const BLEND_SOFTNESS = 0.55;
+
 function buildVerticalBlend(colors) {
 
     // 2 цвета
-    if (colors.length === 2) {
+if (colors.length === 2) {
+
+    if (BLEND_SOFTNESS === 0) {
+        // 🔥 ЧЁТКИЙ РАЗРЕЗ 50/50 (без мыла)
         return `linear-gradient(180deg,
-            ${hexToRGBA(colors[0], 0.45)} 0%,
-            ${hexToRGBA(colors[0], 0.35)} 45%,
-            ${hexToRGBA(colors[1], 0.35)} 55%,
-            ${hexToRGBA(colors[1], 0.45)} 100%
+            ${colors[0]} 0%,
+            ${colors[0]} 50%,
+            ${colors[1]} 50%,
+            ${colors[1]} 100%
         )`;
     }
+
+    // 🌫 МЯГКИЙ РЕЖИМ
+    return `linear-gradient(180deg,
+        ${colors[0]} 0%,
+        ${colors[0]} ${50 - (5 * BLEND_SOFTNESS)}%,
+        ${colors[1]} ${50 + (5 * BLEND_SOFTNESS)}%,
+        ${colors[1]} 100%
+    )`;
+}
 
     // 3 цвета
-    if (colors.length === 3) {
+if (colors.length === 3) {
+
+    if (BLEND_SOFTNESS === 0) {
+        // 🔥 ЧЁТКИЕ ТРИ ПОЛОСЫ
         return `linear-gradient(180deg,
-            ${hexToRGBA(colors[0], 0.46)} 0%,
-            ${hexToRGBA(colors[0], 0.34)} 22%,
+            ${colors[0]} 0%,
+            ${colors[0]} 33.333%,
 
-            ${hexToRGBA(colors[1], 0.38)} 40%,
-            ${hexToRGBA(colors[1], 0.38)} 60%,
+            ${colors[1]} 33.333%,
+            ${colors[1]} 66.666%,
 
-            ${hexToRGBA(colors[2], 0.34)} 78%,
-            ${hexToRGBA(colors[2], 0.46)} 100%
+            ${colors[2]} 66.666%,
+            ${colors[2]} 100%
         )`;
     }
 
-    // 4 цвета — ОСНОВНОЙ КЕЙС
+    const shift = 6 * BLEND_SOFTNESS;
+
     return `linear-gradient(180deg,
-        ${hexToRGBA(colors[0], 0.48)} 0%,
-        ${hexToRGBA(colors[0], 0.36)} 18%,
+        ${colors[0]} 0%,
+        ${colors[0]} ${33.333 - shift}%,
 
-        ${hexToRGBA(colors[1], 0.36)} 32%,
-        ${hexToRGBA(colors[1], 0.36)} 46%,
+        ${colors[1]} ${33.333 + shift}%,
+        ${colors[1]} ${66.666 - shift}%,
 
-        ${hexToRGBA(colors[2], 0.36)} 54%,
-        ${hexToRGBA(colors[2], 0.36)} 68%,
-
-        ${hexToRGBA(colors[3], 0.36)} 82%,
-        ${hexToRGBA(colors[3], 0.48)} 100%
+        ${colors[2]} ${66.666 + shift}%,
+        ${colors[2]} 100%
     )`;
+}
+
+    // 4 цвета — ОСНОВНОЙ КЕЙС
+
+if (BLEND_SOFTNESS === 0) {
+    return `linear-gradient(180deg,
+        ${colors[0]} 0%,
+        ${colors[0]} 25%,
+
+        ${colors[1]} 25%,
+        ${colors[1]} 50%,
+
+        ${colors[2]} 50%,
+        ${colors[2]} 75%,
+
+        ${colors[3]} 75%,
+        ${colors[3]} 100%
+    )`;
+}
+
+const shift = 5 * BLEND_SOFTNESS;
+
+return `linear-gradient(180deg,
+    ${colors[0]} 0%,
+    ${colors[0]} ${25 - shift}%,
+
+    ${colors[1]} ${25 + shift}%,
+    ${colors[1]} ${50 - shift}%,
+
+    ${colors[2]} ${50 + shift}%,
+    ${colors[2]} ${75 - shift}%,
+
+    ${colors[3]} ${75 + shift}%,
+    ${colors[3]} 100%
+)`;
 }
 
 /* ==========================
@@ -2377,8 +2466,13 @@ await displayTour(tournamentData.currentTourIndex);
 updateTourNavigation();
 
 // 🔥 подсвечиваем матчи ПОСЛЕ displayTour
-highlightMatchesWithRelegationTeams();
+    highlightMatchesWithRelegationTeams();
 
+// 🔥 ВОССТАНАВЛИВАЕМ ПОДСВЕТКУ ИГРАЮЩЕГО ТРЕКА
+    const activeTrack = localStorage.getItem('currentTrackId');
+    if (activeTrack) {
+    highlightActiveTeamCell(activeTrack);
+}
         const tourIndex = tournamentData.currentTourIndex;
 
 // проверка статистики тура
@@ -2713,8 +2807,13 @@ generateBtn.addEventListener('click', async () => {
         updateTourNavigation();
 
         // 🔥 после displayTour
-        highlightMatchesWithRelegationTeams();
+    highlightMatchesWithRelegationTeams();
 
+// 🔥 ВОССТАНАВЛИВАЕМ ПОДСВЕТКУ ИГРАЮЩЕГО ТРЕКА
+    const activeTrack = localStorage.getItem('currentTrackId');
+    if (activeTrack) {
+    highlightActiveTeamCell(activeTrack);
+}
         enableButtons();
         updateTourCompletionIndicator(0);
     } catch (error) {
@@ -2734,8 +2833,13 @@ prevTourBtn.addEventListener('click', async () => {
         updateTourNavigation();
 
         // 🔥 подсветка
-        highlightMatchesWithRelegationTeams();
+    highlightMatchesWithRelegationTeams();
 
+// 🔥 ВОССТАНАВЛИВАЕМ ПОДСВЕТКУ ИГРАЮЩЕГО ТРЕКА
+    const activeTrack = localStorage.getItem('currentTrackId');
+    if (activeTrack) {
+    highlightActiveTeamCell(activeTrack);
+}
         await checkTourStatsAndDisplay(tournamentData.currentTourIndex);
         updateTourCompletionIndicator(tournamentData.currentTourIndex);
 
@@ -2781,8 +2885,13 @@ if (updateTeamsBtn) {
             updateTourNavigation();
 
             // 🔥 после displayTour
-            highlightMatchesWithRelegationTeams();
+    highlightMatchesWithRelegationTeams();
 
+// 🔥 ВОССТАНАВЛИВАЕМ ПОДСВЕТКУ ИГРАЮЩЕГО ТРЕКА
+    const activeTrack = localStorage.getItem('currentTrackId');
+    if (activeTrack) {
+    highlightActiveTeamCell(activeTrack);
+}
         } catch (error) {
             console.error("Ошибка при обновлении статусов команд:", error);
             alert("Не удалось обновить команды.");
@@ -3327,8 +3436,13 @@ nextTourBtn.addEventListener('click', async () => {
         updateTourNavigation();
 
         // 🔥 подсветка
-        highlightMatchesWithRelegationTeams();
+    highlightMatchesWithRelegationTeams();
 
+// 🔥 ВОССТАНАВЛИВАЕМ ПОДСВЕТКУ ИГРАЮЩЕГО ТРЕКА
+    const activeTrack = localStorage.getItem('currentTrackId');
+    if (activeTrack) {
+    highlightActiveTeamCell(activeTrack);
+}
         await checkTourStatsAndDisplay(tournamentData.currentTourIndex);
 
         await saveSettings({
@@ -3346,8 +3460,13 @@ jumpToTourBtn.addEventListener('click', async () => {
         updateTourNavigation();
 
         // 🔥 подсветка
-        highlightMatchesWithRelegationTeams();
+    highlightMatchesWithRelegationTeams();
 
+// 🔥 ВОССТАНАВЛИВАЕМ ПОДСВЕТКУ ИГРАЮЩЕГО ТРЕКА
+    const activeTrack = localStorage.getItem('currentTrackId');
+    if (activeTrack) {
+    highlightActiveTeamCell(activeTrack);
+}
         await checkTourStatsAndDisplay(tournamentData.currentTourIndex); 
         // Сохраняем текущий индекс тура
         await saveSettings({ ...await loadSettings(), currentTourIndex: tournamentData.currentTourIndex });
@@ -4437,6 +4556,102 @@ function renderCompareStats() {
     setBetter(rowBestA, rowBestB, bestA, bestB, true);
 }
 
+/* ==========================
+   🍋‍🟩 SPOTIFY WEB PLAYER
+========================== */
+
+function playInGlobalPlayer(trackUrl, buttonElement) {
+
+    if (!trackUrl) return;
+
+    const trackId = trackUrl.split('/track/')[1]?.split('?')[0];
+    if (!trackId) return;
+
+    const iframe = document.getElementById('spotifyIframe');
+    const container = document.getElementById('globalSpotifyPlayer');
+
+    const embedUrl = `https://open.spotify.com/embed/track/${trackId}`;
+
+    iframe.src = embedUrl;
+
+    localStorage.setItem('lastSpotifyTrack', embedUrl);
+    localStorage.setItem('currentTrackId', trackId);
+
+    // 🔥 ПОДСВЕТКА ЧЕРЕЗ КНОПКУ
+    highlightActiveTeamCell(buttonElement);
+
+    container.classList.remove('minimized');
+    container.classList.add('active');
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+
+    const iframe = document.getElementById('spotifyIframe');
+    const container = document.getElementById('globalSpotifyPlayer');
+
+    // 🔄 Восстановление последнего трека
+    const saved = localStorage.getItem('lastSpotifyTrack');
+    if (saved) {
+        iframe.src = saved;
+        container.classList.add('active');
+    }
+
+    // ❌ КНОПКА ЗАКРЫТЬ ПЛЕЕР
+    const closeBtn = document.getElementById('spotifyCloseBtn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function () {
+
+            iframe.src = '';
+            container.classList.remove('active');
+            localStorage.removeItem('lastSpotifyTrack');
+        });
+    }
+
+    // ▬ КНОПКА СВЕРНУТЬ ПЛЕЕР
+    const minimizeBtn = document.getElementById('spotifyMinimizeBtn');
+    if (minimizeBtn) {
+        minimizeBtn.addEventListener('click', function () {
+
+            container.classList.toggle('minimized');
+        });
+    }
+
+});
+
+/* ==========================
+   🎵 ACTIVE TEAM CELL
+========================== */
+
+function highlightActiveTeamCell(button) {
+
+    document.querySelectorAll('.playing-team-cell')
+        .forEach(el => el.classList.remove('playing-team-cell'));
+
+    if (!button) return;
+
+    const td = button.closest('td');
+    const row = td?.closest('tr');
+    if (!row) return;
+
+    const cells = row.querySelectorAll('td');
+    const index = Array.from(cells).indexOf(td);
+
+    let teamCell = null;
+
+    // левая кнопка
+    if (index === 1) {
+        teamCell = cells[2];
+    }
+
+    // правая кнопка
+    if (index === 6) {
+        teamCell = cells[5];
+    }
+
+    if (teamCell) {
+        teamCell.classList.add('playing-team-cell');
+    }
+}
 
 // --- Конец скрипта ---
 // Вся логика работы с IndexedDB, генерация расписания, отображение туров,

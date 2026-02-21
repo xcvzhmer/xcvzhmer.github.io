@@ -1365,3 +1365,88 @@ body.teams-hidden .team-name {
 body.relegation-disabled #currentTourOutput tbody tr td.match-relegation-cell {
     box-shadow: inset 0 0 0 9999px rgba(255, 0, 0, 0);
 }
+
+/* ==========================
+   🍋‍🟩 SPOTIFY WEB PLAYER
+========================== */
+
+/*  🎛 РЕГУЛИРУЕМЫЕ ПАРАМЕТРЫ 🎛  */
+:root {
+    --player-bg-opacity: 0.6;      /* яркость затемнения 0.1–0.6 */
+    --player-blur: 1px;            /* сила glass эффекта */
+}
+
+/* 📦 Контейнер плеера */
+#globalSpotifyPlayer {
+    position: fixed;
+    bottom: -120px;
+    left: 0;
+    width: 100%;
+
+    background: rgba(20, 20, 20, var(--player-bg-opacity));
+    backdrop-filter: blur(var(--player-blur));
+    -webkit-backdrop-filter: blur(var(--player-blur));
+
+    box-shadow: 0 -4px 25px rgba(0,0,0,0.4);
+
+    transition: bottom 0.35s ease;
+    z-index: 9999;
+}
+
+#globalSpotifyPlayer.active {
+    display: block;
+    bottom: 0;            /* выезд */
+}
+
+#globalSpotifyPlayer iframe {
+    width: 100%;
+    display: block;
+}
+
+#globalSpotifyPlayer.minimized iframe {
+    display: none;
+}
+
+/* Header*/
+
+#spotifyPlayerHeader {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    padding: 6px 10px;
+}
+
+#spotifyPlayerHeader button {
+    background: #222;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    cursor: pointer;
+}
+
+/* ==========================
+   🎵 PLAYING TEAM CELL
+========================== */
+
+:root {
+    --playing-cell-color: #23de6565;   /* ЦВЕТ */
+    --playing-cell-brightness: 0.35;     /* ярче или тусклее 0.1 – 0.6 */
+}
+
+.playing-team-cell {
+    position: relative;
+}
+
+.playing-team-cell::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+
+    background: var(--playing-cell-color);
+    opacity: var(--playing-cell-opacity);
+
+    box-shadow: 0 0 18px var(--playing-cell-color);
+
+    pointer-events: none;
+    border-radius: 6px;
+}
