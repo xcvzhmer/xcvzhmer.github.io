@@ -1400,6 +1400,7 @@ body.relegation-disabled #currentTourOutput tbody tr td.match-relegation-cell {
 
 #globalSpotifyPlayer iframe {
     width: 100%;
+    height: 160px;          /* ВЫСОТА embed */
     display: block;
 }
 
@@ -1412,7 +1413,7 @@ body.relegation-disabled #currentTourOutput tbody tr td.match-relegation-cell {
 #spotifyPlayerHeader {
     display: flex;
     justify-content: flex-end;
-    gap: 6px;
+    gap: 6px;               /* расстояние между Скрыть и Закрыть */
     padding: 6px 10px;
 }
 
@@ -1433,19 +1434,14 @@ body.relegation-disabled #currentTourOutput tbody tr td.match-relegation-cell {
     --playing-cell-brightness: 0.35;     /* ярче или тусклее 0.1 – 0.6 */
 }
 
-.playing-team-cell {
-    position: relative;
-}
-
 .playing-team-cell::after {
     content: "";
     position: absolute;
     inset: 0;
 
     background: var(--playing-cell-color);
-    opacity: var(--playing-cell-opacity);
-
-    box-shadow: 0 0 18px var(--playing-cell-color);
+    opacity: var(--playing-cell-opacity); /* 🔥 яркость подсветки */
+    box-shadow: 0 0 18px var(--playing-cell-color); /* glow */
 
     pointer-events: none;
     border-radius: 6px;

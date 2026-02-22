@@ -1209,10 +1209,7 @@ for (const key in bestMatchesByTour) {
     highlightMatchesWithRelegationTeams();
 
 // 🔥 ВОССТАНАВЛИВАЕМ ПОДСВЕТКУ ИГРАЮЩЕГО ТРЕКА
-    const activeTrack = localStorage.getItem('currentTrackId');
-    if (activeTrack) {
-    highlightActiveTeamCell(activeTrack);
-}
+    restoreActiveTrackHighlight();
 
     enableButtons();
     generateBtn.disabled = false; // Отключаем кнопку генерации
@@ -2469,10 +2466,8 @@ updateTourNavigation();
     highlightMatchesWithRelegationTeams();
 
 // 🔥 ВОССТАНАВЛИВАЕМ ПОДСВЕТКУ ИГРАЮЩЕГО ТРЕКА
-    const activeTrack = localStorage.getItem('currentTrackId');
-    if (activeTrack) {
-    highlightActiveTeamCell(activeTrack);
-}
+    restoreActiveTrackHighlight();
+
         const tourIndex = tournamentData.currentTourIndex;
 
 // проверка статистики тура
@@ -2810,10 +2805,8 @@ generateBtn.addEventListener('click', async () => {
     highlightMatchesWithRelegationTeams();
 
 // 🔥 ВОССТАНАВЛИВАЕМ ПОДСВЕТКУ ИГРАЮЩЕГО ТРЕКА
-    const activeTrack = localStorage.getItem('currentTrackId');
-    if (activeTrack) {
-    highlightActiveTeamCell(activeTrack);
-}
+    restoreActiveTrackHighlight();
+
         enableButtons();
         updateTourCompletionIndicator(0);
     } catch (error) {
@@ -2836,10 +2829,8 @@ prevTourBtn.addEventListener('click', async () => {
     highlightMatchesWithRelegationTeams();
 
 // 🔥 ВОССТАНАВЛИВАЕМ ПОДСВЕТКУ ИГРАЮЩЕГО ТРЕКА
-    const activeTrack = localStorage.getItem('currentTrackId');
-    if (activeTrack) {
-    highlightActiveTeamCell(activeTrack);
-}
+    restoreActiveTrackHighlight();
+
         await checkTourStatsAndDisplay(tournamentData.currentTourIndex);
         updateTourCompletionIndicator(tournamentData.currentTourIndex);
 
@@ -2888,10 +2879,8 @@ if (updateTeamsBtn) {
     highlightMatchesWithRelegationTeams();
 
 // 🔥 ВОССТАНАВЛИВАЕМ ПОДСВЕТКУ ИГРАЮЩЕГО ТРЕКА
-    const activeTrack = localStorage.getItem('currentTrackId');
-    if (activeTrack) {
-    highlightActiveTeamCell(activeTrack);
-}
+    restoreActiveTrackHighlight();
+
         } catch (error) {
             console.error("Ошибка при обновлении статусов команд:", error);
             alert("Не удалось обновить команды.");
@@ -3439,10 +3428,8 @@ nextTourBtn.addEventListener('click', async () => {
     highlightMatchesWithRelegationTeams();
 
 // 🔥 ВОССТАНАВЛИВАЕМ ПОДСВЕТКУ ИГРАЮЩЕГО ТРЕКА
-    const activeTrack = localStorage.getItem('currentTrackId');
-    if (activeTrack) {
-    highlightActiveTeamCell(activeTrack);
-}
+    restoreActiveTrackHighlight();
+
         await checkTourStatsAndDisplay(tournamentData.currentTourIndex);
 
         await saveSettings({
@@ -3463,10 +3450,8 @@ jumpToTourBtn.addEventListener('click', async () => {
     highlightMatchesWithRelegationTeams();
 
 // 🔥 ВОССТАНАВЛИВАЕМ ПОДСВЕТКУ ИГРАЮЩЕГО ТРЕКА
-    const activeTrack = localStorage.getItem('currentTrackId');
-    if (activeTrack) {
-    highlightActiveTeamCell(activeTrack);
-}
+    restoreActiveTrackHighlight();
+    
         await checkTourStatsAndDisplay(tournamentData.currentTourIndex); 
         // Сохраняем текущий индекс тура
         await saveSettings({ ...await loadSettings(), currentTourIndex: tournamentData.currentTourIndex });
@@ -4582,6 +4567,11 @@ function playInGlobalPlayer(trackUrl, buttonElement) {
 
     container.classList.remove('minimized');
     container.classList.add('active');
+
+    // 🔥 ДОБАВЛЯЕМ МЕСТО СНИЗУ СТРАНИЦЫ
+    // (чтобы 13 матч не прятался под плеером)
+
+    document.body.style.paddingBottom = "180px"; // ← высота плеера
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -4594,6 +4584,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (saved) {
         iframe.src = saved;
         container.classList.add('active');
+
+        // 🔥 ЕСЛИ ПЛЕЕР УЖЕ АКТИВЕН ПРИ ЗАГРУЗКЕ — добавляем отступ
+    document.body.style.paddingBottom = "180px"; // ← высота плеер
     }
 
     // ❌ КНОПКА ЗАКРЫТЬ ПЛЕЕР
@@ -4604,6 +4597,9 @@ document.addEventListener('DOMContentLoaded', function () {
             iframe.src = '';
             container.classList.remove('active');
             localStorage.removeItem('lastSpotifyTrack');
+
+            // 🔥 УБИРАЕМ ДОПОЛНИТЕЛЬНОЕ МЕСТО СНИЗУ
+            document.body.style.paddingBottom = "0px";
         });
     }
 
@@ -4624,13 +4620,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
 function highlightActiveTeamCell(button) {
 
+    if (!(button instanceof HTMLElement)) {
+        console.warn('highlightActiveTeamCell получил не DOM элемент:', button);
+        return;
+    }
+
     document.querySelectorAll('.playing-team-cell')
         .forEach(el => el.classList.remove('playing-team-cell'));
 
-    if (!button) return;
-
     const td = button.closest('td');
-    const row = td?.closest('tr');
+    if (!td) return;
+
+    const row = td.closest('tr');
     if (!row) return;
 
     const cells = row.querySelectorAll('td');
@@ -4638,19 +4639,31 @@ function highlightActiveTeamCell(button) {
 
     let teamCell = null;
 
-    // левая кнопка
-    if (index === 1) {
-        teamCell = cells[2];
-    }
-
-    // правая кнопка
-    if (index === 6) {
-        teamCell = cells[5];
-    }
+    if (index === 1) teamCell = cells[2];
+    if (index === 6) teamCell = cells[5];
 
     if (teamCell) {
         teamCell.classList.add('playing-team-cell');
     }
+}
+
+// вспомогательная, чтобы без ошибок в консоли 
+
+function restoreActiveTrackHighlight() {
+
+    requestAnimationFrame(() => {
+
+        const activeTrack = localStorage.getItem('currentTrackId');
+        if (!activeTrack) return;
+
+        const button = document.querySelector(
+            `[data-track-id="${activeTrack}"]`
+        );
+
+        if (button) {
+            highlightActiveTeamCell(button);
+        }
+    });
 }
 
 // --- Конец скрипта ---
