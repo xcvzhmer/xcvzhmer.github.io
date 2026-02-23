@@ -1726,12 +1726,22 @@ function createSpotifyButton(url) {
         a.style.width = `${size}px`;
         a.style.height = `${size}px`;
         a.style.borderRadius = '4px';
-        a.style.backgroundColor = '#1DB954'; // Spotify green
+
+        /* 🔥 ОПРЕДЕЛЯЕМ ПЛАТФОРМУ ДЛЯ ЦВЕТА И ТЕКСТА */
+
+if (url.includes("soundcloud.com")) {
+    a.style.backgroundColor = '#ff7500'; // ☁ SoundCloud оранжевый
+    a.textContent = 'SC';                
+a.style.fontSize = '15px';               // 🔥 немного меньше для SC
+    } else {
+    a.style.backgroundColor = '#1DB954'; // 🎵 Spotify зелёный
+    a.textContent = 'S';
+a.style.fontSize = '16px';                 // 🍋‍🟩 стандартный размер
+        }
         a.style.color = '#ffffff';
         a.style.textDecoration = 'none';
         a.style.fontWeight = '700';
         a.style.boxSizing = 'border-box';
-        a.textContent = 'S';
         return a;
     } else {
         const btn = document.createElement('button');
