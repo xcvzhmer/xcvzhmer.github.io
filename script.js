@@ -4549,13 +4549,44 @@ function playInGlobalPlayer(trackUrl, buttonElement) {
 
     if (!trackUrl) return;
 
-    const trackId = trackUrl.split('/track/')[1]?.split('?')[0];
-    if (!trackId) return;
-
     const iframe = document.getElementById('spotifyIframe');
     const container = document.getElementById('globalSpotifyPlayer');
 
-    const embedUrl = `https://open.spotify.com/embed/track/${trackId}`;
+    let embedUrl = "";
+    let trackId = "";
+
+    /* 🔥 ОПРЕДЕЛЕНИЕ ПЛАТФОРМЫ */
+
+    // =========================
+    // 🎵 SPOTIFY
+    // =========================
+    if (trackUrl.includes("spotify.com")) {
+
+        trackId = trackUrl.split('/track/')[1]?.split('?')[0];
+        if (!trackId) return;
+
+        embedUrl = `https://open.spotify.com/embed/track/${trackId}`;
+
+    }
+
+    // =========================
+    // ☁ SOUNDCLOUD
+    // =========================
+    else if (trackUrl.includes("soundcloud.com")) {
+
+        // очищаем параметры ?si= и прочее
+        const cleanUrl = trackUrl.split('?')[0];
+
+        embedUrl = `https://w.soundcloud.com/player/?url=${encodeURIComponent(cleanUrl)}`;
+
+        // универсальный id для подсветки
+        trackId = btoa(cleanUrl);
+    }
+
+    else {
+        console.warn("Неизвестный сервис:", trackUrl);
+        return;
+    }
 
     iframe.src = embedUrl;
 
