@@ -2462,21 +2462,44 @@ async function handleSaveOrUpdateScore(event) {
         }
 
 // Перерисовываем таблицу результатов
-        await renderStandingsFromDB();
         await repaintStandingsBannedRows();
 
 // 🔥 применяем авто-вылет
 applyAuto33Relegation();
 
-// Перерисовываем текущий тур
-await displayTour(tournamentData.currentTourIndex);
-updateTourNavigation();
+/* ===============================
+   🔥 ЛОКАЛЬНОЕ ОБНОВЛЕНИЕ СТРОКИ МАТЧА
+   без displayTour()
+================================= */
 
-// 🔥 подсвечиваем матчи ПОСЛЕ displayTour
-    highlightMatchesWithRelegationTeams();
+const row = document.querySelector(`[data-match-id="${matchId}"]`);
 
-// 🔥 ВОССТАНАВЛИВАЕМ ПОДСВЕТКУ ИГРАЮЩЕГО ТРЕКА
-    restoreActiveTrackHighlight();
+if (row) {
+
+    const scoreInputs = row.querySelectorAll('.score-input');
+    const score1 = parseInt(scoreInputs[0].value);
+    const score2 = parseInt(scoreInputs[1].value);
+
+    // убираем старые классы
+    row.classList.remove('draw-match', 'total4-match', 'draw-row', 'total4-row');
+
+    if (!isNaN(score1) && !isNaN(score2)) {
+
+        if (score1 === score2) {
+            row.classList.add('draw-match', 'draw-row');
+        } else if (score1 + score2 === 4) {
+            row.classList.add('total4-match', 'total4-row');
+        }
+
+        // меняем текст кнопки
+        const actionBtn = row.querySelector('button');
+        if (actionBtn) actionBtn.textContent = 'Изменить';
+    }
+}
+
+// 🔥 подсветки теперь просто обновляем
+highlightMatchesWithRelegationTeams();
+restoreActiveTrackHighlight();
 
         const tourIndex = tournamentData.currentTourIndex;
 
