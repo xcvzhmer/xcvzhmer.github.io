@@ -3631,6 +3631,44 @@ function findHeadToHeadMatch(teamA, teamB) {
     return null;
 }
 
+// 🗓 НАХОДИМ НОМЕР ТУРА ВСТРЕЧИ (ИЗ INDEXEDDB)
+async function getHeadToHeadTour(teamA, teamB) {
+    if (!teamA || !teamB) return null;
+
+    const A = normalizeTeamName(stripInlineColors(teamA));
+    const B = normalizeTeamName(stripInlineColors(teamB));
+
+    return new Promise((resolve) => {
+
+        const transaction = db.transaction(['schedule'], 'readonly');
+        const store = transaction.objectStore('schedule');
+        const request = store.getAll();
+
+        request.onsuccess = (event) => {
+            const allMatches = event.target.result;
+
+            for (const match of allMatches) {
+                if (!match || match.isBye) continue;
+
+                const m1 = normalizeTeamName(stripInlineColors(match.team1));
+                const m2 = normalizeTeamName(stripInlineColors(match.team2));
+
+                if (
+                    (m1 === A && m2 === B) ||
+                    (m1 === B && m2 === A)
+                ) {
+                    resolve(match.tourIndex + 1);
+                    return;
+                }
+            }
+
+            resolve(null);
+        };
+
+        request.onerror = () => resolve(null);
+    });
+}
+
 /* ===============================
    🔍 СУПЕР-T9 ДЛЯ ТРЕКОВ
 =============================== */
@@ -4469,6 +4507,19 @@ function renderCompareStats() {
 
     const teamA = getTeamStanding(teamAName);
     const teamB = getTeamStanding(teamBName);
+
+    // 🗓 НОМЕР ТУРА ВСТРЕЧИ
+    getHeadToHeadTour(
+        selectedCompareTeamA,
+        selectedCompareTeamB
+    ).then(tourNumber => {
+
+        const tourText = tourNumber
+            ? `${tourNumber} тур`
+            : '—';
+
+        document.getElementById('compareTourNumber').textContent = tourText;
+    });
 
     // POINTS
     document.getElementById('comparePointsA').textContent =

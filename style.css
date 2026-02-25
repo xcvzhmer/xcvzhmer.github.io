@@ -1273,6 +1273,16 @@ body.teams-hidden .team-name {
     letter-spacing: 1px;
 }
 
+/* === 🗓 Тур встречи === */
+
+.compare-vs-tour {
+    font-size: 18px;
+    opacity: 0.75;
+    margin-top: 2px;
+    letter-spacing: 0.5px;
+    color: #00e5ff;
+}
+
 /* === ОБЩАЯ КОЛОНКА МОДАЛА === */
 
 .compare-modal-content {
