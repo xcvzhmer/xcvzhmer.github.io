@@ -4338,6 +4338,10 @@ function initCompareT9(inputId, suggestionsId, side) {
     });
 }
 
+// ===============================
+// 🆚 СЧЁТ В МОДАЛЕ СРАВНЕНИЯ
+// ===============================
+
 function renderVSResult() {
     const leftEl  = document.getElementById('compareScoreLeft');
     const rightEl = document.getElementById('compareScoreRight');
@@ -4347,32 +4351,34 @@ function renderVSResult() {
 
     if (!selectedCompareTeamA || !selectedCompareTeamB) return;
 
-    // ищем единственный матч A vs B
-    for (const tour of tournamentData.schedule) {
-        if (!tour) continue;
+    const A = selectedCompareTeamA;
+    const B = selectedCompareTeamB;
 
-        for (const match of tour) {
-            if (!match || match.isBye) continue;
+    const tx = db.transaction(['schedule'], 'readonly');
+    const store = tx.objectStore('schedule');
+    const request = store.getAll();
 
-            const t1 = match.team1;
-            const t2 = match.team2;
+    request.onsuccess = (e) => {
+        const match = e.target.result.find(m =>
+            !m.isBye &&
+            (
+                (m.team1 === A && m.team2 === B) ||
+                (m.team2 === A && m.team1 === B)
+            )
+        );
 
-            if (
-                (t1 === selectedCompareTeamA && t2 === selectedCompareTeamB) ||
-                (t2 === selectedCompareTeamA && t1 === selectedCompareTeamB)
-            ) {
-                if (match.score1 === null || match.score2 === null) return;
+        if (!match) return;
+        if (match.score1 === null || match.score2 === null) return;
 
-                // нормализуем сторону
-                const leftScore  = t1 === selectedCompareTeamA ? match.score1 : match.score2;
-                const rightScore = t1 === selectedCompareTeamA ? match.score2 : match.score1;
+        const leftScore  =
+            match.team1 === A ? match.score1 : match.score2;
 
-                leftEl.textContent  = leftScore;
-                rightEl.textContent = rightScore;
-                return;
-            }
-        }
-    }
+        const rightScore =
+            match.team1 === A ? match.score2 : match.score1;
+
+        leftEl.textContent  = leftScore;
+        rightEl.textContent = rightScore;
+    };
 }
 
 function formatPoints(points) {
