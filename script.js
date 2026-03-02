@@ -4264,7 +4264,7 @@ function initArtistFilterT9() {
     });
 }
 
-// модaл Сравнение (вспомогательная функция)
+// модал Сравнение (вспомогательная функция)
 
 function getAllTrackNames() {
     return teamsInput.value
@@ -4354,26 +4354,76 @@ function initCompareT9(inputId, suggestionsId, side) {
 }
 
 // ===============================
-// 🆚 СЧЁТ В МОДАЛЕ СРАВНЕНИЯ
+// 🆚 СЧЁТ + ПОЗИЦИИ В МОДАЛЕ СРАВНЕНИЯ     #6(#7)
 // ===============================
 
 function renderVSResult() {
+
     const leftEl  = document.getElementById('compareScoreLeft');
     const rightEl = document.getElementById('compareScoreRight');
 
+    const leftRankEl  = document.getElementById('compareRankLeft');   // 🔥 ИЗМЕНЕНО — получаем сразу
+    const rightRankEl = document.getElementById('compareRankRight');  // 🔥 ИЗМЕНЕНО — получаем сразу
+
     leftEl.textContent  = '';
     rightEl.textContent = '';
+
+    if (leftRankEl)  leftRankEl.textContent  = '—';   // 🔥 ИЗМЕНЕНО — очищаем ранги сразу
+    if (rightRankEl) rightRankEl.textContent = '—';   // 🔥 ИЗМЕНЕНО
 
     if (!selectedCompareTeamA || !selectedCompareTeamB) return;
 
     const A = selectedCompareTeamA;
     const B = selectedCompareTeamB;
 
+    /* ===============================
+       🏆 ПОЗИЦИИ — ТЕПЕРЬ СЧИТАЮТСЯ ВСЕГДА
+    =============================== */
+
+    const standingA = getTeamStanding(A);
+    const standingB = getTeamStanding(B);
+
+    const mainPosA = standingA ? standingA.position : null;
+    const mainPosB = standingB ? standingB.position : null;
+
+    Promise.all([
+        getTeamFormPosition(A),
+        getTeamFormPosition(B)
+    ]).then(([formPosA, formPosB]) => {
+
+        if (leftRankEl) {
+            if (mainPosA) {
+                leftRankEl.innerHTML = `
+                    <span class="rank-main">#${mainPosA}</span>
+                    <span class="rank-form">(#${formPosA ?? '—'})</span>
+                `;
+            } else {
+                leftRankEl.textContent = '—';
+            }
+        }
+
+        if (rightRankEl) {
+            if (mainPosB) {
+                rightRankEl.innerHTML = `
+                    <span class="rank-main">#${mainPosB}</span>
+                    <span class="rank-form">(#${formPosB ?? '—'})</span>
+                `;
+            } else {
+                rightRankEl.textContent = '—';
+            }
+        }
+    });
+
+    /* ===============================
+       🆚 ПОИСК МАТЧА — ТЕПЕРЬ ОТДЕЛЬНО
+    =============================== */
+
     const tx = db.transaction(['schedule'], 'readonly');
     const store = tx.objectStore('schedule');
     const request = store.getAll();
 
     request.onsuccess = (e) => {
+
         const match = e.target.result.find(m =>
             !m.isBye &&
             (
@@ -4382,10 +4432,11 @@ function renderVSResult() {
             )
         );
 
+        // 🔥 ИЗМЕНЕНО — больше НЕ выходим раньше времени
         if (!match) return;
         if (match.score1 === null || match.score2 === null) return;
 
-        const leftScore  =
+        const leftScore =
             match.team1 === A ? match.score1 : match.score2;
 
         const rightScore =
@@ -4528,6 +4579,47 @@ async function getTeamFormIcons(teamName, limit = 5) {
     });
 
     return items.join('');
+}
+
+/* ===============================
+   📊 ПОЗИЦИЯ В FORM-ТАБЛИЦЕ
+=============================== */
+async function getTeamFormPosition(teamName) {
+    const allTeams = await getAllTeams();
+    const rows = [];
+
+    for (const t of allTeams) {
+        const team = t.teamName;
+        const matches = await getLastPlayedMatchesFromDB(team, 5);
+
+        let gf = 0, ga = 0;
+
+        for (const m of matches) {
+            const isLeft =
+                stripInlineColors(m.team1) === stripInlineColors(team);
+
+            const scored   = isLeft ? m.score1 : m.score2;
+            const conceded = isLeft ? m.score2 : m.score1;
+
+            gf += scored;
+            ga += conceded;
+        }
+
+        rows.push({
+            team,
+            diff: gf - ga
+        });
+    }
+
+    rows.sort((a, b) => b.diff - a.diff);
+
+    const cleanTarget = stripInlineColors(teamName);
+
+    const index = rows.findIndex(r =>
+        stripInlineColors(r.team) === cleanTarget
+    );
+
+    return index >= 0 ? index + 1 : null;
 }
 
 /* ===============================

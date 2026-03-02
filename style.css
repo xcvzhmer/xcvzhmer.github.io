@@ -1251,6 +1251,31 @@ body.teams-hidden .team-name {
     max-width: 420px;
 }
 
+/* 🔥 НОВЫЙ БЛОК С #6(#7) */
+.compare-vs-ranks {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    width: 100%;
+    max-width: 420px;
+    margin-top: -2px;
+    text-align: center;
+}
+
+/* 🔥 ОСНОВНАЯ ПОЗИЦИЯ (#standings) */
+.rank-main {
+    font-size: 22px;      /* ← регулируй размер тут */
+    color: #7cb03e;       /* ← тестовый цвет */
+    font-weight: 600;
+}
+
+/* 🔥 ПОЗИЦИЯ ФОРМЫ (# Форма и серия) */
+.rank-form {
+    font-size: 18px;      /* ← регулируй размер отдельно */
+    color: #ff9c1a;       /* ← тестовый цвет */
+    font-weight: 499;
+    margin-left: 1px;
+}
+
 /* ↓↓↓ ВСТАВКА ↓↓↓ */
 .compare-vs-names span {
     white-space: normal;          /* разрешаем перенос */
@@ -1267,7 +1292,7 @@ body.teams-hidden .team-name {
 .compare-vs-score {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     font-size: 28px;
     font-weight: 700;
     letter-spacing: 1px;
