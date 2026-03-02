@@ -1324,6 +1324,12 @@ async function displayTour(tourIndex) {
     currentTourOutput.innerHTML = ''; // Очищаем предыдущий тур
 
     const currentTourMatches = await getMatchesByTour(tourIndex);
+
+    // 🚀 гарантируем разрежённое хранение
+    if (!Array.isArray(tournamentData.schedule)) {
+        tournamentData.schedule = [];
+    }
+
     tournamentData.schedule[tourIndex] = currentTourMatches; // Сохраняем в памяти
 
     // Проверка статистики тура (количество незаполненных матчей)
@@ -3705,41 +3711,50 @@ async function getHeadToHeadTour(teamA, teamB) {
    🔍 СУПЕР-T9 ДЛЯ ТРЕКОВ
 =============================== */
 
-function getAllArtistTrackPairs() {
+async function getAllArtistTrackPairs() {
     const pairs = [];
+    const seen = new Set();
 
-    tournamentData.schedule.forEach(tour => {
-        if (!tour) return;
+    const tx = db.transaction(['schedule'], 'readonly');
+    const store = tx.objectStore('schedule');
+    const allMatches = await new Promise(resolve => {
+        store.getAll().onsuccess = e => resolve(e.target.result);
+    });
 
-        tour.forEach(match => {
-            [match.team1, match.team2].forEach(team => {
-                if (!team || !team.includes('–')) return;
+    allMatches.forEach(match => {
+        if (!match || match.isBye) return;
 
-                const { artist, track } = parseArtistAndTrack(team);
-                if (!artist || !track) return;
+        [match.team1, match.team2].forEach(team => {
+            if (!team || !team.includes('–')) return;
 
-                const artistSearch = stripInlineColors(artist)
-                    .toLowerCase()
-                    .replace(/ё/g, 'е')
-                    .replace(/feat\.?/gi, '')
-                    .replace(/ft\.?/gi, '')
-                    .replace(/&/g, ' ')
-                    .replace(/,/g, ' ')
-                    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-                    .replace(/\s+/g, ' ')
-                    .trim();
+            const { artist, track } = parseArtistAndTrack(team);
+            if (!artist || !track) return;
 
-                const trackClean = stripInlineColors(track)
-                    .toLowerCase()
-                    .replace(/ё/g, 'е')
-                    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-                    .replace(/\s+/g, ' ')
-                    .trim();
+            const cleanTrack = stripInlineColors(track);
+            if (seen.has(cleanTrack)) return;
+            seen.add(cleanTrack);
 
-                pairs.push({
-                    search: `${artistSearch} ${trackClean}`,
-                    track: stripInlineColors(track)
-                });
+            const artistSearch = stripInlineColors(artist)
+                .toLowerCase()
+                .replace(/ё/g, 'е')
+                .replace(/feat\.?/gi, '')
+                .replace(/ft\.?/gi, '')
+                .replace(/&/g, ' ')
+                .replace(/,/g, ' ')
+                .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            const trackClean = cleanTrack
+                .toLowerCase()
+                .replace(/ё/g, 'е')
+                .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            pairs.push({
+                search: `${artistSearch} ${trackClean}`,
+                track: cleanTrack
             });
         });
     });
@@ -3757,7 +3772,7 @@ function initCompareTrackT9(inputId, suggestionsId) {
 
     if (!input || !suggestions) return;
 
-    input.addEventListener('input', () => {
+    input.addEventListener('input', async () => {
         const query = input.value
     .trim()
     .toLowerCase()
@@ -3769,7 +3784,7 @@ function initCompareTrackT9(inputId, suggestionsId) {
 
         if (!query) return;
 
-        const pairs = getAllArtistTrackPairs();
+        const pairs = await getAllArtistTrackPairs();
         const safe = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const regex = new RegExp(safe.split('').join('.*'), 'i');
 
@@ -3793,7 +3808,7 @@ function initCompareTrackT9(inputId, suggestionsId) {
     });
 
     // 🧠 ручной ввод → авто-подстановка
-    input.addEventListener('blur', () => {
+    input.addEventListener('blur', async () => {
         const query = input.value
     .trim()
     .toLowerCase()
@@ -3803,7 +3818,7 @@ function initCompareTrackT9(inputId, suggestionsId) {
 
         if (!query) return;
 
-        const pairs = getAllArtistTrackPairs();
+        const pairs = await getAllArtistTrackPairs();
         const safe = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const regex = new RegExp(safe.split('').join('.*'), 'i');
 
