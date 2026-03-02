@@ -2461,11 +2461,20 @@ async function handleSaveOrUpdateScore(event) {
             return;
         }
 
+        // 🔥 СОХРАНЯЕМ ТЕКУЩИЙ СКРОЛЛ
+        const currentScroll = window.scrollY;
+
+        // 🔥 ПЕРЕСЧЁТ ТАБЛИЦЫ
+        await renderStandingsFromDB();
+
+        // 🔥 ВОССТАНАВЛИВАЕМ СКРОЛЛ
+        window.scrollTo(0, currentScroll);
+        
 // Перерисовываем таблицу результатов
         await repaintStandingsBannedRows();
 
 // 🔥 применяем авто-вылет
-applyAuto33Relegation();
+        applyAuto33Relegation();
 
 /* ===============================
    🔥 ЛОКАЛЬНОЕ ОБНОВЛЕНИЕ СТРОКИ МАТЧА
