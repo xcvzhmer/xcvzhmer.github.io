@@ -4582,7 +4582,7 @@ function getBestPosition(teamName) {
         .trim()
         .normalize('NFKD');
 
-const row = table.find(r =>
+        const row = table.find(r =>
     normalize(r.team) === normalize(teamName)
 );
 
