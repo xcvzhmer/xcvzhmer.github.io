@@ -4487,7 +4487,8 @@ function getGoalsString(team) {
 }
 
 function ensureStandingsHistory() {
-    if (!tournamentData || tournamentData.completedTours === 0) {
+
+    if (!tournamentData || !Array.isArray(tournamentData.allMatches)) {
         return;
     }
 
@@ -4499,20 +4500,46 @@ function ensureStandingsHistory() {
         return;
     }
 
-    for (let tour = 1; tour <= tournamentData.completedTours; tour++) {
+    const matches = tournamentData.allMatches;
+
+    // получаем реальные индексы туров
+    const tourIndexes = [...new Set(matches.map(m => m.tourIndex))]
+        .sort((a, b) => a - b);
+
+    tourIndexes.forEach(tourIndex => {
+
+        // проверяем — полностью ли сыгран тур
+        const tourMatches = matches.filter(m => m.tourIndex === tourIndex);
+
+        const allPlayed = tourMatches.every(m => {
+
+            if (m.team1 === 'BYE' || m.team2 === 'BYE') return true;
+
+            if (m.technical) {
+                return m.score1 !== null && m.score2 !== null;
+            }
+
+            return m.score1 !== null && m.score2 !== null;
+        });
+
+        if (!allPlayed) return;
+
         const snapshot = buildStandingsUpToTour(
             tournamentData.allMatches,
             tournamentData.allTeams,
-            tour
+            tourIndex + 1   // 🔥 ВАЖНО: потому что >= tourLimit
         );
+
         tournamentData.standingsHistory.push(snapshot);
-    }
+    });
 
     console.log(
-        '📸 standingsHistory восстановлен:',
+        '📸 standingsHistory построен корректно:',
         tournamentData.standingsHistory.length
     );
 }
+
+// peak
 
 function getBestPosition(teamName) {
     let bestPos = Infinity;
@@ -4544,6 +4571,64 @@ function getBestPosition(teamName) {
     if (!bestTour) return '—';
 
     return `#${bestPos} (в ${bestTour} туре)`;
+}
+
+function debugPeak(teamName) {
+    if (
+        !tournamentData ||
+        !Array.isArray(tournamentData.standingsHistory)
+    ) {
+        console.log('❌ standingsHistory отсутствует');
+        return;
+    }
+
+    const cleanTarget = stripInlineColors(teamName);
+
+    console.log(`\n===== АНАЛИЗ ${cleanTarget} =====`);
+
+    let bestPos = Infinity;
+    let bestTour = null;
+
+    tournamentData.standingsHistory.forEach((table, tourIndex) => {
+        if (!Array.isArray(table)) return;
+
+        const row = table.find(r =>
+            stripInlineColors(r.team) === cleanTarget
+        );
+
+        if (!row) {
+            console.log(`${tourIndex + 1} тур: ❌ команда не найдена`);
+            return;
+        }
+
+        console.log(
+            `${tourIndex + 1} тур: #${row.position} место`
+        );
+
+        if (row.position < bestPos) {
+            bestPos = row.position;
+            bestTour = tourIndex + 1;
+        }
+    });
+
+    if (bestTour) {
+        console.log(
+            `\nвывод: пик - #${bestPos} (в ${bestTour} туре)`
+        );
+    } else {
+        console.log('\nвывод: данных нет');
+    }
+
+    console.log('===========================\n');
+}
+
+function debugTeamsInTour(tourNumber) {
+    const table = tournamentData.standingsHistory[tourNumber - 1];
+    console.log(`\nКоманды в ${tourNumber} туре:`);
+
+    table.forEach(r => {
+        console.log(`[${r.team}]`);
+    });
 }
 
 /* ===============================
