@@ -4541,7 +4541,13 @@ function ensureStandingsHistory() {
             return m.score1 !== null && m.score2 !== null;
         });
 
-        if (!allPlayed) return;
+        const hasAnyPlayedMatch = tourMatches.some(m =>
+            (m.team1 !== 'BYE' && m.team2 !== 'BYE') &&
+             m.score1 !== null &&
+             m.score2 !== null
+        );
+
+            if (!hasAnyPlayedMatch) return;
 
         const snapshot = buildStandingsUpToTour(
             tournamentData.allMatches,
