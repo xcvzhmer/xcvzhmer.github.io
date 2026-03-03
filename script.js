@@ -1008,6 +1008,20 @@ standingsBody.addEventListener('click', function (e) {
     activeSpotifyCell = cell;
 });
 
+document.addEventListener('click', function (e) {
+
+    if (!activeSpotifyCell) return;
+
+    const clickedInsideCell = e.target.closest('.position-cell');
+
+    // если клик не по ячейке позиции
+    if (!clickedInsideCell) {
+        restorePositionCell(activeSpotifyCell);
+        activeSpotifyCell = null;
+    }
+
+});
+
 function restorePositionCell(cell) {
     if (!cell) return;
 
