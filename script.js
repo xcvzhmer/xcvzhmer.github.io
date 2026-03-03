@@ -861,6 +861,7 @@ function getCompletedToursCount(allMatches) {
  */
 function buildStandingsUpToTour(allMatches, allTeams, tourLimit) {
     const standings = {};
+    const inactiveMap = {};
 
     allTeams.forEach(team => {
         standings[team.teamName] = {
@@ -872,6 +873,10 @@ function buildStandingsUpToTour(allMatches, allTeams, tourLimit) {
             goalsFor: 0,
             goalsAgainst: 0
         };
+
+        if (team.inactive) {
+            inactiveMap[team.teamName] = true;
+        }
     });
 
     allMatches.forEach(match => {
@@ -901,11 +906,24 @@ function buildStandingsUpToTour(allMatches, allTeams, tourLimit) {
     });
 
     return Object.values(standings)
-        .sort((a, b) =>
-            b.points - a.points ||
-            (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst) ||
-            b.goalsFor - a.goalsFor
-        )
+        .sort((a, b) => {
+
+            const aInactive = !!inactiveMap[a.team];
+            const bInactive = !!inactiveMap[b.team];
+
+            if (aInactive !== bInactive) {
+                return aInactive ? 1 : -1;
+            }
+
+            const gdA = a.goalsFor - a.goalsAgainst;
+            const gdB = b.goalsFor - b.goalsAgainst;
+
+            return (
+                b.points - a.points ||
+                gdB - gdA ||
+                b.goalsFor - a.goalsFor
+            );
+        })
         .map((t, i) => ({
             team: t.team,
             position: i + 1
