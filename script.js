@@ -921,7 +921,8 @@ function buildStandingsUpToTour(allMatches, allTeams, tourLimit) {
             return (
                 b.points - a.points ||
                 gdB - gdA ||
-                b.goalsFor - a.goalsFor
+                b.goalsFor - a.goalsFor ||
+                a.team.localeCompare(b.team)   // ← ДОБАВЛЕНО
             );
         })
         .map((t, i) => ({
@@ -4575,9 +4576,16 @@ function getBestPosition(teamName) {
     tournamentData.standingsHistory.forEach((table, tourIndex) => {
         if (!Array.isArray(table)) return;
 
-        const row = table.find(r =>
-        stripInlineColors(r.team) === cleanTarget
-    );
+        const normalize = s =>
+    stripInlineColors(s)
+        .replace(/\s+/g, ' ')
+        .trim()
+        .normalize('NFKD');
+
+const row = table.find(r =>
+    normalize(r.team) === normalize(teamName)
+);
+
     if (!row) return;
 
         if (row.position < bestPos) {
@@ -4610,9 +4618,15 @@ function debugPeak(teamName) {
     tournamentData.standingsHistory.forEach((table, tourIndex) => {
         if (!Array.isArray(table)) return;
 
+        const normalize = s =>
+    stripInlineColors(s)
+        .replace(/\s+/g, ' ')
+        .trim()
+        .normalize('NFKD');
+
         const row = table.find(r =>
-            stripInlineColors(r.team) === cleanTarget
-        );
+    normalize(r.team) === normalize(teamName)
+);
 
         if (!row) {
             console.log(`${tourIndex + 1} тур: ❌ команда не найдена`);
