@@ -3362,13 +3362,13 @@ async function updateTeamsStatuses() {
                         changed = true;
                     }
                 }
-                // 3.3 Если обе забанены — BYE без технички (ничьи/пустые)
+                // 3.3 Если обе забанены — матч считается сыгранным (0:0 техничка)
                 else if (t1BannedNow && t2BannedNow) {
-                    if (!match.isBye || match.technical || match.score1 !== null || match.score2 !== null) {
+                    if (!match.isBye || !match.technical || match.score1 !== 0 || match.score2 !== 0) {
                         match.isBye = true;
-                        match.technical = false;
-                        match.score1 = null;
-                        match.score2 = null;
+                        match.technical = true;
+                        match.score1 = 0;
+                        match.score2 = 0;
                         changed = true;
                     }
                 }
