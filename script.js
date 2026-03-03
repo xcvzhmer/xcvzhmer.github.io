@@ -22,6 +22,8 @@ let selectedCompareTeamB = null;
 // 🎯 активный фильтр по Артисту
 let activeArtistFilter = null;
 let artistFilterInitialized = false;
+// 🍋‍🟩 [S] в основной таблице
+let activeSpotifyCell = null;
 
 // --- Элементы DOM ---
 const teamsInput = document.getElementById('teamsInput');
@@ -758,7 +760,9 @@ tournamentData.completedTours = getCompletedToursCount(allMatches);
     const cleanTeamName = stripInlineColors(teamName);
 
     row.innerHTML = `
-        <td>${index + 1}</td>
+    <td class="position-cell" data-position="${index + 1}">
+        ${index + 1}
+    </td>
         <td>${cleanTeamName}</td>
         <td>${stats.wins + stats.losses + stats.draws}</td>
         <td>${stats.wins}</td>
@@ -958,6 +962,58 @@ const expected = tournamentData.completedTours;
 
     console.log(`📸 Снапшот тура ${snapshotIndex + 1} сохранён`);
   }
+}
+
+standingsBody.addEventListener('click', function (e) {
+
+    const cell = e.target.closest('.position-cell');
+    if (!cell) return;
+
+    const row = cell.parentElement;
+    const trackName = row.dataset.track;
+
+    // Если уже активна эта же ячейка — игнор
+    if (activeSpotifyCell === cell) return;
+
+    // Убираем предыдущую активную кнопку
+    if (activeSpotifyCell) {
+        restorePositionCell(activeSpotifyCell);
+        activeSpotifyCell = null;
+    }
+
+    // Получаем url трека
+    const team = tournamentData.allTeams.find(t => t.teamName === trackName);
+    const url = team?.spotifyUrl || team?.url || '';
+
+    // Сохраняем оригинальное число
+    cell.dataset.original = cell.dataset.position;
+
+    // Очищаем ячейку
+    cell.innerHTML = '';
+    cell.style.padding = '0';
+
+    // Создаём кнопку
+    const btn = document.createElement('a');
+    btn.href = '#';
+    btn.addEventListener('click', function (e) {
+    e.preventDefault();
+    playInGlobalPlayer(url, this);
+});
+    btn.rel = 'noopener';
+    btn.className = 'standings-spotify-overlay';
+    btn.textContent = 'S';
+
+    cell.appendChild(btn);
+
+    activeSpotifyCell = cell;
+});
+
+function restorePositionCell(cell) {
+    if (!cell) return;
+
+    const original = cell.dataset.original;
+    cell.innerHTML = original;
+    cell.style.padding = '';
 }
 
 /* ======================================================
