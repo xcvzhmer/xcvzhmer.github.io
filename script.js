@@ -5376,12 +5376,14 @@ return;
         const localMap = new Map();
 
         allReq.result.forEach(m => {
-            localMap.set(m.id, m);
+            const key = m.tourIndex + "_" + m.matchIndex;
+            localMap.set(key, m);
         });
 
         for (const importedMatch of data.matches) {
 
-            const localMatch = localMap.get(importedMatch.id);
+            const key = importedMatch.tourIndex + "_" + importedMatch.matchIndex;
+            const localMatch = localMap.get(key);
 
             if (!localMatch) {
                 missing++;
@@ -5461,7 +5463,8 @@ async function previewImport(data){
             const localMap = new Map();
 
             localMatches.forEach(m=>{
-            localMap.set(m.id,m);
+                const key = m.tourIndex + "_" + m.matchIndex;
+                localMap.set(key,m);
             });
 
             let same = 0;
@@ -5471,7 +5474,10 @@ async function previewImport(data){
             const tours = new Set();
             (data.matches || []).forEach(imported=>{
                 tours.add(imported.tourIndex);
-                const local = localMap.get(imported.id);
+
+                const key = imported.tourIndex + "_" + imported.matchIndex;
+                const local = localMap.get(key);
+
                 if(!local){
                     return;
                 }
@@ -5557,13 +5563,19 @@ let missing = 0;
 
 const allReq = store.getAll();
 allReq.onsuccess = () => {
+
 const localMap = new Map();
+
 allReq.result.forEach(m=>{
-localMap.set(m.id,m);
+const key = m.tourIndex + "_" + m.matchIndex;
+localMap.set(key,m);
 });
 
 for (const importedMatch of data.matches) {
-const localMatch = localMap.get(importedMatch.id);
+
+const key = importedMatch.tourIndex + "_" + importedMatch.matchIndex;
+const localMatch = localMap.get(key);
+
 if (!localMatch) {
 missing++;
 continue;
