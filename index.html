@@ -230,6 +230,113 @@ https://open.spotify.com/track/4"></textarea>
 
 </div>
 
+<div class="import-export-controls">
+
+<button id="exportMatchesBtn" class="orange-btn">
+Экспорт
+</button>
+
+<button id="importMatchesBtn" class="turquoise-btn">
+Импорт
+</button>
+
+<input type="file" id="importMatchesInput" accept=".json" style="display:none">
+
+</div>
+
+
+<!-- МОДАЛЬНОЕ ОКНО ЭКСПОРТА -->
+
+<div id="exportModal" class="export-modal hidden">
+
+<div class="export-modal-box">
+
+<h3>Экспорт данных</h3>
+
+<div class="export-switch">
+
+<span>Буфер</span>
+<label class="switch">
+<input type="checkbox" id="modeFileToggle">
+<span class="slider"></span>
+</label>
+<span>Файл</span>
+
+</div>
+
+<div class="export-switch">
+
+<span id="tourLabel">Текущий тур</span>
+<label class="switch">
+<input type="checkbox" id="scopeAllToggle">
+<span class="slider"></span>
+</label>
+<span>Все матчи</span>
+
+</div>
+
+<div class="export-modal-buttons">
+
+<button id="exportConfirmBtn" class="orange-btn">
+Экспортировать
+</button>
+
+<button id="exportCancelBtn" class="grey-btn">
+Отмена
+</button>
+
+</div>
+</div>
+</div>
+
+<!-- МОДАЛЬНОЕ ОКНО ИМПОРТА -->
+
+<div id="importModal" class="export-modal hidden">
+
+<div class="export-modal-box">
+
+<h3>Импорт данных</h3>
+
+<div class="export-switch">
+
+<span>Буфер</span>
+<label class="switch">
+<input type="checkbox" id="importModeFileToggle">
+<span class="slider"></span>
+</label>
+<span>Файл</span>
+
+</div>
+
+<div class="export-switch">
+
+<span id="importTourLabel">Текущий тур</span>
+<label class="switch">
+<input type="checkbox" id="importScopeAllToggle">
+<span class="slider"></span>
+</label>
+<span>Все матчи</span>
+
+</div>
+
+<div class="export-modal-buttons">
+
+<button id="importConfirmBtn" class="turquoise-btn">
+Импортировать
+</button>
+
+<button id="importCancelBtn" class="grey-btn">
+Отмена
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
 <div id="currentTourOutput" class="schedule-section"></div>
 
     </div>

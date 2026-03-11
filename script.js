@@ -24,6 +24,10 @@ let activeArtistFilter = null;
 let artistFilterInitialized = false;
 // 🍋‍🟩 [S] в основной таблице
 let activeSpotifyCell = null;
+// 🎯 Экспорт только изменённых матчей
+let lastExportTime = 0;
+// 🎯 ВРЕМЯ ОТКРЫТИЯ САЙТА
+const pageOpenTime = Date.now();
 
 // --- Элементы DOM ---
 const teamsInput = document.getElementById('teamsInput');
@@ -320,6 +324,10 @@ async function updateMatchScore(matchId, score1, score2) {
             if (match) {
                 match.score1 = score1;
                 match.score2 = score2;
+
+                /* ⭐ фикс для системы экспорта */
+                match.lastModified = Date.now();
+
                 const updateRequest = store.put(match); // Обновляем весь объект
                 updateRequest.onsuccess = () => {
                     console.log(`Счет матча ${matchId} обновлен.`);
@@ -2503,6 +2511,9 @@ async function updateMatchScoreInMemoryAndDB(matchId, team, score) {
             if (score1 !== null && score2 !== null) {
                 match.technical = false;
             }
+
+            // ⭐ фикс для экспорта изменений
+            match.lastModified = Date.now();
 
             // Обновляем в IndexedDB
             const updateRequest = store.put(match);
@@ -5095,6 +5106,779 @@ function restoreActiveTrackHighlight() {
         }
     });
 }
+
+/* ==========================
+   ✅ ИМПОРТ / ЭКСПОРТ
+========================== */
+
+async function exportTournamentMatches() {
+
+    if (typeof db === "undefined" || !db) {
+        alert("База данных ещё не инициализирована.");
+        return;
+    }
+
+    const tx = db.transaction(['schedule'], 'readonly');
+    const store = tx.objectStore('schedule');
+    const req = store.getAll();
+
+    req.onsuccess = () => {
+
+        const matches = req.result;
+
+const filledMatches = matches
+    .filter(m => m.score1 !== null && m.score2 !== null)
+    .map(m => ({
+        id: m.id,
+        tourIndex: m.tourIndex,
+        matchIndex: m.matchIndex,
+        score1: m.score1,
+        score2: m.score2,
+        technical: m.technical
+    }));
+
+if (!filledMatches.length) {
+    alert("Нет заполненных матчей для экспорта.");
+    return;
+}
+
+/* ===== СТАТИСТИКА ТУРОВ ДЛЯ CONFIRM ===== */
+
+const tourStats = {};
+
+matches.forEach(m => {
+
+    if (!tourStats[m.tourIndex]) {
+        tourStats[m.tourIndex] = { total:0, filled:0 };
+    }
+
+    tourStats[m.tourIndex].total++;
+
+    if (m.score1 !== null && m.score2 !== null) {
+        tourStats[m.tourIndex].filled++;
+    }
+
+});
+
+let confirmText = "Экспортировать:\n\n";
+
+Object.keys(tourStats)
+    .sort((a,b)=>a-b)
+    .forEach(t => {
+
+        const r = tourStats[t];
+
+        if (r.filled > 0) {
+            confirmText += `${+t+1} тур — ${r.filled} матчей из ${r.total}\n`;
+        }
+
+    });
+
+if (!confirm(confirmText)) return;
+
+        const data = {
+            type: "delta",
+            exportedAt: new Date().toISOString(),
+            matches: filledMatches
+        };
+
+        const blob = new Blob(
+            [JSON.stringify(data, null, 2)],
+            { type: "application/json" }
+        );
+
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `tournament_matches_${Date.now()}.json`;
+        a.click();
+
+        console.log("Экспортировано матчей:", filledMatches.length);
+    };
+}
+
+/* ==========================
+   ✅ ЭКСПОРТ ТЕКУЩЕГО ТУРА
+========================== */
+
+async function exportCurrentTourMatches() {
+
+    if (typeof db === "undefined" || !db) {
+        alert("База данных ещё не инициализирована.");
+        return;
+    }
+
+    const tx = db.transaction(['schedule'], 'readonly');
+    const store = tx.objectStore('schedule');
+    const req = store.getAll();
+
+    req.onsuccess = () => {
+
+        const matches = req.result;
+
+        const tourMatches = matches
+            .filter(m => m.tourIndex === currentTourIndex)
+            .filter(m => m.score1 !== null && m.score2 !== null)
+            .map(m => ({
+                id: m.id,
+                tourIndex: m.tourIndex,
+                matchIndex: m.matchIndex,
+                score1: m.score1,
+                score2: m.score2,
+                technical: m.technical
+            }));
+
+        if (!tourMatches.length) {
+            alert("В текущем туре нет заполненных матчей.");
+            return;
+        }
+
+        if (!confirm(`Экспортировать текущий тур (${currentTourIndex+1})?\nМатчей: ${tourMatches.length}`)) return;
+
+        const data = {
+            type: "tour",
+            tour: currentTourIndex,
+            exportedAt: new Date().toISOString(),
+            matches: tourMatches
+        };
+
+        const blob = new Blob(
+            [JSON.stringify(data, null, 2)],
+            { type: "application/json" }
+        );
+
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `tour_${currentTourIndex+1}_${Date.now()}.json`;
+        a.click();
+
+        console.log("Экспортирован тур:", currentTourIndex+1, "матчей:", tourMatches.length);
+    };
+}
+
+/* ==========================
+   📋 КОПИРОВАТЬ ТУР В БУФЕР
+========================== */
+
+async function copyCurrentTourMatches() {
+
+    if (typeof db === "undefined" || !db) {
+        alert("База данных ещё не инициализирована.");
+        return;
+    }
+
+    const tx = db.transaction(['schedule'], 'readonly');
+    const store = tx.objectStore('schedule');
+    const req = store.getAll();
+
+    req.onsuccess = async () => {
+
+        const matches = req.result;
+
+        const tourMatches = matches
+            .filter(m => m.tourIndex === currentTourIndex)
+            .filter(m => m.score1 !== null && m.score2 !== null)
+            .map(m => ({
+                id: m.id,
+                tourIndex: m.tourIndex,
+                matchIndex: m.matchIndex,
+                score1: m.score1,
+                score2: m.score2,
+                technical: m.technical
+            }));
+
+        if (!tourMatches.length) {
+            alert("В текущем туре нет заполненных матчей.");
+            return;
+        }
+
+        const data = {
+            type: "clipboard",
+            tour: currentTourIndex,
+            exportedAt: new Date().toISOString(),
+            matches: tourMatches
+        };
+
+        const json = JSON.stringify(data);
+
+        try {
+
+            await navigator.clipboard.writeText(json);
+
+            alert(
+`Тур ${currentTourIndex+1} скопирован в буфер.
+
+Матчей: ${tourMatches.length}
+
+Теперь можно вставить в Telegram или заметки.`
+            );
+
+        } catch(e) {
+
+            console.error(e);
+
+            alert("Не удалось скопировать в буфер.");
+        }
+
+    };
+}
+
+/* ==========================
+   📥 ВСТАВИТЬ ТУР ИЗ БУФЕРА
+========================== */
+
+async function pasteTournamentMatches() {
+
+    let text;
+
+    try {
+
+        text = await navigator.clipboard.readText();
+
+    } catch (e) {
+
+        alert("Не удалось прочитать буфер обмена.");
+        return;
+    }
+
+    let data;
+
+    try {
+
+        data = JSON.parse(text);
+
+    } catch (e) {
+
+        alert("Буфер не содержит JSON турнира.");
+        return;
+    }
+
+    if (!data.matches) {
+
+        alert("Неверный формат данных.");
+        return;
+    }
+
+    const tx = db.transaction(['schedule'], 'readwrite');
+    const store = tx.objectStore('schedule');
+
+    let updated = 0;
+    let same = 0;
+    let conflicts = 0;
+    let missing = 0;
+
+    for (const importedMatch of data.matches) {
+
+        const req = store.get(importedMatch.id);
+
+        await new Promise(resolve => {
+
+            req.onsuccess = () => {
+
+                const localMatch = req.result;
+
+                if (!localMatch) {
+                    missing++;
+                    resolve();
+                    return;
+                }
+
+                if (
+                    localMatch.score1 !== null &&
+                    localMatch.score2 !== null &&
+                    localMatch.score1 === importedMatch.score1 &&
+                    localMatch.score2 === importedMatch.score2
+                ) {
+                    same++;
+                    resolve();
+                    return;
+                }
+
+                if (
+                    localMatch.score1 !== null &&
+                    localMatch.score2 !== null &&
+                    (
+                        localMatch.score1 !== importedMatch.score1 ||
+                        localMatch.score2 !== importedMatch.score2
+                    )
+                ) {
+                    conflicts++;
+                }
+
+                localMatch.score1 = importedMatch.score1;
+                localMatch.score2 = importedMatch.score2;
+                localMatch.technical = importedMatch.technical;
+                localMatch.lastModified = Date.now();
+
+                store.put(localMatch);
+
+                updated++;
+                resolve();
+            };
+
+        });
+    }
+
+    tx.oncomplete = async () => {
+
+        let summary =
+`Импорт из буфера завершён
+
+Добавлено: ${updated}
+Совпало: ${same}
+Конфликтов: ${conflicts}
+Отсутствуют: ${missing}`;
+
+        alert(summary);
+
+        await renderStandingsFromDB();
+        await displayTour(currentTourIndex);
+    };
+}
+
+/* ==========================
+   🚀 ЭКСПОРТ ИЗМЕНЁННЫХ МАТЧЕЙ
+========================== */
+
+async function exportChangedMatches() {
+
+    if (typeof db === "undefined" || !db) {
+        alert("База данных ещё не инициализирована.");
+        return;
+    }
+
+    const tx = db.transaction(['schedule'], 'readonly');
+    const store = tx.objectStore('schedule');
+    const req = store.getAll();
+
+    req.onsuccess = () => {
+
+        const matches = req.result;
+
+        const changed = matches.filter(m =>
+            m.lastModified && m.lastModified > lastExportTime
+        );
+
+        if (!changed.length) {
+            alert("Нет изменённых матчей.");
+            return;
+        }
+
+        const data = {
+            type: "delta",
+            exportedAt: new Date().toISOString(),
+            matches: changed
+        };
+
+        const json = JSON.stringify(data, null, 2);
+
+/* ==========================
+   ⚙️ ЧТЕНИЕ ПЕРЕКЛЮЧАТЕЛЯ
+========================== */
+const exportToClipboard = !modeFileToggle.checked;
+// ↑ ID переключателя можно менять здесь
+
+if (exportToClipboard) {
+
+    /* ===== ЭКСПОРТ В БУФЕР ===== */
+    navigator.clipboard.writeText(json)
+        .then(() => {
+            alert(`Экспортировано изменённых матчей в буфер: ${changed.length} матчей`);
+        })
+        .catch(() => {
+            alert("Не удалось записать в буфер.");
+        });
+} else {
+
+    /* ===== ЭКСПОРТ В ФАЙЛ ===== */
+    const blob = new Blob(
+        [json],
+        { type: "application/json" }
+    );
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `tournament_delta_${Date.now()}.json`;
+    a.click();
+}
+        lastExportTime = Date.now();
+    };
+}
+
+/* ==========================
+   🔎 ПРЕДПРОСМОТР ИМПОРТА
+========================== */
+async function previewImport(data){
+
+    const tx = db.transaction(['schedule'],'readonly');
+    const store = tx.objectStore('schedule');
+
+    const req = store.getAll();
+    return new Promise(resolve=>{
+        req.onsuccess = ()=>{
+            const localMatches = req.result;
+
+            const localMap = new Map();
+
+            localMatches.forEach(m=>{
+            localMap.set(m.id,m);
+            });
+
+            let same = 0;
+            let conflicts = 0;
+            let newResults = 0;
+
+            const tours = new Set();
+            data.matches.forEach(imported=>{
+                tours.add(imported.tourIndex);
+                const local = localMap.get(imported.id);
+                if(!local){
+                    return;
+                }
+                if(
+                    local.score1 === imported.score1 &&
+                    local.score2 === imported.score2
+                ){
+                    same++;
+                    return;
+                }
+                if(
+                    local.score1 !== null &&
+                    local.score2 !== null
+                ){
+                    conflicts++;
+                }else{
+                    newResults++;
+                }
+            });
+
+            const result = {
+tours: tours.size,
+matches: data.matches.length,
+same,
+conflicts,
+newResults
+};
+
+resolve(result);
+        };
+    });
+}
+
+/* ==========================
+   UI PREVIEW IMPORT
+========================== */
+
+function showImportPreview(preview){
+
+const box = document.querySelector("#importModal .export-modal-box");
+
+let previewBlock = document.getElementById("importPreviewBlock");
+
+if(!previewBlock){
+
+previewBlock = document.createElement("div");
+previewBlock.id = "importPreviewBlock";
+previewBlock.style.marginTop = "15px";
+previewBlock.style.fontSize = "14px";
+
+box.insertBefore(previewBlock, box.querySelector(".export-modal-buttons"));
+
+}
+
+previewBlock.innerHTML = `
+<div style="text-align:left;line-height:1.5">
+
+<b>Файл содержит</b><br><br>
+
+туров: ${preview.tours}<br>
+матчей: ${preview.matches}<br><br>
+
+совпадений: ${preview.same}<br>
+конфликтов: ${preview.conflicts}<br>
+новых результатов: ${preview.newResults}
+
+</div>
+`;
+
+}
+
+async function applyImportData(data){
+
+const tx = db.transaction(['schedule'], 'readwrite');
+const store = tx.objectStore('schedule');
+
+let updated = 0;
+let same = 0;
+let conflicts = [];
+let missing = 0;
+for (const importedMatch of data.matches) {
+const req = store.get(importedMatch.id);
+await new Promise(resolve => {
+req.onsuccess = () => {
+const localMatch = req.result;
+if (!localMatch) {
+missing++;
+resolve();
+return;
+}
+if (
+localMatch.score1 !== null &&
+localMatch.score2 !== null &&
+localMatch.score1 === importedMatch.score1 &&
+localMatch.score2 === importedMatch.score2
+) {
+same++;
+resolve();
+return;
+}
+if (
+localMatch.score1 !== null &&
+localMatch.score2 !== null &&
+(
+localMatch.score1 !== importedMatch.score1 ||
+localMatch.score2 !== importedMatch.score2
+)
+){
+conflicts.push({
+tour: localMatch.tourIndex + 1,
+match: localMatch.matchIndex + 1,
+local: `${localMatch.score1}:${localMatch.score2}`,
+incoming: `${importedMatch.score1}:${importedMatch.score2}`
+});
+}
+localMatch.score1 = importedMatch.score1;
+localMatch.score2 = importedMatch.score2;
+localMatch.technical = importedMatch.technical;
+localMatch.lastModified = Date.now();
+store.put(localMatch);
+updated++;
+resolve();
+};
+});
+}
+
+tx.oncomplete = async () => {
+if (conflicts.length) {
+let msg = "Обнаружены конфликты:\n\n";
+conflicts.slice(0,10).forEach(c => {
+
+msg += `Тур ${c.tour}, матч ${c.match}\n`;
+msg += `ПК: ${c.local}\n`;
+msg += `Импорт: ${c.incoming}\n\n`;
+
+});
+alert(msg);
+}
+
+alert(`Импорт завершён
+
+Добавлено: ${updated}
+Совпало: ${same}
+Конфликтов: ${conflicts.length}
+Отсутствуют: ${missing}`);
+
+await renderStandingsFromDB();
+await displayTour(currentTourIndex);
+
+};
+}
+
+async function importTournamentMatches(file) {
+
+    const text = await file.text();
+
+    let data;
+
+    try {
+        data = JSON.parse(text);
+    } catch (e) {
+        alert("Файл повреждён.");
+        return;
+    }
+
+    if (!data.matches) {
+        alert("Неверный формат файла.");
+        return;
+    }
+
+/* ==========================
+   PREVIEW ИМПОРТА
+========================== */
+
+const preview = await previewImport(data);
+pendingImportData = data;
+showImportPreview(preview);
+return;
+}
+
+/* ==========================
+   UI: МОДАЛЬНОЕ ОКНО ЭКСПОРТА
+========================== */
+
+const exportModal = document.getElementById("exportModal");
+const exportBtn = document.getElementById("exportMatchesBtn");
+const exportConfirmBtn = document.getElementById("exportConfirmBtn");
+const exportCancelBtn = document.getElementById("exportCancelBtn");
+
+const modeFileToggle = document.getElementById("modeFileToggle");
+const scopeAllToggle = document.getElementById("scopeAllToggle");
+const tourLabel = document.getElementById("tourLabel");
+
+/* ===== IMPORT UI ===== */
+
+const importModal = document.getElementById("importModal");
+const importBtn = document.getElementById("importMatchesBtn");
+const importConfirmBtn = document.getElementById("importConfirmBtn");
+const importCancelBtn = document.getElementById("importCancelBtn");
+
+const importModeFileToggle = document.getElementById("importModeFileToggle");
+const importScopeAllToggle = document.getElementById("importScopeAllToggle");
+const importTourLabel = document.getElementById("importTourLabel");
+
+const importInput = document.getElementById("importMatchesInput");
+
+/* ===== PREVIEW IMPORT ===== */
+
+let pendingImportData = null;
+
+/* ==========================
+   ОТКРЫТЬ ОКНО ЭКСПОРТА
+========================== */
+exportBtn.addEventListener("click", () => {
+    exportModal.classList.remove("hidden");
+    tourLabel.textContent = `Тур ${currentTourIndex+1}`;
+});
+
+/* ==========================
+   ОТКРЫТЬ ОКНО ИМПОРТА
+========================== */
+
+importBtn.addEventListener("click", () => {
+    importModal.classList.remove("hidden");
+    importTourLabel.textContent = `Тур ${currentTourIndex+1}`;
+});
+
+/* ==========================
+   ПОДТВЕРЖДЕНИЕ ЭКСПОРТА
+========================== */
+exportConfirmBtn.addEventListener("click", async () => {
+    const fileMode = modeFileToggle.checked;
+    const allMatches = scopeAllToggle.checked;
+    if(fileMode){
+        if(allMatches){
+            await exportTournamentMatches();
+        }else{
+            await exportCurrentTourMatches();
+        }
+    }else{
+        if(allMatches){
+            await exportChangedMatches();
+        }else{
+            await copyCurrentTourMatches();
+        }
+    }
+    exportModal.classList.add("hidden");
+});
+
+/* ==========================
+   КНОПКА ОТМЕНА
+========================== */
+exportCancelBtn.addEventListener("click", () => {
+    exportModal.classList.add("hidden");
+});
+
+/* ==========================
+   ПОДТВЕРЖДЕНИЕ ИМПОРТА
+========================== */
+importConfirmBtn.addEventListener("click", async () => {
+if(pendingImportData){
+await applyImportData(pendingImportData);
+pendingImportData = null;
+importModal.classList.add("hidden");
+return;
+}
+
+const fileMode = importModeFileToggle.checked;
+
+if(fileMode){
+importInput.click();
+}else{
+
+let text;
+
+try{
+text = await navigator.clipboard.readText();
+}catch(e){
+alert("Не удалось прочитать буфер обмена.");
+return;
+}
+
+let data;
+
+try{
+data = JSON.parse(text);
+}catch(e){
+alert("Буфер не содержит JSON турнира.");
+return;
+}
+if(!data.matches){
+alert("Неверный формат данных.");
+return;
+}
+const preview = await previewImport(data);
+pendingImportData = data;
+showImportPreview(preview);
+}
+});
+
+/* ==========================
+   КНОПКА ОТМЕНА
+========================== */
+importCancelBtn.addEventListener("click", () => {
+    importModal.classList.add("hidden");
+    pendingImportData = null;
+    const p = document.getElementById("importPreviewBlock");
+    if(p) p.remove();
+});
+
+/* ==========================
+   КЛИК ВНЕ ОКНА
+========================== */
+exportModal.addEventListener("click", (e)=>{
+    if(e.target === exportModal){
+        exportModal.classList.add("hidden");
+    }
+});
+
+importModal.addEventListener("click",(e)=>{
+
+    if(e.target === importModal){
+
+        importModal.classList.add("hidden");
+
+    }
+
+});
+
+
+/* ==========================
+   ESC ЗАКРЫВАЕТ ОКНО
+========================== */
+
+document.addEventListener("keydown",(e)=>{
+    if(e.key === "Escape"){
+        exportModal.classList.add("hidden");
+        importModal.classList.add("hidden");
+    }
+});
+
+importInput.addEventListener("change", e => {
+
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    importTournamentMatches(file);
+});
 
 // --- Конец скрипта ---
 // Вся логика работы с IndexedDB, генерация расписания, отображение туров,
