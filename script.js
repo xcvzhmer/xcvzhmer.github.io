@@ -5188,9 +5188,12 @@ if (!confirm(confirmText)) return;
         );
 
         const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
+        const url = URL.createObjectURL(blob);
+        a.href = url;
         a.download = `tournament_matches_${Date.now()}.json`;
         a.click();
+
+URL.revokeObjectURL(url);
 
         console.log("Экспортировано матчей:", filledMatches.length);
     };
@@ -5247,9 +5250,12 @@ async function exportCurrentTourMatches() {
         );
 
         const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
+        const url = URL.createObjectURL(blob);
+        a.href = url;
         a.download = `tour_${currentTourIndex+1}_${Date.now()}.json`;
         a.click();
+
+URL.revokeObjectURL(url);
 
         console.log("Экспортирован тур:", currentTourIndex+1, "матчей:", tourMatches.length);
     };
@@ -5331,11 +5337,12 @@ async function pasteTournamentMatches() {
     let text;
 
     try {
-
         text = await navigator.clipboard.readText();
-
+if(!text){
+alert("Буфер обмена пуст.");
+return;
+}
     } catch (e) {
-
         alert("Не удалось прочитать буфер обмена.");
         return;
     }
@@ -5343,17 +5350,13 @@ async function pasteTournamentMatches() {
     let data;
 
     try {
-
         data = JSON.parse(text);
-
     } catch (e) {
-
         alert("Буфер не содержит JSON турнира.");
         return;
     }
 
     if (!data.matches) {
-
         alert("Неверный формат данных.");
         return;
     }
@@ -5366,57 +5369,64 @@ async function pasteTournamentMatches() {
     let conflicts = 0;
     let missing = 0;
 
-    for (const importedMatch of data.matches) {
+    const allReq = store.getAll();
 
-        const req = store.get(importedMatch.id);
+    allReq.onsuccess = () => {
 
-        await new Promise(resolve => {
+        const localMap = new Map();
 
-            req.onsuccess = () => {
+        allReq.result.forEach(m => {
+            localMap.set(m.id, m);
+        });
 
-                const localMatch = req.result;
+        for (const importedMatch of data.matches) {
 
-                if (!localMatch) {
-                    missing++;
-                    resolve();
-                    return;
-                }
+            const localMatch = localMap.get(importedMatch.id);
 
-                if (
-                    localMatch.score1 !== null &&
-                    localMatch.score2 !== null &&
-                    localMatch.score1 === importedMatch.score1 &&
-                    localMatch.score2 === importedMatch.score2
-                ) {
-                    same++;
-                    resolve();
-                    return;
-                }
+            if (!localMatch) {
+                missing++;
+                continue;
+            }
 
-                if (
-                    localMatch.score1 !== null &&
-                    localMatch.score2 !== null &&
-                    (
-                        localMatch.score1 !== importedMatch.score1 ||
-                        localMatch.score2 !== importedMatch.score2
-                    )
-                ) {
-                    conflicts++;
-                }
+            if (
+                localMatch.score1 !== null &&
+                localMatch.score2 !== null &&
+                localMatch.score1 === importedMatch.score1 &&
+                localMatch.score2 === importedMatch.score2
+            ) {
+                same++;
+                continue;
+            }
+
+            if (
+                localMatch.score1 !== null &&
+                localMatch.score2 !== null &&
+                (
+                    localMatch.score1 !== importedMatch.score1 ||
+                    localMatch.score2 !== importedMatch.score2
+                )
+            ) {
+                conflicts++;
+            }
+
+            if(
+localMatch.lastModified &&
+importedMatch.lastModified &&
+importedMatch.lastModified <= localMatch.lastModified
+){
+continue;
+}
 
                 localMatch.score1 = importedMatch.score1;
                 localMatch.score2 = importedMatch.score2;
-                localMatch.technical = importedMatch.technical;
-                localMatch.lastModified = Date.now();
+            localMatch.technical = importedMatch.technical ?? false;
+    localMatch.lastModified = importedMatch.lastModified || Date.now();
 
                 store.put(localMatch);
 
                 updated++;
-                resolve();
-            };
-
-        });
-    }
+        }
+    };
 
     tx.oncomplete = async () => {
 
@@ -5459,7 +5469,7 @@ async function previewImport(data){
             let newResults = 0;
 
             const tours = new Set();
-            data.matches.forEach(imported=>{
+            (data.matches || []).forEach(imported=>{
                 tours.add(imported.tourIndex);
                 const local = localMap.get(imported.id);
                 if(!local){
@@ -5544,16 +5554,21 @@ let updated = 0;
 let same = 0;
 let conflicts = [];
 let missing = 0;
+
+const allReq = store.getAll();
+allReq.onsuccess = () => {
+const localMap = new Map();
+allReq.result.forEach(m=>{
+localMap.set(m.id,m);
+});
+
 for (const importedMatch of data.matches) {
-const req = store.get(importedMatch.id);
-await new Promise(resolve => {
-req.onsuccess = () => {
-const localMatch = req.result;
+const localMatch = localMap.get(importedMatch.id);
 if (!localMatch) {
 missing++;
-resolve();
-return;
+continue;
 }
+
 if (
 localMatch.score1 !== null &&
 localMatch.score2 !== null &&
@@ -5561,9 +5576,9 @@ localMatch.score1 === importedMatch.score1 &&
 localMatch.score2 === importedMatch.score2
 ) {
 same++;
-resolve();
-return;
+continue;
 }
+
 if (
 localMatch.score1 !== null &&
 localMatch.score2 !== null &&
@@ -5579,40 +5594,42 @@ local: `${localMatch.score1}:${localMatch.score2}`,
 incoming: `${importedMatch.score1}:${importedMatch.score2}`
 });
 }
-localMatch.score1 = importedMatch.score1;
-localMatch.score2 = importedMatch.score2;
-localMatch.technical = importedMatch.technical;
-localMatch.lastModified = Date.now();
-store.put(localMatch);
-updated++;
-resolve();
-};
-});
+
+if(
+localMatch.lastModified &&
+importedMatch.lastModified &&
+importedMatch.lastModified <= localMatch.lastModified
+){
+continue;
 }
 
+localMatch.score1 = importedMatch.score1;
+localMatch.score2 = importedMatch.score2;
+localMatch.technical = importedMatch.technical ?? false;
+localMatch.lastModified = importedMatch.lastModified || Date.now();
+store.put(localMatch);
+updated++;
+}
+};
 tx.oncomplete = async () => {
 if (conflicts.length) {
 let msg = "Обнаружены конфликты:\n\n";
 conflicts.slice(0,10).forEach(c => {
-
 msg += `Тур ${c.tour}, матч ${c.match}\n`;
 msg += `ПК: ${c.local}\n`;
 msg += `Импорт: ${c.incoming}\n\n`;
-
 });
 alert(msg);
 }
-
 alert(`Импорт завершён
 
 Добавлено: ${updated}
 Совпало: ${same}
 Конфликтов: ${conflicts.length}
-Отсутствуют: ${missing}`);
+Отсутствуют: ${missing}`)
 
 await renderStandingsFromDB();
 await displayTour(currentTourIndex);
-
 };
 }
 
@@ -5683,21 +5700,23 @@ async function exportMatches() {
         }
 
         const data = {
-            exportedAt: new Date().toISOString(),
-            matches: matches.map(m=>({
+                exportedAt: new Date().toISOString(),
+                matches: matches.map(m=>({
                 id: m.id,
                 tourIndex: m.tourIndex,
                 matchIndex: m.matchIndex,
                 score1: m.score1,
                 score2: m.score2,
-                technical: m.technical
-            }))
+                technical: m.technical,
+                lastModified: m.lastModified || Date.now()
+        }))
         };
         const json = JSON.stringify(data,null,2);
         /* ===== БУФЕР ===== */
         if(!fileMode){
             try{
                 await navigator.clipboard.writeText(json);
+console.log("Clipboard export:", data.matches.length);
                 alert(`Скопировано в буфер: ${data.matches.length} матчей`);
             }catch(e){
                 console.error("Clipboard error:", e);
@@ -5707,14 +5726,18 @@ async function exportMatches() {
         }
         /* ===== ФАЙЛ ===== */
         const blob = new Blob([json],{type:"application/json"});
+
         const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
+        const url = URL.createObjectURL(blob); 
+        a.href = url; 
         if(allMatches){
-            a.download = `changed_matches_${Date.now()}.json`;
+          a.download = `changed_matches_${Date.now()}.json`;
         }else{
-            a.download = `tour_${currentTourIndex+1}_${Date.now()}.json`;
+          a.download = `tour_${currentTourIndex+1}_${Date.now()}.json`;
         }
         a.click();
+
+URL.revokeObjectURL(url);
     };
 }
 
@@ -5804,6 +5827,10 @@ let text;
 
 try{
 text = await navigator.clipboard.readText();
+if(!text){
+alert("Буфер обмена пуст.");
+return;
+}
 }catch(e){
 alert("Не удалось прочитать буфер обмена.");
 return;
