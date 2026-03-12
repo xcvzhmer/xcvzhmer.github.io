@@ -54,6 +54,27 @@ const bestMatchesByTour = {};
 const LS_TEAMS_KEY = 'rr_teams_textarea_v1';
 const LS_URLS_KEY  = 'rr_urls_textarea_v1';
 
+window.onerror = function(msg, url, line){
+    const box = document.getElementById("debugBox") || (() => {
+        const d = document.createElement("div");
+        d.id = "debugBox";
+        d.style.position = "fixed";
+        d.style.bottom = "0";
+        d.style.left = "0";
+        d.style.right = "0";
+        d.style.maxHeight = "40%";
+        d.style.overflow = "auto";
+        d.style.background = "black";
+        d.style.color = "lime";
+        d.style.fontSize = "12px";
+        d.style.zIndex = "99999";
+        document.body.appendChild(d);
+        return d;
+    })();
+
+    box.innerHTML += "<div>"+msg+" (line "+line+")</div>";
+};
+
 function saveInputsToLocalStorage() {
     try {
         localStorage.setItem(LS_TEAMS_KEY, teamsInput.value);
@@ -5383,7 +5404,17 @@ return;
         for (const importedMatch of data.matches) {
 
             const key = importedMatch.tourIndex + "_" + importedMatch.matchIndex;
-            const localMatch = localMap.get(key);
+            let localMatch = localMap.get(key);
+
+            if (!localMatch) {
+
+                localMatch = allReq.result.find(m =>
+                    m.tourIndex === importedMatch.tourIndex &&
+                    m.team1 === importedMatch.team1 &&
+                    m.team2 === importedMatch.team2
+                );
+
+            }
 
             if (!localMatch) {
                 missing++;
@@ -5476,7 +5507,17 @@ async function previewImport(data){
                 tours.add(imported.tourIndex);
 
                 const key = imported.tourIndex + "_" + imported.matchIndex;
-                const local = localMap.get(key);
+let local = localMap.get(key);
+
+if(!local){
+
+    local = localMatches.find(m =>
+        m.tourIndex === imported.tourIndex &&
+        m.team1 === imported.team1 &&
+        m.team2 === imported.team2
+    );
+
+}
 
                 if(!local){
                     return;
@@ -5574,7 +5615,17 @@ localMap.set(key,m);
 for (const importedMatch of data.matches) {
 
 const key = importedMatch.tourIndex + "_" + importedMatch.matchIndex;
-const localMatch = localMap.get(key);
+let localMatch = localMap.get(key);
+
+if (!localMatch) {
+
+localMatch = allReq.result.find(m =>
+m.tourIndex === importedMatch.tourIndex &&
+m.team1 === importedMatch.team1 &&
+m.team2 === importedMatch.team2
+);
+
+}
 
 if (!localMatch) {
 missing++;
