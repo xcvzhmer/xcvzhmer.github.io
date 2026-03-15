@@ -16,6 +16,8 @@ let activeScoreFilter = null;
 let activeStandingsRange = null;
 // 🎯 feat. / solo
 let activeStandingsArtistType = null;
+// 🎯 20ХХ треки
+let activeSpecialTracksFilter = false;
 // 🆚 сравнение команд
 let selectedCompareTeamA = null;
 let selectedCompareTeamB = null;
@@ -774,9 +776,18 @@ tournamentData.completedTours = getCompletedToursCount(allMatches);
 
     const row = standingsBody.insertRow();
 
-    // ⬇⬇⬇ ВАЖНО: сохраняем ИСХОДНОЕ имя трека ⬇⬇⬇
-    row.dataset.track = teamName;
-    // ⬆⬆⬆ ЭТО КЛЮЧЕВАЯ СТРОКА ⬆⬆⬆
+// ⬇⬇⬇ ВАЖНО: сохраняем ИСХОДНОЕ имя трека ⬇⬇⬇
+row.dataset.track = teamName;
+const trackKey = teamName;
+for (const k in SPECIAL_TRACKS) {
+    const trackData = SPECIAL_TRACKS[k];
+    if (isSpecialTrack(trackKey, k)) {
+        const colors = trackData.colors;
+        row.style.background = buildSpecialBackground(colors);
+        row.classList.add("special-track-row");
+        break;
+    }
+}
 
     // пометка стиля для inactive команд
     const isInactive = !!inactiveMap[teamName];
@@ -1060,7 +1071,7 @@ function restorePositionCell(cell) {
 }
 
 /* ======================================================
-   📊 ФОРМА, ЗГ/ПГ, СЕРИИ — ДЛЯ ВТОРОГО МОДАЛЬНОГО ОКНА
+   📊 ФОРМА , ЗГ/ПГ, СЕРИИ — ДЛЯ ВТОРОГО МОДАЛЬНОГО ОКНА
 ====================================================== */
 
 async function getLastPlayedMatchesFromDB(teamName, limit = 5) {
@@ -1303,8 +1314,13 @@ for (let round = 0; round < totalTours; round++) {
     await saveSettings({ totalTeams: savedTeams.length, currentTourIndex: 0, teamsPerTour: numMatchesPerTour });
     tournamentData.totalTours = totalTours;
 
-    console.log(`Расписание сгенерировано (${totalTours} туров, ${numMatchesPerTour} матчей за тур).`);
-    alert(`Расписание сгенерировано (${totalTours} туров).`);
+    await saveSettings({ totalTeams: savedTeams.length, currentTourIndex: 0, teamsPerTour: numMatchesPerTour });
+    tournamentData.totalTours = totalTours;
+
+    const toursText = formatTours(totalTours);
+
+    console.log(`Расписание сгенерировано (${toursText}, ${numMatchesPerTour} матчей за тур).`);
+    alert(`Расписание сгенерировано (${toursText}).`);
 
     // 🧹 сброс лучших матчей после генерации нового расписания
 {
@@ -1384,7 +1400,16 @@ const conceded = rightGoals;
     .map(item => `<span title="${item.title}">${item.icon}</span>`)
     .join('');
 
-    rows.push({
+    // 🔥 ДИСКВАЛИФИЦИРОВАННЫЕ КОМАНДЫ
+if (
+    team.includes("дисквали") ||
+    team.includes("DISQ") ||
+    team.includes("BYE")
+) {
+    diff = -513;
+}
+
+rows.push({
     team,
     win,
     clean,
@@ -1392,12 +1417,28 @@ const conceded = rightGoals;
     form: formHtml,
     gf,
     ga,
-    diff: gf - ga
-    });
+    diff
+});
     }
 
     // сортировка по разнице за последние 5 матчей
-    rows.sort((a, b) => b.diff - a.diff);
+    rows.sort((a, b) => {
+
+    const aDisq =
+    a.team.includes("BYE") ||
+    a.team.includes("дисквали") ||
+    a.diff === -513;
+
+const bDisq =
+    b.team.includes("BYE") ||
+    b.team.includes("дисквали") ||
+    b.diff === -513;
+
+    if (aDisq && !bDisq) return 1;
+    if (!aDisq && bDisq) return -1;
+
+    return b.diff - a.diff;
+});
 
     rows.forEach((r, i) => {
     const tr = document.createElement('tr');
@@ -2139,91 +2180,114 @@ if (s1 !== null && s2 !== null) {
   }
 }
 
-const SPECIAL_TRACK_HIGHLIGHTS = {
-  // 1
-  "fonforino|темный принц|черный": ["#050016ff", "#051836d3"],
-  // 2
-  "madk1d|мориарти": ["#cd04dfff", "#9f11c690"],
-  // 3
-  "шипы|стрипсы": ["#7aafe3", "#eedba6", "#f6f7ec"],
-  // 4
-  "zavet|buy me": ["#27a5ad", "#0d211ce3"],
-  // 5
-  "шипы|cowboyclicker|thepolepositionclub": ["#ff3c06", "#001b60d6", "#efa105"],
-  // 6
-  "mindless self indulgence|shut me up": ["#050608f0", "#5b292b", "#eed80ff1"],
-  // 7
-  "marjorie -w c sinclair|noah's ark": ["#b79f99", "#bebebe", "#e9e9e9"],
-  // 8
-  "arlekin 40 000|data404|lottery billz|p2p": ["#850a11", "#dd0f19e7", "#f2d985"],
-  // 9
-  "a v g|goro|она близко": ["#1a191e", "#412a27ff", "#d2ac85"],
-  // 10
-  "cmh|слава кпсс|сэлфхарм": ["#5f657cff", "#d5dbe4ff"],
-  // 11
-  "пошлая молли|самый лучший эмо панк": ["#955f39", "#e99dbd", "#fefefe"],
-  // 12
-  "9mice|kai angel|fountainebleau": ["#131315", "#e2e4e5"],
-  // 13
-  "ken carson|rockstar lifestyle": ["#141314ff", "#4d464eff"],
-  // 14
-  "2hollis|poster boy": ["#ffffff", "#cb2929ff"],
-  // 15
-  "benjamingotbenz|supernova": ["#186db9", "#e16a09ff", "#fdf6ed"],
-  // 16
-  "sqwore|бардак": ["#2b2b2b", "#6e6e6e"],
-  // 17
-  "tonser|exx": ["#0f1c2e", "#1f6fb2"],
-  // 18
-  "angelik|revetg|ss25": ["#1c1c1c", "#8b5cf6", "#e5e7eb"],
-  // 19
-  "хестон|benjamingotbenz|bratz": ["#f2bcc9", "#c7a991", "#8e6153"]
+const SPECIAL_TRACKS = {
+  "fonforino|темный принц|черный": {
+    year: 2024,
+    colors: ["#050016", "#051836"]
+  },
+  "madk1d|мориарти": {
+    year: 2024,
+    colors: ["#cd04df", "#9f11c6"]
+  },
+  "шипы|стрипсы": {
+    year: 2024,
+    colors: ["#7aafe3", "#eedba6", "#f6f7ec"]
+  },
+  "zavet|buy me": {
+    year: 2021,
+    colors: ["#27a5ad", "#0d211c"]
+  },
+  "шипы|cowboyclicker|thepolepositionclub": {
+    year: 2023,
+    colors: ["#ff3c06", "#001b60", "#efa105"]
+  },
+  "mindless self indulgence|shut me up": {
+    year: 2006,
+    colors: ["#050608", "#5b292b", "#eed80f"]
+  },
+  "marjorie -w c sinclair|noah's ark": {
+    year: 2022,
+    colors: ["#b79f99", "#bebebe", "#e9e9e9"]
+  },
+  "arlekin 40 000|data404|lottery billz|p2p": {
+    year: 2024,
+    colors: ["#850a11", "#dd0f19", "#f2d985"]
+  },
+  "a v g|goro|она близко": {
+    year: 2023,
+    colors: ["#1a191e", "#412a27", "#d2ac85"]
+  },
+  "cmh|слава кпсс|сэлфхарм": {
+    year: 2023,
+    colors: ["#5f657c", "#d5dbe4"]
+  },
+  "пошлая молли|самый лучший эмо панк": {
+    year: 2020,
+    colors: ["#955f39", "#e99dbd", "#fefefe"]
+  },
+  "9mice|kai angel|fountainebleau": {
+    year: 2024,
+    colors: ["#131315", "#e2e4e5"]
+  },
+  "ken carson|rockstar lifestyle": {
+    year: 2023,
+    colors: ["#141314", "#4d464e"]
+  },
+  "2hollis|poster boy": {
+    year: 2023,
+    colors: ["#ffffff", "#cb2929"]
+  },
+  "benjamingotbenz|supernova": {
+    year: 2020,
+    colors: ["#186db9", "#e16a09", "#fdf6ed"]
+  },
+  "sqwore|бардак": {
+    year: 2024,
+    colors: ["#2b2b2b", "#6e6e6e"]
+  },
+  "tonser|exx": {
+    year: 2024,
+    colors: ["#0f1c2e", "#1f6fb2"]
+  },
+  "angelik|revetg|ss25": {
+    year: 2024,
+    colors: ["#1c1c1c", "#8b5cf6", "#e5e7eb"]
+  },
+  "oklou|family and friends": {
+    year: 2024,
+    colors: ["#1c1c1c", "#8b5cf6", "#e5e7eb"]
+  },
+  "хестон|benjamingotbenz|bratz": {
+    year: 2022,
+    colors: ["#f2bcc9", "#c7a991", "#8e6153"]
+  }
 };
 
 /* ==========================
-   📅 ГОДЫ РЕЛИЗА ИСКЛЮЧЕНИЙ
-   (пока рандом 2020–2024)
+   🔧 NORMALIZE TRACK STRING
 ========================== */
-const SPECIAL_TRACK_YEARS = {
-  // 1
-  "fonforino|темный принц|черный": 2024,
-  // 2
-  "madk1d|мориарти": 2024,
-  // 3
-  "шипы|стрипсы": 2024,
-  // 4
-  "zavet|buy me": 2021,
-  // 5
-  "шипы|cowboyclicker|thepolepositionclub": 2023,
-  // 6
-  "mindless self indulgence|shut me up": 2006,
-  // 7
-  "marjorie -w c sinclair|noah's ark": 2022,
-  // 8
-  "arlekin 40 000|data404|lottery billz|p2p": 2024,
-  // 9
-  "a v g|goro|она близко": 2023,
-  // 10
-  "cmh|слава кпсс|сэлфхарм": 2023,
-  // 11
-  "пошлая молли|самый лучший эмо панк": 2020,
-  // 12
-  "9mice|kai angel|fountainebleau": 2024,
-  // 13
-  "ken carson|rockstar lifestyle": 2023,
-  // 14
-  "2hollis|poster boy": 2023,
-  // 15
-  "benjamingotbenz|supernova": 2020,
-  // 16
-  "sqwore|бардак": 2024,
-  // 17
-  "tonser|exx": 2024,
-  // 18
-  "angelik|revetg|ss25": 2024,
-  // 19
-  "хестон|benjamingotbenz|bratz": 2022
-};
+function normalizeTrackString(str) {
+
+    return str
+        .toLowerCase()
+        .replace(/ё/g, "е")
+        .replace(/[.,–—\-]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+/* ==========================
+   🔍 MATCH SPECIAL TRACK
+========================== */
+function isSpecialTrack(trackName, key) {
+
+    const normalizedTrack = normalizeTrackString(trackName);
+    const parts = key.split("|");
+
+    return parts.every(p =>
+        normalizedTrack.includes(normalizeTrackString(p))
+    );
+}
 
 // ==========================
 // 🎨 Многоцветная подсветка — LAYER BLEND (FINAL)
@@ -2246,6 +2310,7 @@ function buildSpecialBackground(colors) {
    • нет ухода в фон (#2c2c2c / #272727)
 ========================== */
 function buildLayerBlend(colors) {
+
     if (colors.length === 1) {
         return `linear-gradient(90deg,
             ${hexToRGBA(colors[0], 0.38)},
@@ -2386,18 +2451,16 @@ function hexToRGBA(hex, alphaOverride) {
         hex = hex.split('').map(c => c + c).join('');
     }
 
+    // если #RRGGBBAA — просто убираем AA
+    if (hex.length === 8) {
+        hex = hex.slice(0, 6);
+    }
+
     const r = parseInt(hex.slice(0, 2), 16);
     const g = parseInt(hex.slice(2, 4), 16);
     const b = parseInt(hex.slice(4, 6), 16);
 
-    // если есть встроенная альфа (#RRGGBBAA)
-    let alpha = alphaOverride;
-    if (hex.length === 8) {
-        const a = parseInt(hex.slice(6, 8), 16);
-        alpha = (a / 255) * alphaOverride;
-    }
-
-    return `rgba(${r},${g},${b},${alpha})`;
+    return `rgba(${r},${g},${b},${alphaOverride})`;
 }
 
 /* ==========================
@@ -2443,33 +2506,30 @@ function extractInlineColors(text) {
 ========================== */
 function applySpecialTrackHighlight(cell, teamText) {
     if (!cell || !teamText) return;
-
     const normalized = normalizeText(teamText);
-
-    for (const key in SPECIAL_TRACK_HIGHLIGHTS) {
-        const parts = key
-            .split('|')
-            .map(p => normalizeText(p));
-
-        if (!parts.every(p => normalized.includes(p))) continue;
-
-        cell.style.backgroundImage = buildSpecialBackground(
-            SPECIAL_TRACK_HIGHLIGHTS[key]
-        );
+    for (const key in SPECIAL_TRACKS) {
+    const trackData = SPECIAL_TRACKS[key];
+    const parts = key
+        .split('|')
+        .map(p => normalizeText(p));
+    if (!parts.every(p => normalized.includes(p))) continue;
+    cell.style.backgroundImage = buildSpecialBackground(
+        trackData.colors
+    );
         cell.classList.add('special-track-cell');
                 cell.style.backgroundRepeat = "no-repeat";
         cell.style.backgroundSize = "100% 100%";
         cell.style.backgroundColor = "transparent";
 
         // 📅 добавляем год релиза
-        const year = SPECIAL_TRACK_YEARS[key];
+        const year = trackData.year;
         if (year && !cell.querySelector('.track-year')) {
             const yearEl = document.createElement('span');
             yearEl.className = 'track-year';
             yearEl.textContent = year;
 
             // 🎨 цвет = первый (левый) цвет бленда
-            yearEl.style.color = SPECIAL_TRACK_HIGHLIGHTS[key][0];
+            yearEl.style.color = trackData.colors[0];
 
             cell.appendChild(yearEl);
         }
@@ -2698,11 +2758,11 @@ async function checkTourStatsAndDisplay(tourIndex) {
         isError = true;
     }
     if (draws !== 1 && unfilledScores === 0) {
-        statsMessage += `Ошибка: Неверное количество ничьих (${draws}). `;
+        statsMessage += `Предупреждение: кол-во ничьих (${draws}/1)\n`;
         isError = true;
     }
     if (totalScore4Matches !== 6 && unfilledScores === 0) {
-        statsMessage += `Ошибка: Неверное количество матчей с тоталом 4 гола (${totalScore4Matches}). `;
+        statsMessage += `Предупреждение: кол-во матчей с тоталом 4 гола (${totalScore4Matches}/6)\n`;
         isError = true;
     }
 
@@ -2877,6 +2937,7 @@ document.querySelectorAll('.standings-focus-controls button')
 
         const range = btn.dataset.range;
         const artistType = btn.dataset.artistType;
+        const specialFilter = btn.dataset.special;
 
         // feat. / solo
         if (artistType) {
@@ -2891,13 +2952,29 @@ document.querySelectorAll('.standings-focus-controls button')
             return;
         }
 
+        // 🔥 SPECIAL TRACKS (20XX)
+        if (specialFilter) {
+
+            activeSpecialTracksFilter = !activeSpecialTracksFilter;
+
+            btn.classList.toggle('active', activeSpecialTracksFilter);
+
+            applyStandingsVisibilityFilter();
+            return;
+        }
+
         // диапазоны
         const total = document.querySelectorAll("#standingsBody tr").length;
 
         if (range === 'all') {
-            activeStandingsRange = null;
-            activeStandingsArtistType = null;
-        }
+    activeStandingsRange = null;
+    activeStandingsArtistType = null;
+
+    // 🔥 убираем активность feat/solo
+    document
+        .querySelectorAll('.standings-focus-controls button[data-artist-type]')
+        .forEach(b => b.classList.remove('active'));
+}
 
         else if (range === '100') {
     activeStandingsRange = total >= 100 ? { from: 1, to: 100 } : null;
@@ -2912,8 +2989,16 @@ document.querySelectorAll('.standings-focus-controls button')
     }
 
         else if (range === 'nq') {
-    activeStandingsRange = total >= 150 ? { from: 101, to: 150 } : null;
-    }
+
+    // 🔥 нижние 33% таблицы
+    const bottomCount = Math.round(total / 3);
+    const from = total - bottomCount + 1;
+
+    activeStandingsRange = {
+        from: from,
+        to: total
+    };
+}
 
     else if (range === 'custom') {
     document.querySelector('.custom-range-inputs').style.display = 'flex';
@@ -3180,6 +3265,22 @@ function applyStandingsVisibilityFilter() {
             }
         }
 
+        // 🔥 SPECIAL TRACKS FILTER
+if (activeSpecialTracksFilter) {
+    let isSpecial = false;
+
+    const trackKey = row.dataset.track;
+    for (const k in SPECIAL_TRACKS) {
+        const year = SPECIAL_TRACKS[k].year; // <- здесь новая структура
+        if (isSpecialTrack(trackKey, k)) { 
+            isSpecial = true;
+            break;
+        }
+    }
+    if (!isSpecial) {
+        visible = false;
+    }
+}
         // применяем видимость
         row.style.display = visible ? "" : "none";
     });
@@ -4583,6 +4684,23 @@ function formatPoints(points) {
     return `${points} ${word}`;
 }
 
+function formatTours(num) {
+
+    const mod10 = num % 10;
+    const mod100 = num % 100;
+
+    let word = 'туров';
+
+    if (mod10 === 1 && mod100 !== 11) {
+        word = 'тур';
+    }
+    else if ([2,3,4].includes(mod10) && ![12,13,14].includes(mod100)) {
+        word = 'тура';
+    }
+
+    return `${num} ${word}`;
+}
+
 // СТАТИСТИКА (Шаг 3)
 
 function getTeamStanding(teamName) {
@@ -5021,6 +5139,10 @@ function playInGlobalPlayer(trackUrl, buttonElement) {
 
     iframe.src = embedUrl;
 
+    if (!container.classList.contains('active')) {
+    container.classList.add('active');
+}
+
     localStorage.setItem('lastSpotifyTrack', embedUrl);
     localStorage.setItem('currentTrackId', trackId);
 
@@ -5043,13 +5165,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 🔄 Восстановление последнего трека
     const saved = localStorage.getItem('lastSpotifyTrack');
-    if (saved) {
-        iframe.src = saved;
-        container.classList.add('active');
 
-        // 🔥 ЕСЛИ ПЛЕЕР УЖЕ АКТИВЕН ПРИ ЗАГРУЗКЕ — добавляем отступ
-    document.body.style.paddingBottom = "180px"; // ← высота плеер
-    }
+    if (saved) {
+    // просто сохраняем ссылку
+    iframe.dataset.savedTrack = saved;
+    // 🔥 ПРЯЧЕМ ПЛЕЕР ПОЛНОСТЬЮ
+    container.classList.remove('active');
+}
 
     // ❌ КНОПКА ЗАКРЫТЬ ПЛЕЕР
     const closeBtn = document.getElementById('spotifyCloseBtn');
