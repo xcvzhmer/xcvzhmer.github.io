@@ -1400,7 +1400,10 @@ const conceded = rightGoals;
     .map(item => `<span title="${item.title}">${item.icon}</span>`)
     .join('');
 
-    // 🔥 ДИСКВАЛИФИЦИРОВАННЫЕ КОМАНДЫ
+// разница голов за последние 5 матчей
+let diff = gf - ga;
+
+// 🔥 ДИСКВАЛИФИЦИРОВАННЫЕ КОМАНДЫ
 if (
     team.includes("дисквали") ||
     team.includes("DISQ") ||
