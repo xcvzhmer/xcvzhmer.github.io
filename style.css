@@ -1380,6 +1380,21 @@ body.teams-hidden .team-name {
     box-shadow: inset 0 0 0 9999px rgba(255, 0, 0, 0.35);
 }
 
+#currentTourOutput::after {
+    content: '';
+    display: block;
+    height: 1px;
+    margin-top: 20px;
+    background: linear-gradient(to right, transparent, #555, transparent);
+    opacity: 0.5;
+}
+
+.empty-state {
+    text-align: center;
+    opacity: 0.5;
+    padding: 20px;
+}
+
 /* ==========================
    🔴 КРАСНАЯ КНОПКА [X]
 ========================== */

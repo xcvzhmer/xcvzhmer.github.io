@@ -31,6 +31,16 @@ let lastExportTime = 0;
 // 🎯 ВРЕМЯ ОТКРЫТИЯ САЙТА
 let pageOpenTime = Date.now();
 
+// 🔥 ОТКЛЮЧАЕМ восстановление скролла браузером
+if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+}
+
+// 🔥 ВСЕГДА стартуем сверху
+window.addEventListener('load', () => {
+    window.scrollTo(0, 0);
+});
+
 // --- Элементы DOM ---
 const teamsInput = document.getElementById('teamsInput');
 const urlsInput = document.getElementById('urlsInput'); // Новое поле с ссылками
@@ -592,10 +602,12 @@ async function initializeApp() {
         // Восстанавливаем турнирную таблицу
         await renderStandingsFromDB();
 
-        // Обновляем UI
-        updateTourNavigation();
-        displayTour(tournamentData.currentTourIndex);
-        enableButtons();
+updateTourNavigation();
+
+await withStableScroll(async () => {
+    await displayTour(tournamentData.currentTourIndex);
+});
+enableButtons();
         generateBtn.disabled = false; // Отключаем кнопку генерации, если есть сохраненные данные
     } else {
         // Если данных нет, сбрасываем UI и кнопки
@@ -1335,8 +1347,12 @@ for (const key in bestMatchesByTour) {
 
     // Обновляем UI
     updateTourNavigation();
-    await displayTour(0); // Показываем первый тур
-    await renderStandingsFromDB(); // Отображаем таблицу
+
+await renderStandingsFromDB();
+
+await withStableScroll(async () => {
+    await displayTour(0);
+});
 
     // 🔥 ДОБАВЛЕНО — подсветка после полной отрисовки
     applyAuto33Relegation();
@@ -1476,6 +1492,47 @@ function renderWinStreak(count) {
     return html;
 }
 
+// ===============================
+// 🔥 STABLE SCROLL WRAPPER (FINAL)
+// ===============================
+async function withStableScroll(callback) {
+    const scrollY = window.scrollY;
+
+    const el = document.querySelector('#currentTourOutput');
+
+    // 🔥 фиксируем высоту ДО рендера
+    let height = 0;
+    if (el) {
+        height = el.offsetHeight;
+        el.style.minHeight = height + 'px';
+    }
+
+    // выполняем изменения DOM
+    await callback();
+
+    // 🔥 возвращаем скролл
+    window.scrollTo(0, scrollY);
+
+    // 🔥 проверяем — есть ли вообще контент
+    if (el) {
+        const hasContent = el.children.length > 0;
+
+        // если после фильтра ничего нет → добавляем empty-state
+        if (!hasContent) {
+            el.innerHTML = `
+                <div class="empty-state">
+                    Нет матчей по фильтру
+                </div>
+            `;
+        }
+    }
+
+    // 🔥 мягкий сброс высоты (как у тебя было)
+    setTimeout(() => {
+        if (el) el.style.minHeight = '';
+    }, 250);
+}
+
 /**
  * Отображает матчи текущего тура.
  * @param {number} tourIndex - Индекс тура для отображения.
@@ -1532,12 +1589,15 @@ async function displayTour(tourIndex) {
         <th></th> <!-- Пустая ячейка для действий -->
     `;
 
-    currentTourMatches.forEach((match, matchIndex) => {
-        // 🎯 ФИЛЬТР ПО СЧЁТУ
-    if (!matchPassesScoreFilter(match)) return false;
-    if (!matchPassesArtistFilter(match)) return false;
+    let hasMatches = false; // 🔥 ДОБАВИТЬ ПЕРЕД forEach
 
-        const row = tbody.insertRow();
+currentTourMatches.forEach((match, matchIndex) => {
+    if (!matchPassesScoreFilter(match)) return;
+    if (!matchPassesArtistFilter(match)) return;
+
+    hasMatches = true; // 🔥 ВАЖНО
+
+    const row = tbody.insertRow();
         row.dataset.matchId = match.id; // Добавляем ID матча для удобства
 
         // Класс для BYE матчей (визуально)
@@ -1669,7 +1729,16 @@ applyInlineColorSquare(colorSquare2, rawTeam2);
         actionsCell.appendChild(actionBtn);
     });
 
-    currentTourOutput.appendChild(table);
+    if (!hasMatches) {
+    currentTourOutput.innerHTML = `
+        <div class="empty-state">
+            Нет матчей по фильтру
+        </div>
+    `;
+    return;
+}
+
+currentTourOutput.appendChild(table);
 
     // ⭐ лучшие матчи перерисовываем ТОЛЬКО если фильтр выключен
 if (!activeScoreFilter) {
@@ -2651,14 +2720,10 @@ async function handleSaveOrUpdateScore(event) {
             return;
         }
 
-        // 🔥 СОХРАНЯЕМ ТЕКУЩИЙ СКРОЛЛ
-        const currentScroll = window.scrollY;
-
         // 🔥 ПЕРЕСЧЁТ ТАБЛИЦЫ
-        await renderStandingsFromDB();
-
-        // 🔥 ВОССТАНАВЛИВАЕМ СКРОЛЛ
-        window.scrollTo(0, currentScroll);
+        await withStableScroll(async () => {
+    await renderStandingsFromDB();
+});
         
 // Перерисовываем таблицу результатов
         await repaintStandingsBannedRows();
@@ -3051,12 +3116,9 @@ generateBtn.addEventListener('click', async () => {
 
     try {
         await generateAndSaveSchedule(numTeams);
-        await renderStandingsFromDB();
 
-        applyAuto33Relegation();
-
-        await displayTour(0);
-        updateTourNavigation();
+// ❗ НИЧЕГО БОЛЬШЕ НЕ РЕНДЕРИМ
+updateTourNavigation();;
 
         // 🔥 после displayTour
     highlightMatchesWithRelegationTeams();
@@ -3079,8 +3141,12 @@ resetBtn.addEventListener('click', resetAllDataAndUI);
 prevTourBtn.addEventListener('click', async () => {
     if (tournamentData.currentTourIndex > 0) {
         tournamentData.currentTourIndex--;
-        await displayTour(tournamentData.currentTourIndex);
-        updateTourNavigation();
+        
+        await withStableScroll(async () => {
+    await displayTour(tournamentData.currentTourIndex);
+});
+
+updateTourNavigation(); // 🔥 ВАЖНО
 
         // 🔥 подсветка
     highlightMatchesWithRelegationTeams();
@@ -3127,10 +3193,11 @@ if (updateTeamsBtn) {
             await renderStandingsFromDB();
             await repaintStandingsBannedRows();
 
-            applyAuto33Relegation();
+await withStableScroll(async () => {
+    await displayTour(currentTourIndex);
+});
 
-            await displayTour(tournamentData.currentTourIndex);
-            updateTourNavigation();
+    applyAuto33Relegation();
 
             // 🔥 после displayTour
     highlightMatchesWithRelegationTeams();
@@ -3355,7 +3422,7 @@ function applyAuto33Relegation() {
     if (activeTeams === 0) return;
 
     // 33% снизу (округление вверх)
-    const relegationCount = Math.ceil(activeTeams * 0.22);
+    const relegationCount = Math.ceil(activeTeams * 0.40);
 
     const startIndex = activeTeams - relegationCount;
 
@@ -3694,8 +3761,12 @@ nextTourBtn.addEventListener('click', async () => {
     if (tournamentData.currentTourIndex < tournamentData.totalTours - 1) {
 
         tournamentData.currentTourIndex++;
-        await displayTour(tournamentData.currentTourIndex);
-        updateTourNavigation();
+        
+        await withStableScroll(async () => {
+    await displayTour(tournamentData.currentTourIndex);
+});
+
+updateTourNavigation(); // 🔥 ВАЖНО
 
         // 🔥 подсветка
     highlightMatchesWithRelegationTeams();
@@ -3716,8 +3787,12 @@ jumpToTourBtn.addEventListener('click', async () => {
     const tourNum = parseInt(tourJumpInput.value);
     if (!isNaN(tourNum) && tourNum >= 1 && tourNum <= tournamentData.totalTours) {
         tournamentData.currentTourIndex = tourNum - 1;
-        await displayTour(tournamentData.currentTourIndex);
-        updateTourNavigation();
+        
+        await withStableScroll(async () => {
+    await displayTour(tournamentData.currentTourIndex);
+});
+
+updateTourNavigation(); // 🔥 ВАЖНО
 
         // 🔥 подсветка
     highlightMatchesWithRelegationTeams();
@@ -4153,7 +4228,7 @@ if (value === 'all') {
     // ⚠️ если тур ещё не показан — ничего не делаем
 if (currentTourIndex === null) return;
     // перерисовываем текущий тур
-    await displayTour(currentTourIndex);
+    await withStableScroll(() => displayTour(currentTourIndex));
 });
 
 // ==========================
@@ -5599,7 +5674,10 @@ continue;
         alert(summary);
 
         await renderStandingsFromDB();
-        await displayTour(currentTourIndex);
+
+await withStableScroll(async () => {
+    await displayTour(currentTourIndex);
+});
     };
 }
 
@@ -5817,7 +5895,10 @@ alert(`Импорт завершён
 Отсутствуют: ${missing}`)
 
 await renderStandingsFromDB();
-await displayTour(currentTourIndex);
+
+await withStableScroll(async () => {
+    await displayTour(currentTourIndex);
+});
 };
 }
 
