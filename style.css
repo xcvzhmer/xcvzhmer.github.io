@@ -1641,6 +1641,7 @@ justify-content:space-between;
 margin-top:18px;
 }
 
+/* ЖИРНОСТЬ ЦИФР В STANDINGS ТАБЛИЦЕ */
 #standingsBody td {
     text-shadow: 0 0 3px rgba(0,0,0,0.7);
 }

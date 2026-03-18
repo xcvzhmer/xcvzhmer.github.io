@@ -5946,22 +5946,22 @@ async function exportMatches() {
     const store = tx.objectStore('schedule');
 
     const req = store.getAll();
-    req.onsuccess = async () => {
-        let matches = req.result;
-        /* ===== ФИЛЬТР ===== */
-        if(allMatches){
-            /* изменённые после открытия сайта */
-            matches = matches.filter(m =>
-                m.lastModified && m.lastModified > pageOpenTime
-            );
-        }else{
-            /* текущий тур */
-            matches = matches.filter(m =>
-                m.tourIndex === currentTourIndex &&
-                m.score1 !== null &&
-                m.score2 !== null
-            );
-        }
+req.onsuccess = async () => {
+    let matches = req.result;
+
+    /* ===== ФИЛЬТР ===== */
+    if(allMatches){
+        /* ✅ ВСЕ МАТЧИ ТУРНИРА */
+        matches = matches.filter(m =>
+            m.score1 !== null &&
+            m.score2 !== null
+        );
+    }else{
+        /* ✅ ТОЛЬКО НОВЫЕ (после открытия сайта) */
+        matches = matches.filter(m =>
+            m.lastModified && m.lastModified > pageOpenTime
+        );
+    }
 
         if(!matches.length){
             alert("Нет матчей для экспорта.");
@@ -6000,10 +6000,10 @@ console.log("Clipboard export:", data.matches.length);
         const url = URL.createObjectURL(blob); 
         a.href = url; 
         if(allMatches){
-          a.download = `changed_matches_${Date.now()}.json`;
-        }else{
-          a.download = `tour_${currentTourIndex+1}_${Date.now()}.json`;
-        }
+  a.download = `all_matches_${Date.now()}.json`;
+}else{
+  a.download = `new_matches_${Date.now()}.json`;
+}
         a.click();
 
 URL.revokeObjectURL(url);
@@ -6045,16 +6045,15 @@ let pendingImportData = null;
 ========================== */
 exportBtn.addEventListener("click", () => {
     exportModal.classList.remove("hidden");
-    tourLabel.textContent = `Тур ${currentTourIndex+1}`;
+    // ❌ больше не трогаем текст
 });
 
 /* ==========================
    ОТКРЫТЬ ОКНО ИМПОРТА
 ========================== */
-
 importBtn.addEventListener("click", () => {
     importModal.classList.remove("hidden");
-    importTourLabel.textContent = `Тур ${currentTourIndex+1}`;
+    // ❌ не перезаписываем
 });
 
 /* ==========================
