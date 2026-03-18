@@ -815,7 +815,7 @@ for (const k in SPECIAL_TRACKS) {
     <td class="position-cell" data-position="${index + 1}">
         ${index + 1}
     </td>
-        <td>${cleanTeamName}</td>
+        <td class="team-cell">${cleanTeamName}</td>
         <td>${stats.wins + stats.losses + stats.draws}</td>
         <td>${stats.wins}</td>
         <td>${stats.draws}</td>
@@ -1081,6 +1081,21 @@ function restorePositionCell(cell) {
     cell.innerHTML = original;
     cell.style.padding = '';
 }
+
+// СЕРОСТЬ
+
+standingsBody.addEventListener('dblclick', function (e) {
+
+    const cell = e.target.closest('.team-cell');
+    if (!cell) return;
+
+    // работает только если столбец скрыт
+    if (!document.body.classList.contains('teams-column-hidden')) return;
+
+    // переключение конкретной команды
+    cell.classList.toggle('team-visible');
+
+});
 
 /* ======================================================
    📊 ФОРМА , ЗГ/ПГ, СЕРИИ — ДЛЯ ВТОРОГО МОДАЛЬНОГО ОКНА
@@ -1467,7 +1482,7 @@ const bDisq =
 
     tr.innerHTML = `
         <td>${i + 1}</td>
-        <td>${cleanTeamName}</td>
+        <td class="team-cell">${cleanTeamName}</td>
         <td>${r.win}</td>
         <td>${r.clean}</td>
         <td>${r.golden}</td>
@@ -3860,6 +3875,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 
+const toggleTeamsColumnBtn = document.getElementById('toggleTeamsColumnBtn');
+
+if (toggleTeamsColumnBtn) {
+    toggleTeamsColumnBtn.addEventListener('click', () => {
+
+        const isHidden = document.body.classList.contains('teams-column-hidden');
+
+        if (isHidden) {
+            document.body.classList.remove('teams-column-hidden');
+
+            // 👉 показываем ВСЕ
+            document.querySelectorAll('.team-cell').forEach(c => {
+                c.classList.remove('team-visible');
+            });
+
+        } else {
+            document.body.classList.add('teams-column-hidden');
+        }
+
+    });
+}
+
 /* ========================== */
 
 showFormStatsBtn.addEventListener('click', async () => {
@@ -5986,7 +6023,7 @@ req.onsuccess = async () => {
             try{
                 await navigator.clipboard.writeText(json);
 console.log("Clipboard export:", data.matches.length);
-                alert(`Скопировано в буфер: ${data.matches.length} матчей`);
+                alert(`Экспортировано: ${data.matches.length} матчей (${allMatches ? 'все' : 'новые'})`);
             }catch(e){
                 console.error("Clipboard error:", e);
                 alert("Ошибка записи в буфер");
@@ -6007,6 +6044,8 @@ console.log("Clipboard export:", data.matches.length);
         a.click();
 
 URL.revokeObjectURL(url);
+
+alert(`Экспортировано: ${data.matches.length} матчей (${allMatches ? 'все' : 'новые'})`);
     };
 }
 

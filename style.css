@@ -351,25 +351,32 @@ textarea {
     font-style: italic; 
 }
 
-/* === Управление зонами вылета === */
+/* =============================================
+   ⚙️ УПРАВЛЕНИЕ ЗОНАМИ ВЫЛЕТА + СКРЫТИЕ КОМАНД
+================================================ */
 
-.relegation-controls {     /*# расстояние между Ж и К */
+/* 📦 Контейнер всех контролов (серая + жёлтая + красная) */
+.relegation-controls {
     display: flex;
-    gap: 1px;
+    gap: 8px;                 /* расстояние между блоками */
     justify-content: center;
+    align-items: center;      /* 🔥 выравнивание по одной линии */
     margin-bottom: 25px;
 }
 
-.zone-control {   /*# задний прозрачный фон */
+/* 📦 Блок зоны (фон вокруг input + кнопки) */
+.zone-control {
     display: flex;
     align-items: center;
     gap: 6px;
+
     background-color: #2c2c2c;
     padding: 8px 10px;
     border-radius: 6px;
 }
 
-.zone-control input {   /*# от и до */
+/* 🔢 Поля "от / до" */
+.zone-control input {
     width: 40px;
     background-color: #3a3a3a;
     border: 1px solid #555;
@@ -377,35 +384,93 @@ textarea {
     text-align: center;
 }
 
-.yellow-zone button {
+/* ===============================
+   🔘 КНОПКИ (общая база для всех)
+================================== */
 
+.yellow-zone button,
+.red-zone button,
+.gray-x-btn {
     width: 36px;
     height: 36px;
-    background-color: #fbc02d;
-    color: #121212;
-    font-weight: bold;
-    font-size: 18px;
-    border-radius: 6px;
-    cursor: pointer;
-    margin-left: 3px;
+
+    box-sizing: border-box;
+
     display: inline-flex;
     justify-content: center;
     align-items: center;
+
+    font-weight: bold;
+    font-size: 18px;
+
+    border-radius: 6px;
+    cursor: pointer;
+
+    transition: transform 0.08s ease, filter 0.15s ease;
 }
 
-.red-zone button {
-    width: 36px;
-    height: 36px;
-    background-color: #e53935;
+/* ================
+   🎨 ЦВЕТА КНОПОК
+=================== */
+
+/* 🔘 СЕРАЯ (управление прозрачностью команд) */
+.gray-x-btn {
+    background: #3a3a3a;
+    border: 2px solid #fbc02d;
+    color: #1f1f1f;
+}
+
+/* 🟨 ЖЁЛТАЯ зона */
+.yellow-zone button {
+    background: #fbc02d;
+    border: 2px solid #fbc02d;
     color: #121212;
-    font-weight: bold;
-    font-size: 18px;
-    border-radius: 6px;
-    cursor: pointer;
-    margin-left: 3px;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
+}
+
+/* 🟥 КРАСНАЯ зона */
+.red-zone button {
+    background: #e53935;
+    border: 2px solid #e53935;
+    color: #121212;
+}
+
+/* =======================================
+   ✨ HOVER (чуть темнее базового цвета)
+========================================== */
+
+/* 🔘 серая → становится жёлтой */
+.gray-x-btn:hover:not(:disabled) {
+    background-color: #fbc02d;
+}
+
+/* 🟨 жёлтая → темнее жёлтого */
+.yellow-zone button:hover:not(:disabled) {
+    background-color: #deb736;   /* темнее чем #fbc02d */
+}
+
+/* 🟥 красная → темнее красного */
+.red-zone button:hover:not(:disabled) {
+    background-color: #db302d;   /* темнее чем #e53935 */
+}
+
+/* =========================================================
+   🎬 СКРЫТИЕ / ПОКАЗ КОМАНД (эффект "100 к 1")
+========================================================= */
+
+/* ❌ по умолчанию скрываем */
+body.teams-column-hidden td.team-cell {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+/* 🔄 базовый transition */
+td.team-cell {
+    transition: opacity 0.3s ease;
+}
+
+/* 👁 показываем конкретную выбранную команду */
+body.teams-column-hidden td.team-cell.team-visible {
+    opacity: 1;
 }
 
 /* === T9 Поиск по артисту Т9 === */
