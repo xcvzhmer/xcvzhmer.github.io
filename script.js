@@ -62,6 +62,23 @@ const closeModalBtn = document.querySelector('.close-button');
 // ⭐ ЛУЧШИЕ МАТЧИ ПО ТУРАМ
 const bestMatchesByTour = {};
 
+function ruToEn(char) {
+    const map = {
+        й:'Q', ц:'W', у:'E', к:'R', е:'T', н:'Y', г:'U', ш:'I', щ:'O', з:'P', х:'[', ъ:']',
+        ф:'A', ы:'S', в:'D', а:'F', п:'G', р:'H', о:'J', л:'K', д:'L', ж:';', э:"'",
+        я:'Z', ч:'X', с:'C', м:'V', и:'B', т:'N', ь:'M', б:',', ю:'.', ё:'`'
+    };
+
+    return map[char] || char;
+}
+
+// ==========================
+// 🔗 SUPABASE CONFIG
+// ==========================
+
+const SUPABASE_URL = 'https://aiobhxvmqxvlsicsyetr.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_VeF0U4HXrHLazUlvK3BNqg_S1TniZGo';
+
 // ------------------ Сохранение/загрузка textarea в localStorage ------------------
 const LS_TEAMS_KEY = 'rr_teams_textarea_v1';
 const LS_URLS_KEY  = 'rr_urls_textarea_v1';
@@ -6209,6 +6226,366 @@ importInput.addEventListener("change", e => {
     if (!file) return;
 
     importTournamentMatches(file);
+});
+
+function mapToLatin(char) {
+    const map = {
+        й:'q', ц:'w', у:'e', к:'r', е:'t', н:'y', г:'u', ш:'i', щ:'o', з:'p',
+        ф:'a', ы:'s', в:'d', а:'f', п:'g', р:'h', о:'j', л:'k', д:'l',
+        я:'z', ч:'x', с:'c', м:'v', и:'b', т:'n', ь:'m'
+    };
+
+    char = char.toLowerCase();
+    const mapped = map[char] || char;
+
+    return mapped.toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+// ==========================
+// 🎲 ГЕНЕРАЦИЯ КОДА ТУРНИРА
+// ==========================
+
+function generateTournamentCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+    function part(len) {
+        return Array.from({ length: len }, () =>
+            chars[Math.floor(Math.random() * chars.length)]
+        ).join('');
+    }
+
+    return `X${part(4)}-ZHMER-${part(4)}X`;
+}
+
+// ==========================
+// ☁️ СОХРАНЕНИЕ КОДА
+// ==========================
+
+async function saveTournamentToCloud(code) {
+    const data = {
+        teams: teamsInput.value,
+        urls: urlsInput.value
+    };
+
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/textarea_teams_urls`, {
+        method: 'POST',
+        headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            code: code,
+            data: data
+        })
+    });
+
+    if (!res.ok) {
+        alert('❌ Ошибка сохранения кода');
+        return false;
+    }
+
+    return true;
+}
+
+// ==========================
+// 📥 ЗАГРУЗКА ПО КОДУ
+// ==========================
+
+async function loadTournamentFromCloud(code) {
+    const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/textarea_teams_urls?code=eq.${code}`,
+        {
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`
+            }
+        }
+    );
+
+    if (!res.ok) {
+        alert('❌ Ошибка загрузки');
+        return;
+    }
+
+    const result = await res.json();
+
+    if (!result.length) {
+        alert('❌ Код не найден');
+        return;
+    }
+
+    const data = result[0].data;
+
+    teamsInput.value = data.teams;
+    urlsInput.value = data.urls;
+
+    saveInputsToLocalStorage();
+
+    alert(`✅ Турнир загружен по коду ${code}`);
+}
+
+// обработчики
+
+document.addEventListener('DOMContentLoaded', () => {
+
+    const tournamentCodeBtn = document.getElementById('tournamentCodeBtn');
+    const modal = document.getElementById('tournamentCodeModal');
+
+    const randomBtn = document.getElementById('randomCodeBtn');
+    const saveBtn = document.getElementById('saveCodeBtn');
+    const loadConfirmBtn = document.getElementById('loadCodeConfirmBtn');
+
+    const codeInputWrapper = document.getElementById('codeInputWrapper');
+
+    const closeTournamentModalBtn = document.getElementById('closeTournamentCodeModal');
+    const authyGrid = document.getElementById('authyGrid');
+
+    let authyInputs = [];
+
+    function buildAuthyInputs() {
+
+    authyGrid.innerHTML = '';
+    authyInputs = []; 
+
+    function createInput() {
+        const input = document.createElement('input');
+        input.maxLength = 1;
+        input.className = 'authy-char';
+
+        input.addEventListener('input', () => {
+            input.value = mapToLatin(input.value);
+
+            const next = authyInputs[authyInputs.indexOf(input) + 1];
+            if (next && input.value) next.focus();
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace') {
+                if (input.value) {
+                    input.value = '';
+                } else {
+                    const prev = authyInputs[authyInputs.indexOf(input) - 1];
+                    if (prev) {
+                        prev.focus();
+                        prev.value = '';
+                    }
+                }
+            }
+        });
+
+        return input;
+    }
+
+    function createFixed(char) {
+        const div = document.createElement('div');
+        div.textContent = char;
+        div.className = 'authy-char fixed';
+        return div;
+    }
+
+    // 🔥 ROW 1: X + 4 inputs
+    authyGrid.appendChild(createFixed('X'));
+
+    for (let i = 0; i < 4; i++) {
+        const inp = createInput();
+        authyInputs.push(inp);
+        authyGrid.appendChild(inp);
+    }
+
+    // 🔥 ROW 2: ZHMER
+    ['Z','H','M','E','R'].forEach(ch => {
+        authyGrid.appendChild(createFixed(ch));
+    });
+
+    // 🔥 ROW 3: 4 inputs + X
+    for (let i = 0; i < 4; i++) {
+        const inp = createInput();
+        authyInputs.push(inp);
+        authyGrid.appendChild(inp);
+    }
+
+    authyGrid.appendChild(createFixed('X'));
+}
+
+    // 🔓 открыть модалку
+if (tournamentCodeBtn && modal) {
+    tournamentCodeBtn.addEventListener('click', () => {
+    modal.classList.remove('hidden');
+
+// 🔥 RESET ВСЕГО UI
+const createBtn = document.getElementById('createCodeBtn');
+const loadBtn = document.getElementById('loadCodeBtn');
+const codeTextInput = document.getElementById('codeTextInput');
+
+// 🔥 RESET ВСЕГО UI (ТОЛЬКО ПОСЛЕ ОБЪЯВЛЕНИЯ)
+// ❌ НЕ ТРОГАЕМ WRAPPER
+if (authyGrid) authyGrid.classList.add('hidden');
+if (randomBtn) randomBtn.classList.add('hidden');
+if (saveBtn) saveBtn.classList.add('hidden');
+
+if (codeTextInput) {
+    codeTextInput.classList.add('hidden');
+    codeTextInput.value = '';
+}
+
+if (loadConfirmBtn) loadConfirmBtn.classList.add('hidden');
+if (createBtn) createBtn.style.display = 'inline-block';
+if (loadBtn) loadBtn.style.display = 'inline-block';
+
+    authyInputs = [];
+
+if (authyGrid) authyGrid.innerHTML = '';
+});
+}
+
+// ❌ клик вне окна
+if (modal) {
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.add('hidden');
+        }
+    });
+}
+
+// ESC
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal) {
+        modal.classList.add('hidden');
+    }
+});
+
+if (randomBtn) {
+    randomBtn.addEventListener('click', () => {
+
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+function randomPart(len) {
+    return Array.from({ length: len }, () =>
+        chars[Math.floor(Math.random() * chars.length)]
+    ).join('');
+}
+
+const left = randomPart(4);
+const right = randomPart(4);
+
+const full = left + right; // только 8 символов
+
+for (let i = 0; i < authyInputs.length; i++) {
+    authyInputs[i].value = full[i] || '';
+}
+
+    });
+}
+
+    if (closeTournamentModalBtn && modal) {
+        closeTournamentModalBtn.addEventListener('click', () => {
+            modal.classList.add('hidden');
+            codeInputWrapper.classList.add('hidden');
+        });
+    }
+
+    const createBtn = document.getElementById('createCodeBtn');
+    const loadBtn = document.getElementById('loadCodeBtn'); // ✅ ВЕРНУЛИ
+    const codeTextInput = document.getElementById('codeTextInput');
+
+if (createBtn) {
+    createBtn.addEventListener('click', () => {
+
+        createBtn.style.display = 'none';
+        loadBtn.style.display = 'block'; // 🔥 фикс
+
+        codeInputWrapper.classList.remove('hidden');
+
+        if (authyGrid) authyGrid.classList.remove('hidden');
+        randomBtn.classList.remove('hidden');
+        saveBtn.classList.remove('hidden');
+
+        codeTextInput.classList.add('hidden');
+        loadConfirmBtn.classList.add('hidden');
+
+        buildAuthyInputs();
+    });
+}
+
+if (loadBtn) {
+    loadBtn.addEventListener('click', () => {
+
+        loadBtn.style.display = 'none';
+        createBtn.style.display = 'block'; // 🔥 фикс
+
+        codeInputWrapper.classList.remove('hidden');
+
+        if (authyGrid) authyGrid.classList.add('hidden');
+        if (randomBtn) randomBtn.classList.add('hidden');
+        if (saveBtn) saveBtn.classList.add('hidden');
+
+        codeTextInput.classList.remove('hidden');
+        loadConfirmBtn.classList.remove('hidden');
+
+        codeTextInput.focus();
+        codeTextInput.value = ''; // 🔥 очищает прошлый код
+    });
+}
+
+if (saveBtn) {
+    saveBtn.addEventListener('click', async () => {
+
+        // 🔥 берём код из authy
+        let code = "X";
+
+        for (let i = 0; i < 4; i++) {
+            code += authyInputs[i].value || '';
+        }
+
+code += "-ZHMER-";
+
+        for (let i = 4; i < 8; i++) {
+            code += authyInputs[i].value || '';
+        }
+
+code += "X";
+
+        const check = await fetch(
+            `${SUPABASE_URL}/rest/v1/textarea_teams_urls?code=eq.${code}`,
+            {
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`
+                }
+            }
+        );
+
+        const existing = await check.json();
+
+        if (existing.length) {
+            alert('❌ Такой код уже существует');
+            return;
+        }
+
+        const ok = await saveTournamentToCloud(code);
+        if (!ok) return;
+
+        navigator.clipboard.writeText(code);
+        alert(`Сохранено: ${code}`);
+    });
+}
+
+if (loadConfirmBtn) {
+    loadConfirmBtn.addEventListener('click', async () => {
+        const code = codeTextInput.value.trim().toUpperCase();
+
+        if (code.length !== 17) {
+            alert('Введите код полностью');
+            return;
+        }
+
+        await loadTournamentFromCloud(code);
+
+// 🔥 закрываем модал
+modal.classList.add('hidden');
+    });
+    }
 });
 
 // --- Конец скрипта ---

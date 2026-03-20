@@ -37,6 +37,7 @@ https://open.spotify.com/track/4"></textarea>
 
             <button id="generateBtn">Сгенерировать расписание</button>
             <button id="resetBtn" class="reset-button">Сбросить все данные</button>
+            <button id="tournamentCodeBtn">Код турнира</button>
             <button id="updateTeamsBtn" class="update-teams-btn">Х</button>
         </div>
 
@@ -468,8 +469,6 @@ https://open.spotify.com/track/4"></textarea>
     </div>
 </div>
 
-    <script src="script.js"></script>
-
 <!-- ==========================
    🍋‍🟩 SPOTIFY WEB PLAYER
 ========================== -->
@@ -490,6 +489,38 @@ https://open.spotify.com/track/4"></textarea>
     </iframe>
 
 </div>
+
+<!--        ==========================
+   🎲 X****-ZHMER-****X - КОД ТУРНИРА
+========================== -->
+
+<div id="tournamentCodeModal" class="export-modal hidden">
+    <div class="export-modal-box">
+
+        <h3>Код турнира</h3>
+
+<div id="codeInputWrapper" class="authy-wrapper">
+
+    <!-- 🎲 CREATE -->
+    <button id="randomCodeBtn" class="square-dice-btn hidden">🎲</button>
+
+    <div id="authyGrid"></div>
+
+    <!-- 📥 LOAD -->
+    <input id="codeTextInput" class="artist-filter-input hidden" placeholder="Вставьте код">
+
+    <!-- 🔥 НИЖНЯЯ ПАНЕЛЬ = две кнопки -->
+    <div class="code-actions">
+
+    <button id="createCodeBtn">Создать код</button>
+    <button id="loadCodeBtn">Ввести код</button>
+    <button id="saveCodeBtn" class="hidden">Сохранить</button>
+    <button id="loadCodeConfirmBtn" class="hidden">Загрузить</button>
+
+    </div>
+</div>
+
+<script src="script.js" defer></script>
 
 </body>
 </html>

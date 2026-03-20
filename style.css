@@ -1615,8 +1615,8 @@ justify-content:center;
 z-index:999;
 }
 
-.hidden{
-display:none;
+.hidden {
+    display: none !important;
 }
 
 .export-modal-box{
@@ -1709,4 +1709,185 @@ margin-top:18px;
 /* ЖИРНОСТЬ ЦИФР В STANDINGS ТАБЛИЦЕ */
 #standingsBody td {
     text-shadow: 0 0 3px rgba(0,0,0,0.7);
+}
+
+/*        ==========================
+   🎲 X****-ZHMER-****X - КОД ТУРНИРА
+========================== */
+
+#tournamentCodeBtn {
+    background-color: #fbc02d;
+    color: #121212;
+    padding: 10px 18px;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+#tournamentCodeBtn:hover:not(:disabled) {
+    background-color: #deb736;
+}
+
+/* ==========================
+   🔐 AUTHY КОНТЕЙНЕР
+========================== */
+
+.authy-wrapper {
+    background: #2c2c2c;
+    padding: 16px; /* 🔥 размер wrapper */
+    border-radius: 6px;
+    margin-top: 10px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    width: 100%;          /* 👈 важно */
+    max-width: 100%;     /* 👈 контролируешь ширину */
+    box-sizing: border-box; /* 👈 без вылезания справа */
+
+    gap: 16px; /* 🔥 расстояние:
+                 🎲
+                 GRID
+                 Сохранить */
+}
+
+/* ==========================
+   🎲 КНОПКА РАНДОМА
+========================== */
+
+.square-dice-btn {
+    width: 36px;
+    height: 36px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    margin: 0 auto;
+    background: #dd302d;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+.square-dice-btn.hidden {
+    display: none !important;
+}
+
+.square-dice-btn:hover:not(:disabled) {
+    background: #433476;
+}
+
+/* ==========================
+   INPUT КОДА + модалка
+========================== */
+
+#codeTextInput {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#tournamentCodeModal {
+    cursor: pointer;
+}
+
+/* ==========================
+   🎨 КНОПКИ КОДА (настройка)
+========================== */
+
+#createCodeBtn {
+    background: #fbc02d; /* Создать код */
+}
+#loadCodeBtn {
+    background: #06e3d8; /* Ввести код */
+}
+#saveCodeBtn {
+    background: #8bc34a; /* сохранить */
+}
+#loadCodeConfirmBtn {
+    background: #8bc34a; /* загрузить */
+}
+
+/* ==========================
+   🔘 НИЖНЯЯ ПАНЕЛЬ КНОПОК
+========================== */
+
+.code-actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;      /* 🔥 перенос строк */
+    gap: 10px;
+    width: 100%;
+}
+
+/* левая и правая группы */
+.left-actions,
+.right-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* 🔥 ВСЕ КНОПКИ ОДИНАКОВЫЕ */
+.code-actions button {
+    padding: 10px 12px;
+    font-size: 16px;
+    width: 120px; /* фикс ширины */
+
+    border: none;
+    border-radius: 5px; /* как у основной кнопки */
+    cursor: pointer;
+}
+
+/* ===========================================
+   🔲 AUTHY GRID (3x5) + 🔐 AUTHY INPUT STYLE
+============================================== */
+
+.authy-char {
+    width: 31px;        /* ширина */
+    height: 37px;       /* высота */
+    display: flex;                /* 🔥 ключ */
+    align-items: center;          /* 🔥 вертикальный центр */
+    justify-content: center;      /* 🔥 горизонтальный центр */
+    text-align: center;
+    font-size: 19px;
+    background: #3a3a3a;
+    border: 1px solid #555;
+    color: #fff;
+}
+
+.authy-char input,
+.authy-char {
+    line-height: 1; /* 🔥 убирает вертикальный сдвиг текста */
+}
+
+.authy-char:focus {
+    outline: 1px solid #fbc02d;
+}
+
+#authyGrid {
+    display: grid;
+    grid-template-columns: repeat(5, 33px);
+    grid-template-rows: repeat(3, 33px);
+    gap: 10px;
+    justify-content: center;
+}
+
+/* фикс символы */
+.authy-char.fixed {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    line-height: 1;                /* 🔥 важно */
+    background: transparent;
+    border: 1px solid transparent; /* 🔥 сохраняем размер */
+    color: #a5a5a5;
+}
+
+/* 🔥 МАСШТАБ */
+
+.export-modal-box {
+    transform: none; /* ❌ убираем scale */
+    max-width: 360px; /* увеличиваем нормально */
 }
