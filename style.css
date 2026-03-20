@@ -1521,6 +1521,7 @@ body.relegation-disabled #currentTourOutput tbody tr td.match-relegation-cell {
     bottom: -120px;
     left: 0;
     width: 100%;
+    display: none; /* 🔥 добавили */
 
     background: rgba(20, 20, 20, var(--player-bg-opacity));
     backdrop-filter: blur(var(--player-blur));
@@ -1547,13 +1548,17 @@ body.relegation-disabled #currentTourOutput tbody tr td.match-relegation-cell {
     display: none;
 }
 
-/* Header*/
-
+/* header по умолчанию скрыт */
 #spotifyPlayerHeader {
-    display: flex;
+    display: none;
     justify-content: flex-end;
-    gap: 6px;               /* расстояние между Скрыть и Закрыть */
+    gap: 6px;
     padding: 6px 10px;
+}
+
+/* показываем ТОЛЬКО когда плеер активен */
+#globalSpotifyPlayer.active #spotifyPlayerHeader {
+    display: flex;
 }
 
 #spotifyPlayerHeader button {

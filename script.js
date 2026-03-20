@@ -5269,20 +5269,20 @@ function playInGlobalPlayer(trackUrl, buttonElement) {
         return;
     }
 
-    iframe.src = embedUrl;
+    // 🔥 сначала сбрасываем состояние
+container.classList.remove('minimized');
+container.classList.remove('active');
 
-    if (!container.classList.contains('active')) {
-    container.classList.add('active');
-}
+iframe.src = embedUrl;
 
-    localStorage.setItem('lastSpotifyTrack', embedUrl);
-    localStorage.setItem('currentTrackId', trackId);
+// 🔥 показываем ПОЛНОСТЬЮ
+container.classList.add('active');
 
-    // 🔥 ПОДСВЕТКА ЧЕРЕЗ КНОПКУ
-    highlightActiveTeamCell(buttonElement);
+localStorage.setItem('lastSpotifyTrack', embedUrl);
+localStorage.setItem('currentTrackId', trackId);
 
-    container.classList.remove('minimized');
-    container.classList.add('active');
+// 🔥 подсветка
+highlightActiveTeamCell(buttonElement);
 
     // 🔥 ДОБАВЛЯЕМ МЕСТО СНИЗУ СТРАНИЦЫ
     // (чтобы 13 матч не прятался под плеером)
@@ -5298,25 +5298,32 @@ document.addEventListener('DOMContentLoaded', function () {
     // 🔄 Восстановление последнего трека
     const saved = localStorage.getItem('lastSpotifyTrack');
 
-    if (saved) {
-    // просто сохраняем ссылку
+if (saved) {
+    // только сохраняем, НО НЕ ПОКАЗЫВАЕМ
     iframe.dataset.savedTrack = saved;
-    // 🔥 ПРЯЧЕМ ПЛЕЕР ПОЛНОСТЬЮ
-    container.classList.remove('active');
 }
+
+// 🔥 ГАРАНТИЯ: плеер скрыт
+container.classList.remove('active');
+container.classList.remove('minimized');
+iframe.src = '';
 
     // ❌ КНОПКА ЗАКРЫТЬ ПЛЕЕР
     const closeBtn = document.getElementById('spotifyCloseBtn');
     if (closeBtn) {
         closeBtn.addEventListener('click', function () {
 
-            iframe.src = '';
-            container.classList.remove('active');
-            localStorage.removeItem('lastSpotifyTrack');
+    // 🔥 ПОЛНОЕ ЗАКРЫТИЕ
+    iframe.src = '';
 
-            // 🔥 УБИРАЕМ ДОПОЛНИТЕЛЬНОЕ МЕСТО СНИЗУ
-            document.body.style.paddingBottom = "0px";
-        });
+    container.classList.remove('active');
+    container.classList.remove('minimized');
+
+    localStorage.removeItem('lastSpotifyTrack');
+    localStorage.removeItem('currentTrackId');
+
+    document.body.style.paddingBottom = "0px";
+    });
     }
 
     // ▬ КНОПКА СВЕРНУТЬ ПЛЕЕР
@@ -5324,8 +5331,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (minimizeBtn) {
         minimizeBtn.addEventListener('click', function () {
 
-            container.classList.toggle('minimized');
-        });
+    // если плеер не открыт — ничего не делаем
+    if (!container.classList.contains('active')) return;
+
+    container.classList.toggle('minimized');
+});
     }
 
 });
