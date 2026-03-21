@@ -4707,6 +4707,42 @@ function initCompareT9(inputId, suggestionsId, side) {
     });
 }
 
+/* ===============================
+   🔁 SWAP КОМАНД В СРАВНЕНИИ
+=============================== */
+
+const swapBtn = document.getElementById('compareSwapBtn');
+
+if (swapBtn) {
+    swapBtn.addEventListener('click', () => {
+
+        const inputA = document.getElementById('compareTeamA');
+        const inputB = document.getElementById('compareTeamB');
+
+        // 🔥 меняем значения input
+        const tempValue = inputA.value;
+        inputA.value = inputB.value;
+        inputB.value = tempValue;
+
+        // 🔥 меняем выбранные команды
+        const tempTeam = selectedCompareTeamA;
+        selectedCompareTeamA = selectedCompareTeamB;
+        selectedCompareTeamB = tempTeam;
+
+        // 🔥 меняем отображаемые имена
+        const nameA = document.getElementById('compareNameA');
+        const nameB = document.getElementById('compareNameB');
+
+        const tempName = nameA.textContent;
+        nameA.textContent = nameB.textContent;
+        nameB.textContent = tempName;
+
+        // 🔥 перерендер
+        renderVSResult();
+        renderCompareStats();
+    });
+}
+
 // ===============================
 // 🆚 СЧЁТ + ПОЗИЦИИ В МОДАЛЕ СРАВНЕНИЯ     #6(#7)
 // ===============================

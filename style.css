@@ -1219,21 +1219,29 @@ body.teams-hidden .team-name {
 
 .compare-inputs {
     display: grid;
-    grid-template-columns: 1fr 1fr;   /* ← ДВЕ колонки */
-    gap: 20px;
-    align-items: center;
 
+    /* 🔥 КЛЮЧ: фиксируем симметрию */
+    grid-template-columns: minmax(0, 1fr) 36px minmax(0, 1fr);
+
+    column-gap: 14px; /* расстояние между Команда слева и справа */
+    align-items: center;
     width: 100%;
     max-width: 520px;
-    margin: 0 auto 18px auto;         /* ← ЦЕНТРИРУЕМ БЛОК */
+    margin: 0 auto 18px auto;
+}
+
+.compare-input {
+    width: 100%;
 }
 
 .compare-input input {
     width: 100%;
+    box-sizing: border-box; /* 🔥 КЛЮЧ */
     padding: 8px 10px;
     background: #0b1f24;
     color: #e0f7fa;
     border: 1px solid #1ddbd3;
+    border-radius: 1%;
 
     white-space: nowrap;
     overflow: hidden;
@@ -1426,6 +1434,48 @@ body.teams-hidden .team-name {
 @keyframes fadeInLine {
     from { opacity: 0; transform: scaleX(0.6); }
     to { opacity: 1; transform: scaleX(1); }
+}
+
+/* КНОПКА SWAP */
+
+.compare-inputs {
+    position: relative;
+    justify-items: stretch; /* 🔥 центр колонок */
+}
+
+.compare-swap {
+    position: relative;
+
+    width: 36px;
+    height: 36px;
+    display: flex;              /* 🔥 ВОТ ГЛАВНОЕ */
+    align-items: center;        /* вертикаль */
+    justify-content: center;    /* горизонталь */
+    align-self: center;
+    margin: 0 auto; /* 🔥 идеальный центр в колонке */
+    line-height: 0;   /* 🔥 УБИРАЕТ ЛИШНЮЮ ВЫСОТУ */
+
+    border-radius: 15%;
+    border: 1px solid #1ddbd3;
+
+    background: #0b1f24;
+    color: #1ddbd3;
+
+    cursor: pointer;
+    z-index: 10;
+    
+    font-size: 18px;
+}
+
+.compare-swap svg {
+    width: 18px;
+    height: 18px;
+    display: block; /* 🔥 убирает микросмещение */
+    flex-shrink: 0;      /* 🔥 КЛЮЧ */
+}
+
+.compare-swap:hover:not(:disabled) {
+    background-color: #08161a;
 }
 
 /* ==========================
