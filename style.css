@@ -127,8 +127,14 @@ textarea {
     transition: 0.15s ease;
 }
 
+/* 🔥 убираем фон полностью — наследуем от строки */
+.position-cell:active,
+.position-cell:focus {
+    outline: none;
+}
+
 .position-cell:hover {
-    filter: brightness(1.2);
+    filter: brightness(1);
 }
 
 .standings-spotify-overlay {
@@ -196,7 +202,7 @@ textarea {
     visibility: hidden; /* Полностью скрыта */
 }
 
-/* === Модальное окно === */
+/* === Модал полного расписания === */
 .modal {
     display: none;
     position: fixed;
@@ -639,7 +645,8 @@ body.teams-column-hidden td.team-cell.team-visible {
     z-index: 1;
 }
 
-    /* === Второе модальное окно === */
+    /* === Модал Форма и серия === */
+
 /* === Оранжевая кнопка === */
 .orange-btn {
     background-color: #e68a00;
@@ -1232,6 +1239,36 @@ body.teams-hidden .team-name {
 
 .compare-input {
     width: 100%;
+    position: relative; /* 🔥 ЯКОРЬ для dropdown */
+}
+
+.t9-suggestions {
+    position: absolute;
+    top: calc(100% + 4px); /* сразу под input */
+    left: 0;
+    width: 100%;
+
+    background: #0b1f24;
+  
+    border-radius: 6px;
+
+    max-height: 180px;
+    overflow-y: auto;
+
+    z-index: 9999; /* 🔥 ПОВЕРХ ВСЕГО */
+
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+}
+
+/* элементы */
+.t9-suggestions .artist-suggestion {
+    padding: 6px 10px;
+    cursor: pointer;
+    color: #e0f7fa;
+}
+
+.t9-suggestions .artist-suggestion:hover {
+    background: #12343b;
 }
 
 .compare-input input {
@@ -1439,7 +1476,7 @@ body.teams-hidden .team-name {
 /* КНОПКА SWAP */
 
 .compare-inputs {
-    position: relative;
+    position: relative;   /* 🔥 ЯКОРЬ для dropdown */
     justify-items: stretch; /* 🔥 центр колонок */
 }
 

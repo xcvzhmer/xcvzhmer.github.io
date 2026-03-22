@@ -30,6 +30,12 @@ let activeSpotifyCell = null;
 let lastExportTime = 0;
 // 🎯 ВРЕМЯ ОТКРЫТИЯ САЙТА
 let pageOpenTime = Date.now();
+// 🎯 без лагов
+let ALL_MATCHES_CACHE = null;
+let ALL_PAIRS_CACHE = null;
+let ALL_TEAMS_CACHE = null;
+let ALL_MATCHES_MAP = null;
+let TEAM_BY_TRACK = null;
 
 // 🔥 ОТКЛЮЧАЕМ восстановление скролла браузером
 if ('scrollRestoration' in history) {
@@ -299,13 +305,16 @@ async function addTeam(teamName, spotifyUrl = '', inactive = false) {
  * @returns {Promise<Array<object>>} Промис с массивом команд.
  */
 async function getAllTeams() {
+    if (ALL_TEAMS_CACHE) return ALL_TEAMS_CACHE;
+
     return new Promise((resolve, reject) => {
         const transaction = db.transaction(['teams'], 'readonly');
         const store = transaction.objectStore('teams');
         const request = store.getAll();
 
         request.onsuccess = (event) => {
-            resolve(event.target.result);
+            ALL_TEAMS_CACHE = event.target.result;
+            resolve(ALL_TEAMS_CACHE);
         };
         request.onerror = (event) => {
             console.error("Ошибка загрузки всех команд:", event.target.error);
@@ -539,7 +548,7 @@ async function clearAllData() {
 
         tournamentData.standings = {}; // ⚠️ НЕ ТРОГАЕМ — логика таблицы
 
-        // ✅ НОВЫЕ ХРАНИЛИЩА ДЛЯ СРАВНЕНИЯ
+        // ✅ НОВЫЕ ХРАНИЛИЩА ДЛЯ СРAВНЕНИЯ
         tournamentData.standingsTable = [];
         tournamentData.standingsHistory = [];
 
@@ -789,7 +798,7 @@ tournamentData.completedTours = getCompletedToursCount(allMatches);
         sortedTeams.forEach((teamName, index) => {
     const stats = standings[teamName];
 
-    // ✅ СОХРАНЯЕМ ДАННЫЕ ДЛЯ СРАВНЕНИЯ (ПРАВИЛЬНО)
+    // ✅ СОХРАНЯЕМ ДАННЫЕ ДЛЯ СРAВНЕНИЯ (ПРАВИЛЬНО)
     if (!Array.isArray(tournamentData.standingsTable)) {
         tournamentData.standingsTable = [];
     }
@@ -1055,7 +1064,7 @@ standingsBody.addEventListener('click', function (e) {
     const url = team?.spotifyUrl || team?.url || '';
 
     // Сохраняем оригинальное число
-    cell.dataset.original = cell.dataset.position;
+    cell.dataset.original = cell.textContent.trim();
 
     // Очищаем ячейку
     cell.innerHTML = '';
@@ -1099,9 +1108,9 @@ function restorePositionCell(cell) {
     cell.style.padding = '';
 }
 
-// СЕРОСТЬ
+// СЕРАЯ КНОПКА (100 к 1)
 
-standingsBody.addEventListener('dblclick', function (e) {
+standingsBody.addEventListener('click', function (e) {
 
     const cell = e.target.closest('.team-cell');
     if (!cell) return;
@@ -1118,99 +1127,150 @@ standingsBody.addEventListener('dblclick', function (e) {
    📊 ФОРМА , ЗГ/ПГ, СЕРИИ — ДЛЯ ВТОРОГО МОДАЛЬНОГО ОКНА
 ====================================================== */
 
-async function getLastPlayedMatchesFromDB(teamName, limit = 5) {
+function buildTeamTrackMap() {
+    if (TEAM_BY_TRACK) return TEAM_BY_TRACK;
+
+    TEAM_BY_TRACK = new Map();
+
+    for (const tour of tournamentData.schedule) {
+        if (!tour) continue;
+
+        for (const m of tour) {
+            if (!m) continue;
+
+            [m.team1, m.team2].forEach(team => {
+                const { artist, track } = parseArtistAndTrack(team);
+                const safeTrack = track || artist;
+
+                TEAM_BY_TRACK.set(
+                    normalizeText(stripInlineColors(safeTrack)),
+                    team
+                );
+            });
+        }
+    }
+
+    return TEAM_BY_TRACK;
+}
+
+async function getAllMatchesCached() {
+    if (ALL_MATCHES_CACHE) return ALL_MATCHES_CACHE;
+
     const tx = db.transaction(['schedule'], 'readonly');
     const store = tx.objectStore('schedule');
-    const req = store.getAll();
 
-    return new Promise(resolve => {
-        req.onsuccess = () => {
+    ALL_MATCHES_CACHE = await new Promise(resolve => {
+    store.getAll().onsuccess = e => resolve(e.target.result);
+});
+
+// 🔥 сразу строим быстрый доступ
+ALL_MATCHES_MAP = new Map();
+
+for (const m of ALL_MATCHES_CACHE) {
+    if (!m) continue;
+
+    const k1 = getTeamKey(m.team1);
+    const k2 = getTeamKey(m.team2);
+
+    if (!ALL_MATCHES_MAP.has(k1)) ALL_MATCHES_MAP.set(k1, []);
+    if (!ALL_MATCHES_MAP.has(k2)) ALL_MATCHES_MAP.set(k2, []);
+
+    ALL_MATCHES_MAP.get(k1).push(m);
+    ALL_MATCHES_MAP.get(k2).push(m);
+}
+
+    console.log('📦 DB загружена.');
+
+    return ALL_MATCHES_CACHE;
+}
+
+function getTeamKey(team) {
+    if (!team) return '';
+
+    return normalizeText(
+        normalizeTeamName(stripInlineColors(team))
+    );
+}
+
+async function getLastPlayedMatchesFromDB(teamName, limit = 5) {
+    const allMatches = await getAllMatchesCached();
+
     const cleanTeam = stripInlineColors(teamName);
 
-    const all = req.result.filter(m =>
-        !m.isBye &&
-        m.score1 !== null &&
-        m.score2 !== null &&
-        (
-            stripInlineColors(m.team1) === cleanTeam ||
-            stripInlineColors(m.team2) === cleanTeam
-        )
-    );
+    const isInactiveTeam = tournamentData.allTeams
+        ?.find(t => stripInlineColors(t.teamName) === cleanTeam)
+        ?.inactive;
 
-            if (!all.length) {
-                resolve([]);
-                return;
-            }
+    const teamMatches = ALL_MATCHES_MAP.get(getTeamKey(teamName)) || [];
+const all = teamMatches.filter(m => {
+    
+        if (!m) return false;
 
-            const lastTour = Math.max(...all.map(m => m.tourIndex));
+        const isTeamMatch =
+            getTeamKey(m.team1) === getTeamKey(teamName) ||
+            getTeamKey(m.team2) === getTeamKey(teamName);
 
-            const matches = all
-                .filter(m => m.tourIndex >= lastTour - (limit - 1))
-                .sort((a, b) => a.tourIndex - b.tourIndex);
+        if (!isTeamMatch) return false;
 
-            resolve(matches);
-        };
+        if (!isInactiveTeam) {
+            return (
+                !m.isBye &&
+                m.score1 !== null &&
+                m.score2 !== null
+            );
+        }
+
+        return (
+            m.score1 !== null &&
+            m.score2 !== null &&
+            (m.isBye || m.technical)
+        );
     });
+
+    if (!all.length) return [];
+
+    return all
+        .sort((a, b) => b.tourIndex - a.tourIndex)
+        .slice(0, limit)
+        .reverse();
 }
 
 async function getStreaksFromDB(teamName) {
-    const tx = db.transaction(['schedule'], 'readonly');
-    const store = tx.objectStore('schedule');
-    const req = store.getAll();
-
-    return new Promise(resolve => {
-        req.onsuccess = () => {
-
-    const cleanTeam = stripInlineColors(teamName);
+    const allMatches = await getAllMatchesCached();
 
     let win = 0;
     let clean = 0;
     let golden = 0;
 
-        // ⬇️ ВОТ ЭТИ ДВЕ СТРОКИ ПРОПАЛИ
-    let cleanActive = true;
+        let cleanActive = true;
     let goldenActive = true;
 
-    const matches = req.result
+    const teamMatches = ALL_MATCHES_MAP.get(getTeamKey(teamName)) || [];
+
+    const matches = teamMatches
         .filter(m =>
             !m.isBye &&
             m.score1 !== null &&
-            m.score2 !== null &&
-            (
-                stripInlineColors(m.team1) === cleanTeam ||
-                stripInlineColors(m.team2) === cleanTeam
-            )
+            m.score2 !== null
         )
-                .sort((a, b) => b.tourIndex - a.tourIndex); // последний тур → назад
+        .sort((a, b) => b.tourIndex - a.tourIndex);
 
-            for (const m of matches) {
-                const scored   = m.team1 === teamName ? m.score1 : m.score2;
-                const conceded = m.team1 === teamName ? m.score2 : m.score1;
+    for (const m of matches) {
+        const scored   = m.team1 === teamName ? m.score1 : m.score2;
+        const conceded = m.team1 === teamName ? m.score2 : m.score1;
 
-                // ❌ ничья или поражение — обрывает ВСЁ
-                if (scored <= conceded) break;
+        if (scored <= conceded) break;
 
-                // ✅ победа
-                win++;
+        win++;
 
-                // 🟦 сухая серия
-                if (cleanActive && conceded === 0) {
-                    clean++;
-                } else {
-                    cleanActive = false;
-                }
+        if (cleanActive && conceded === 0) clean++;
+        else cleanActive = false;
 
-                // 🟨 золотая серия
-                if (goldenActive && conceded === 0 && scored >= 4) {
-                    golden++;
-                } else {
-                    goldenActive = false;
-                }
-            }
+        if (goldenActive && conceded === 0 && scored >= 4) golden++;
+        else goldenActive = false;
+    }
 
-            resolve({ win, clean, golden });
-        };
-    });
+    return { win, clean, golden };
 }
 
 /**
@@ -1451,15 +1511,6 @@ const conceded = rightGoals;
 // разница голов за последние 5 матчей
 let diff = gf - ga;
 
-// 🔥 ДИСКВАЛИФИЦИРОВАННЫЕ КОМАНДЫ
-if (
-    team.includes("дисквали") ||
-    team.includes("DISQ") ||
-    team.includes("BYE")
-) {
-    diff = -513;
-}
-
 rows.push({
     team,
     win,
@@ -1474,20 +1525,6 @@ rows.push({
 
     // сортировка по разнице за последние 5 матчей
     rows.sort((a, b) => {
-
-    const aDisq =
-    a.team.includes("BYE") ||
-    a.team.includes("дисквали") ||
-    a.diff === -513;
-
-const bDisq =
-    b.team.includes("BYE") ||
-    b.team.includes("дисквали") ||
-    b.diff === -513;
-
-    if (aDisq && !bDisq) return 1;
-    if (!aDisq && bDisq) return -1;
-
     return b.diff - a.diff;
 });
 
@@ -3080,10 +3117,6 @@ document.querySelectorAll('.standings-focus-controls button')
     activeStandingsRange = total >= 100 ? { from: 1, to: 100 } : null;
     }
 
-        else if (range === '40') {
-    activeStandingsRange = total >= 40 ? { from: 1, to: 40 } : null;
-    }
-
         else if (range === '10') {
     activeStandingsRange = total >= 10 ? { from: 1, to: 10 } : null;
     }
@@ -3557,7 +3590,7 @@ async function updateTeamsStatuses() {
 
         const existingTeams = await getAllTeams();
 
-        // Функция надёжного сравнения строки и имени команды
+        // Функция надёжного срaвнения строки и имени команды
         function sameTeam(a, b) {
             return removeCrossMark(normalizeCross(a)).trim().toLowerCase() ===
                    removeCrossMark(normalizeCross(b)).trim().toLowerCase();
@@ -3936,7 +3969,7 @@ window.addEventListener('click', (event) => {
         formStatsModal.style.display = 'none';
     }
 
-    // 🆚 Сравнение (третий модал)
+    // 🆚 Срaвнение (третий модал)
     const compareModal = document.getElementById('compareModal');
     if (event.target === compareModal) {
         compareModal.style.display = 'none';
@@ -3996,9 +4029,10 @@ function normalizeTeamName(team) {
     if (!team) return null;
 
     const { artist, track } = parseArtistAndTrack(team);
-    if (!artist || !track) return null;
+    // 🔥 если нет трека — считаем артист = команда
+const safeTrack = track || artist;
 
-    return `${stripInlineColors(artist)} – ${stripInlineColors(track)}`;
+return `${stripInlineColors(artist)} – ${stripInlineColors(safeTrack)}`;
 }
 
 function findHeadToHeadMatch(teamA, teamB) {
@@ -4030,35 +4064,23 @@ async function getHeadToHeadTour(teamA, teamB) {
     const A = normalizeTeamName(stripInlineColors(teamA));
     const B = normalizeTeamName(stripInlineColors(teamB));
 
-    return new Promise((resolve) => {
+    const allMatches = await getAllMatchesCached();
 
-        const transaction = db.transaction(['schedule'], 'readonly');
-        const store = transaction.objectStore('schedule');
-        const request = store.getAll();
+    for (const match of allMatches) {
+        if (!match || match.isBye) continue;
 
-        request.onsuccess = (event) => {
-            const allMatches = event.target.result;
+        const m1 = normalizeTeamName(stripInlineColors(match.team1));
+        const m2 = normalizeTeamName(stripInlineColors(match.team2));
 
-            for (const match of allMatches) {
-                if (!match || match.isBye) continue;
+        if (
+            (m1 === A && m2 === B) ||
+            (m1 === B && m2 === A)
+        ) {
+            return match.tourIndex + 1;
+        }
+    }
 
-                const m1 = normalizeTeamName(stripInlineColors(match.team1));
-                const m2 = normalizeTeamName(stripInlineColors(match.team2));
-
-                if (
-                    (m1 === A && m2 === B) ||
-                    (m1 === B && m2 === A)
-                ) {
-                    resolve(match.tourIndex + 1);
-                    return;
-                }
-            }
-
-            resolve(null);
-        };
-
-        request.onerror = () => resolve(null);
-    });
+    return null;
 }
 
 /* ===============================
@@ -4066,35 +4088,28 @@ async function getHeadToHeadTour(teamA, teamB) {
 =============================== */
 
 async function getAllArtistTrackPairs() {
+    if (ALL_PAIRS_CACHE) return ALL_PAIRS_CACHE;
+
     const pairs = [];
     const seen = new Set();
 
-    const tx = db.transaction(['schedule'], 'readonly');
-    const store = tx.objectStore('schedule');
-    const allMatches = await new Promise(resolve => {
-        store.getAll().onsuccess = e => resolve(e.target.result);
-    });
+    const allMatches = await getAllMatchesCached(); // 🔥 вместо getAll()
 
     allMatches.forEach(match => {
         if (!match || match.isBye) return;
 
         [match.team1, match.team2].forEach(team => {
-            if (!team || !team.includes('–')) return;
+            if (!team) return;
 
             const { artist, track } = parseArtistAndTrack(team);
-            if (!artist || !track) return;
+            const cleanTrack = stripInlineColors(track || artist);
 
-            const cleanTrack = stripInlineColors(track);
-            if (seen.has(cleanTrack)) return;
+            if (!cleanTrack || seen.has(cleanTrack)) return;
             seen.add(cleanTrack);
 
-            const artistSearch = stripInlineColors(artist)
+            const artistSearch = stripInlineColors(artist || cleanTrack)
                 .toLowerCase()
                 .replace(/ё/g, 'е')
-                .replace(/feat\.?/gi, '')
-                .replace(/ft\.?/gi, '')
-                .replace(/&/g, ' ')
-                .replace(/,/g, ' ')
                 .replace(/[^\p{L}\p{N}\s]/gu, ' ')
                 .replace(/\s+/g, ' ')
                 .trim();
@@ -4113,11 +4128,12 @@ async function getAllArtistTrackPairs() {
         });
     });
 
+    ALL_PAIRS_CACHE = pairs;
     return pairs;
 }
 
 /* ===============================
-   🆚 T9 ПОИСК ТРЕКОВ (СРАВНЕНИЕ)
+   🆚 T9 ПОИСК ТРЕКОВ (СРAВНЕНИЕ)
 =============================== */
 
 function initCompareTrackT9(inputId, suggestionsId) {
@@ -4140,11 +4156,11 @@ function initCompareTrackT9(inputId, suggestionsId) {
 
         const pairs = await getAllArtistTrackPairs();
         const safe = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const regex = new RegExp(safe.split('').join('.*'), 'i');
+        const regex = new RegExp(safe, 'i');
 
         const matches = pairs
             .filter(p => regex.test(p.search))
-            .slice(0, 6);
+            .slice(0, 10);
 
         matches.forEach(p => {
             const div = document.createElement('div');
@@ -4163,6 +4179,10 @@ function initCompareTrackT9(inputId, suggestionsId) {
 
     // 🧠 ручной ввод → авто-подстановка
     input.addEventListener('blur', async () => {
+    setTimeout(() => {
+        suggestions.innerHTML = '';
+    }, 150); // 🔥 даём клику по подсказке сработать
+    
         const query = input.value
     .trim()
     .toLowerCase()
@@ -4174,7 +4194,7 @@ function initCompareTrackT9(inputId, suggestionsId) {
 
         const pairs = await getAllArtistTrackPairs();
         const safe = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const regex = new RegExp(safe.split('').join('.*'), 'i');
+        const regex = new RegExp(safe, 'i');
 
         const matches = pairs.filter(p => regex.test(p.search));
 
@@ -4202,14 +4222,8 @@ function bindCompareInput(inputId, side) {
     input.addEventListener('change', () => {
         const track = stripInlineColors(input.value);
 
-        const fullTeam = tournamentData.schedule
-            .flat()
-            .filter(Boolean)
-            .flatMap(m => [m.team1, m.team2])
-            .find(team => {
-                const { track: t } = parseArtistAndTrack(team);
-                return stripInlineColors(t) === track;
-            });
+        const map = buildTeamTrackMap();
+        const fullTeam = map.get(normalizeText(track));
 
         if (!fullTeam) return;
 
@@ -4397,7 +4411,7 @@ list.appendChild(div);
 
 const matches = artists
     .filter(a => regex.test(a))
-    .slice(0, 6);
+    .slice(0, 10);
 
         matches.forEach(name => {
             const div = document.createElement('div');
@@ -4660,7 +4674,7 @@ function initCompareT9(inputId, suggestionsId, side) {
 
         tracks
             .filter(t => regex.test(t))
-            .slice(0, 6)
+            .slice(0, 10)
             .forEach(track => {
                 const div = document.createElement('div');
                 div.className = 'artist-suggestion';
@@ -4708,7 +4722,7 @@ function initCompareT9(inputId, suggestionsId, side) {
 }
 
 /* ===============================
-   🔁 SWAP КОМАНД В СРАВНЕНИИ
+   🔁 SWAP КОМАНД В СРAВНЕНИИ
 =============================== */
 
 const swapBtn = document.getElementById('compareSwapBtn');
@@ -4744,7 +4758,7 @@ if (swapBtn) {
 }
 
 // ===============================
-// 🆚 СЧЁТ + ПОЗИЦИИ В МОДАЛЕ СРАВНЕНИЯ     #6(#7)
+// 🆚 СЧЁТ + ПОЗИЦИИ В МОДАЛЕ СРAВНЕНИЯ     #6(#7)
 // ===============================
 
 function renderVSResult() {
@@ -4752,19 +4766,22 @@ function renderVSResult() {
     const leftEl  = document.getElementById('compareScoreLeft');
     const rightEl = document.getElementById('compareScoreRight');
 
-    const leftRankEl  = document.getElementById('compareRankLeft');   // 🔥 ИЗМЕНЕНО — получаем сразу
-    const rightRankEl = document.getElementById('compareRankRight');  // 🔥 ИЗМЕНЕНО — получаем сразу
+    const leftRankEl  = document.getElementById('compareRankLeft');
+    const rightRankEl = document.getElementById('compareRankRight');
 
     leftEl.textContent  = '';
     rightEl.textContent = '';
 
-    if (leftRankEl)  leftRankEl.textContent  = '—';   // 🔥 ИЗМЕНЕНО — очищаем ранги сразу
-    if (rightRankEl) rightRankEl.textContent = '—';   // 🔥 ИЗМЕНЕНО
+    if (leftRankEl)  leftRankEl.textContent  = '—';
+    if (rightRankEl) rightRankEl.textContent = '—';
 
     if (!selectedCompareTeamA || !selectedCompareTeamB) return;
 
     const A = selectedCompareTeamA;
     const B = selectedCompareTeamB;
+
+    // 🔥 ВОТ ЭТО КЛЮЧ
+    findHeadToHeadScore(A, B, leftEl, rightEl);
 
     /* ===============================
        🏆 ПОЗИЦИИ — ТЕПЕРЬ СЧИТАЮТСЯ ВСЕГДА
@@ -4803,38 +4820,41 @@ function renderVSResult() {
             }
         }
     });
+}
 
-    /* ===============================
-       🆚 ПОИСК МАТЧА — ТЕПЕРЬ ОТДЕЛЬНО
-    =============================== */
+    // ===== 🆚 ПОИСК МАТЧА (FIXED ASYNC) =====
+async function findHeadToHeadScore(A, B, leftEl, rightEl) {
 
-    const tx = db.transaction(['schedule'], 'readonly');
-    const store = tx.objectStore('schedule');
-    const request = store.getAll();
+    const allMatches = await getAllMatchesCached();
 
-    request.onsuccess = (e) => {
+    const normalize = t => normalizeTeamName(stripInlineColors(t));
 
-        const match = e.target.result.find(m =>
-            !m.isBye &&
-            (
-                (m.team1 === A && m.team2 === B) ||
-                (m.team2 === A && m.team1 === B)
-            )
+    const A_norm = normalize(A);
+    const B_norm = normalize(B);
+
+    const match = allMatches.find(m => {
+        if (!m || m.isBye) return false;
+
+        const m1 = normalize(m.team1);
+        const m2 = normalize(m.team2);
+
+        return (
+            (m1 === A_norm && m2 === B_norm) ||
+            (m1 === B_norm && m2 === A_norm)
         );
+    });
 
-        // 🔥 ИЗМЕНЕНО — больше НЕ выходим раньше времени
-        if (!match) return;
-        if (match.score1 === null || match.score2 === null) return;
+    if (!match) return;
+    if (match.score1 === null || match.score2 === null) return;
 
-        const leftScore =
-            match.team1 === A ? match.score1 : match.score2;
+    const leftScore =
+        match.team1 === A ? match.score1 : match.score2;
 
-        const rightScore =
-            match.team1 === A ? match.score2 : match.score1;
+    const rightScore =
+        match.team1 === A ? match.score2 : match.score1;
 
-        leftEl.textContent  = leftScore;
-        rightEl.textContent = rightScore;
-    };
+    leftEl.textContent  = leftScore;
+    rightEl.textContent = rightScore;
 }
 
 function formatPoints(points) {
@@ -5097,30 +5117,31 @@ async function getTeamFormIcons(teamName, limit = 5) {
 =============================== */
 async function getTeamFormPosition(teamName) {
     const allTeams = await getAllTeams();
-    const rows = [];
 
-    for (const t of allTeams) {
-        const team = t.teamName;
-        const matches = await getLastPlayedMatchesFromDB(team, 5);
+    const promises = allTeams.map(async t => {
+    const team = t.teamName;
+    const matches = await getLastPlayedMatchesFromDB(team, 5);
 
-        let gf = 0, ga = 0;
+    let gf = 0, ga = 0;
 
-        for (const m of matches) {
-            const isLeft =
-                stripInlineColors(m.team1) === stripInlineColors(team);
+    for (const m of matches) {
+        const isLeft =
+            stripInlineColors(m.team1) === stripInlineColors(team);
 
-            const scored   = isLeft ? m.score1 : m.score2;
-            const conceded = isLeft ? m.score2 : m.score1;
+        const scored   = isLeft ? m.score1 : m.score2;
+        const conceded = isLeft ? m.score2 : m.score1;
 
-            gf += scored;
-            ga += conceded;
-        }
-
-        rows.push({
-            team,
-            diff: gf - ga
-        });
+        gf += scored;
+        ga += conceded;
     }
+
+    return {
+        team,
+        diff: gf - ga
+    };
+});
+
+const rows = await Promise.all(promises);
 
     rows.sort((a, b) => b.diff - a.diff);
 
@@ -6284,7 +6305,18 @@ function mapToLatin(char) {
     char = char.toLowerCase();
     const mapped = map[char] || char;
 
-    return mapped.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    return mapped.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+}
+
+const codeInput = document.getElementById('codeTextInput');
+
+if (codeInput) {
+    codeInput.addEventListener('input', () => {
+        codeInput.value = codeInput.value
+            .split('')
+            .map(ch => mapToLatin(ch))
+            .join('');
+    });
 }
 
 // ==========================
