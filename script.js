@@ -6559,6 +6559,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     authyGrid.appendChild(createFixed('X'));
+
+// 🔥 СКРЫТАЯ КНОПКА ОЧИСТКИ (поверх правого нижнего X)
+const clearBtn = document.createElement('button');
+clearBtn.className = 'authy-clear-btn';
+
+// 🔹 очищаем все 8 input'ов
+clearBtn.addEventListener('click', () => {
+    authyInputs.forEach(inp => inp.value = '');
+
+    // 🔹 фокус на первый input
+    if (authyInputs[0]) authyInputs[0].focus();
+});
+
+// 🔹 добавляем в grid (будет лежать поверх X)
+authyGrid.appendChild(clearBtn);
 }
 
     // 🔓 открыть модалку

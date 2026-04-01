@@ -1983,6 +1983,7 @@ margin-top:18px;
     grid-template-rows: repeat(3, 33px);
     gap: 10px;
     justify-content: center;
+    position: relative; /* 🔥 КЛЮЧ: база для кнопки на 15 слоте */
 }
 
 /* фикс символы */
@@ -2001,4 +2002,25 @@ margin-top:18px;
 .export-modal-box {
     transform: none; /* ❌ убираем scale */
     max-width: 360px; /* увеличиваем нормально */
+}
+
+/* 🔥 НЕВИДИМАЯ КНОПКА ОЧИСТКИ (правый нижний угол) */
+.authy-clear-btn {
+    position: absolute;
+
+    /* 🔥 точное попадание в 5 колонку / 3 строку */
+    left: calc(4 * 33px + 35px);
+    top: calc(2 * 33px + 15px);
+
+    /* 🔥 размер РОВНО как у ячеек */
+    width: 31px;
+    height: 40px;
+
+    background: transparent;
+    border: none;
+    cursor: pointer;
+
+    opacity: 0;
+
+    z-index: 5;
 }
