@@ -5434,19 +5434,16 @@ function highlightActiveTeamCell(button) {
 
 function restoreActiveTrackHighlight() {
 
-    requestAnimationFrame(() => {
+    const activeTrack = localStorage.getItem('currentTrackId');
+    if (!activeTrack) return;
 
-        const activeTrack = localStorage.getItem('currentTrackId');
-        if (!activeTrack) return;
+    const button = document.querySelector(
+        `[data-track-id="${activeTrack}"]`
+    );
 
-        const button = document.querySelector(
-            `[data-track-id="${activeTrack}"]`
-        );
-
-        if (button) {
-            highlightActiveTeamCell(button);
-        }
-    });
+    if (button) {
+        highlightActiveTeamCell(button);
+    }
 }
 
 /* ==========================
@@ -6310,13 +6307,91 @@ function mapToLatin(char) {
 
 const codeInput = document.getElementById('codeTextInput');
 
+// 🔥 ХРАНИМ "ЧИСТЫЙ" ВВОД ПОЛЬЗОВАТЕЛЯ (без X и ZHMER)
+let rawInputValue = '';
+
 if (codeInput) {
-    codeInput.addEventListener('input', () => {
-        codeInput.value = codeInput.value
-            .split('')
-            .map(ch => mapToLatin(ch))
-            .join('');
+
+    // ==========================
+    // ⌫ ОБРАБОТКА BACKSPACE
+    // ==========================
+    codeInput.addEventListener('keydown', (e) => {
+
+        // 🔴 если нажали backspace
+        if (e.key === 'Backspace') {
+
+            // 🔹 удаляем последний символ из "сырого" ввода
+            rawInputValue = rawInputValue.slice(0, -1);
+
+            // 🔹 заново собираем отображаемую строку
+            updateFormatted();
+
+            // 🔹 ОТМЕНЯЕМ стандартное поведение (иначе будет ломать логику)
+            e.preventDefault();
+        }
     });
+
+    // ==========================
+    // ⌨️ ОБРАБОТКА ВВОДА
+    // ==========================
+    codeInput.addEventListener('input', (e) => {
+
+        // 🔹 получаем именно введённый символ (а не весь input)
+        const chars = e.data;
+
+        // 🔹 если это не ввод (например delete/вставка) — игнор
+        if (!chars) return;
+
+        // 🔹 переводим в латиницу + фильтруем
+        const mapped = chars
+            .split('')
+            .map(ch => mapToLatin(ch)) // кириллица → латиница
+            .join('')
+            .replace(/[^A-Z0-9]/g, ''); // только A-Z0-9
+
+        // 🔹 добавляем в "сырой ввод"
+        rawInputValue += mapped;
+
+        // 🔹 ограничение: максимум 8 пользовательских символов
+        rawInputValue = rawInputValue.slice(0, 8);
+
+        // 🔹 обновляем отображение
+        updateFormatted();
+    });
+
+    // ==========================
+    // 🧠 ФОРМИРОВАНИЕ КОДА
+    // ==========================
+    function updateFormatted() {
+
+        // 🔹 если пусто → очищаем input
+        if (!rawInputValue.length) {
+            codeInput.value = '';
+            return;
+        }
+
+        // 🔹 первые 4 символа → левая часть
+        const left = rawInputValue.slice(0, 4);
+
+        // 🔹 символы после 4 → правая часть
+        const right = rawInputValue.slice(4);
+
+        // 🔹 начинаем всегда с X
+        let result = 'X' + left;
+
+        // 🔹 если есть правая часть → добавляем блок ZHMER
+        if (rawInputValue.length > 4) {
+            result += '-ZHMER-' + right;
+        }
+
+        // 🔹 если ровно 8 символов → закрываем код финальной X
+        if (rawInputValue.length === 8) {
+            result += 'X';
+        }
+
+        // 🔹 записываем в input
+        codeInput.value = result;
+    }
 }
 
 // ==========================
@@ -6653,10 +6728,10 @@ if (loadConfirmBtn) {
     loadConfirmBtn.addEventListener('click', async () => {
         const code = codeTextInput.value.trim().toUpperCase();
 
-        if (code.length !== 17) {
-            alert('Введите код полностью');
-            return;
-        }
+        if (!code.includes('-ZHMER-')) {
+    alert('Введите код полностью');
+    return;
+}
 
         await loadTournamentFromCloud(code);
 
