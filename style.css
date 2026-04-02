@@ -70,13 +70,13 @@ textarea {
     font-size: 1rem;
 }
 
-/* Flex для 2 textarea */
 .teams-and-urls {
-    display: flex;
-    gap: 16px;
+    display: flex; /* 🔥 делает 2 textarea в ряд */
+    gap: 16px;     /* расстояние между ними */
 }
+
 .input-group {
-    flex: 1;
+    flex: 1; /* оба textarea занимают по 50% */
 }
 
 /* === Турнирная таблица === */
@@ -2034,4 +2034,22 @@ margin-top:18px;
     opacity: 0;
 
     z-index: 5;
+}
+
+/* ==========================
+   🏷️ ЗАГОЛОВКИ TEXTAREA
+========================== */
+
+.input-group label {
+    display: block;              /* чтобы можно было центрировать */
+    text-align: center;          /* 🔥 центр */
+    font-weight: 600;            /* жирнее */
+    font-size: 18px;             /* аккуратный размер */
+    letter-spacing: 1px;         /* 🔥 “воздух” между буквами */
+    margin-bottom: 10px;
+
+    color: #fbc02d;            /* как заголовок сайта */
+    opacity: 1;
+
+    text-transform: uppercase;   /* ПЕСНИ → всегда капсом */
 }

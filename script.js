@@ -133,6 +133,7 @@ function loadInputsFromLocalStorage() {
 // Слушатели ввода — сохраняем при каждом изменении (легко откатить, если нужно)
 teamsInput.addEventListener('input', saveInputsToLocalStorage);
 urlsInput.addEventListener('input', saveInputsToLocalStorage);
+teamsInput.addEventListener('input', updateInputLabels);
 
 // --- Функции для работы с IndexedDB ---
 
@@ -604,6 +605,7 @@ let tournamentData = {
 async function initializeApp() {
     // загружаем textarea из localStorage до инициализации DB
     loadInputsFromLocalStorage();
+    updateInputLabels();
     await initDB(); // Сначала инициализируем базу данных
 
     // Загружаем настройки
@@ -7014,6 +7016,38 @@ modal.classList.add('hidden');
     });
     }
 });
+
+// ПЕСНИ / КОМАНДЫ 
+
+function detectTournamentType(lines) {
+    // 🔥 если не передали — берём из textarea
+    if (!lines) {
+        lines = teamsInput.value.split("\n").filter(l => l.trim());
+    }
+
+    if (!lines.length) return 'unknown';
+
+    const hasTracks = lines.some(l => l.includes(" – "));
+    return hasTracks ? 'tracks' : 'teams';
+}
+
+function updateInputLabels() {
+    const lines = teamsInput.value.split("\n").filter(l => l.trim());
+
+    const type = detectTournamentType(lines);
+
+    const teamsLabel = document.querySelector('label[for="teamsInput"]');
+
+    if (!teamsLabel) return;
+
+    if (type === 'tracks') {
+        teamsLabel.textContent = "ПЕСНИ:";
+    } else if (type === 'teams') {
+        teamsLabel.textContent = "КОМАНДЫ:";
+    } else {
+        teamsLabel.textContent = "ПЕСНИ:";
+    }
+}
 
 // --- Конец скрипта ---
 // Вся логика работы с IndexedDB, генерация расписания, отображение туров,
