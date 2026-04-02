@@ -3278,6 +3278,248 @@ await withStableScroll(async () => {
 } else {
     console.warn('Кнопка updateTeamsBtn не найдена в DOM. Проверьте, есть ли элемент с id="updateTeamsBtn" в HTML.');
 } 
+
+function normalizeName(str) {
+    if (!str) return "";
+
+    return normalizeText(
+        stripInlineColors(
+            removeCrossMark(
+                normalizeCross(str)
+            )
+        )
+    );
+}
+
+// ==========================
+// 🔄 ЗАМЕНА КОМАНДЫ / ТРЕКА
+// ==========================
+
+const replaceTeamBtn = document.getElementById('replaceTeamBtn');
+
+if (replaceTeamBtn) {
+    replaceTeamBtn.addEventListener('click', async () => {
+        try {
+
+            const lines = teamsInput.value.split("\n");
+
+            // ==========================
+            // 🔹 STEP 1: строки
+            // ==========================
+
+            let oldLine = null;
+            let newLine = null;
+
+            const oldLineInput = prompt("Вставь СТАРУЮ строку полностью");
+
+            if (oldLineInput !== null) {
+                oldLine = oldLineInput.trim();
+
+                const newLineInput = prompt("Вставь НОВУЮ строку");
+
+                if (newLineInput !== null) {
+                    newLine = newLineInput.trim();
+                }
+            }
+
+            // ==========================
+            // 🔹 STEP 2: ссылки
+            // ==========================
+
+            let oldLink = null;
+            let newLink = null;
+
+            const oldLinkInput = prompt("Старая ссылка (если есть)");
+
+            if (oldLinkInput !== null) {
+                oldLink = oldLinkInput.trim();
+
+                const newLinkInput = prompt("Новая ссылка (если есть)");
+
+                if (newLinkInput !== null) {
+                    newLink = newLinkInput.trim();
+                }
+            }
+
+            // ==========================
+            // 🔹 STEP 3: флаги
+            // ==========================
+
+            const hasLineReplace = oldLine && newLine;
+            const hasLinkReplace = oldLink && newLink;
+
+            if (!hasLineReplace && !hasLinkReplace) {
+                alert("Нужно указать хотя бы замену строки или ссылки");
+                return;
+            }
+
+            // ==========================
+            // 🔹 тип (трек / команда)
+            // ==========================
+
+            const isTrack = hasLineReplace && oldLine.includes(" – ");
+
+            // ==========================
+            // 🔹 замена строки
+            // ==========================
+
+            if (hasLineReplace) {
+                const newLines = lines.map(l =>
+                    normalizeName(l) === normalizeName(oldLine)
+                        ? newLine
+                        : l
+                );
+
+                teamsInput.value = newLines.join("\n");
+
+// 🔥 СОХРАНЯЕМ В LOCAL STORAGE
+saveInputsToLocalStorage();
+            }
+
+            // ==========================
+            // 🔹 замена ссылок
+            // ==========================
+
+            if (hasLinkReplace) {
+                const urlLines = urlsInput.value.split("\n");
+
+                urlsInput.value = urlLines.map(l =>
+                    l.trim() === oldLink
+                        ? newLink
+                        : l
+                ).join("\n");
+
+// 🔥 СОХРАНЯЕМ В LOCAL STORAGE
+saveInputsToLocalStorage();
+            }
+
+            // ==========================
+            // 🔴 ОБНОВЛЯЕМ DB
+            // ==========================
+
+            const teams = await getAllTeams();
+
+            if (hasLineReplace) {
+                const teamObj = teams.find(t =>
+    normalizeName(t.teamName) === normalizeName(oldLine)
+);
+
+if (!teamObj) {
+    console.warn("❌ Команда не найдена в DB:", oldLine);
+}
+
+                if (teamObj) {
+                    const tr = db.transaction(['teams'], 'readwrite');
+                    const store = tr.objectStore('teams');
+
+                    teamObj.teamName = newLine;
+
+                    await new Promise((res, rej) => {
+                        const req = store.put(teamObj);
+                        req.onsuccess = () => res();
+                        req.onerror = () => rej(req.error);
+                    });
+                }
+            }
+
+            // ==========================
+            // 🔴 ОБНОВЛЯЕМ SCHEDULE
+            // ==========================
+
+            const tr2 = db.transaction(['schedule'], 'readwrite');
+            const store2 = tr2.objectStore('schedule');
+
+            const matches = await new Promise((res, rej) => {
+                const req = store2.getAll();
+                req.onsuccess = (e) => res(e.target.result || []);
+                req.onerror = (e) => rej(e.target.error);
+            });
+
+            for (const m of matches) {
+                let changed = false;
+
+                if (
+    hasLineReplace &&
+    (
+        normalizeName(m.team1) === normalizeName(oldLine) ||
+        normalizeName(m.team2) === normalizeName(oldLine)
+    )
+) {
+                    const isByeMatch = m.team1 === 'BYE' || m.team2 === 'BYE';
+
+if (normalizeName(m.team1) === normalizeName(oldLine)) {
+    m.team1 = newLine;
+}
+
+if (normalizeName(m.team2) === normalizeName(oldLine)) {
+    m.team2 = newLine;
+}
+
+                    if (!isByeMatch) {
+                        m.score1 = null;
+                        m.score2 = null;
+                        m.isBye = false;
+                        m.technical = false;
+
+                        delete m.originalScore1;
+                        delete m.originalScore2;
+                        delete m.originalIsBye;
+                        delete m.originalTechnical;
+                        m.originalSaved = false;
+                    }
+
+                    changed = true;
+                }
+
+                if (changed) {
+                    await new Promise((res, rej) => {
+                        const req = store2.put(m);
+                        req.onsuccess = () => res();
+                        req.onerror = () => rej(req.error);
+                    });
+                }
+            }
+
+            // ==========================
+            // 🔔 ALERT
+            // ==========================
+
+            let alertText = "";
+
+            if (hasLineReplace) {
+                if (isTrack) {
+                    alertText += `Удалён трек: ${oldLine}\n`;
+                    alertText += `На его место встанет: ${newLine}\n`;
+                } else {
+                    alertText += `Удалена команда: ${oldLine}\n`;
+                    alertText += `На её место встанет: ${newLine}\n`;
+                }
+            }
+
+            if (hasLinkReplace) {
+                alertText += `Удалена ссылка: ${oldLink}\n`;
+                alertText += `На её место встанет: ${newLink}`;
+            }
+
+            alert(alertText);
+
+            // ==========================
+            // 🔄 UI
+            // ==========================
+
+            await renderStandingsFromDB();
+
+            await withStableScroll(async () => {
+                await displayTour(currentTourIndex);
+            });
+
+        } catch (err) {
+            console.error("Ошибка замены:", err);
+            alert("Ошибка при замене");
+        }
+    });
+}
+
     /**
  * Перекрашивает строки таблицы по факту banned = true в IndexedDB.
  * Работает всегда корректно.

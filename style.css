@@ -321,6 +321,7 @@ table {
         font-size: 15px;
     }
 }
+
 /* === Кнопка обновления команд (красная квадратная) === */
 .update-teams-btn {
     width: 34px;
@@ -355,6 +356,16 @@ table {
     background-color: #633;
     opacity: 0.45;
     cursor: not-allowed;
+}
+
+/* === Кнопка замены команд (зелёная квадратная) === */
+.replace-btn {
+    background-color: #8bc34a;
+}
+
+.replace-btn:hover:not(:disabled) {
+    background-color: #8bc34a;
+    filter: brightness(0.9);
 }
 
 /* Подсветка матча с ничьей */
