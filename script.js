@@ -1602,6 +1602,21 @@ async function withStableScroll(callback) {
     }, 250);
 }
 
+function sanitizeScoreInput(e) {
+    let val = e.target.value;
+
+    if (val === '') return;
+
+    // оставляем только цифры
+    val = val.replace(/\D/g, '');
+
+    if (val === '') {
+        e.target.value = '0';
+    } else {
+        e.target.value = String(parseInt(val, 10));
+    }
+}
+
 /**
  * Отображает матчи текущего тура.
  * @param {number} tourIndex - Индекс тура для отображения.
@@ -1737,7 +1752,8 @@ applyInlineColorSquare(colorSquare1, rawTeam1);
         score1Input.classList.add('score-input');
         score1Input.autocomplete = 'off';
         score1Input.maxLength = '3';
-        score1Input.addEventListener('change', handleScoreInputChange);
+    score1Input.addEventListener('input', sanitizeScoreInput);
+    score1Input.addEventListener('change', handleScoreInputChange);
         score1Cell.appendChild(score1Input);
 
         // Счет Команды 2 (input)
@@ -1754,7 +1770,8 @@ applyInlineColorSquare(colorSquare1, rawTeam1);
         score2Input.classList.add('score-input');
         score2Input.autocomplete = 'off';
         score2Input.maxLength = '3';
-        score2Input.addEventListener('change', handleScoreInputChange);
+    score2Input.addEventListener('input', sanitizeScoreInput);
+    score2Input.addEventListener('change', handleScoreInputChange);
         score2Cell.appendChild(score2Input);
 
         // Команда 2
