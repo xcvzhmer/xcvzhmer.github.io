@@ -2367,7 +2367,7 @@ const SPECIAL_TRACKS = {
   },
   "marjorie -w c sinclair|noah's ark": {
     year: 2022,
-    colors: ["#b79f99", "#bebebe", "#e9e9e9"]
+    colors: ["#d0afa6", "#bebebe", "#e9e9e9"]
   },
   "arlekin 40 000|data404|lottery billz|p2p": {
     year: 2024,
@@ -2379,7 +2379,7 @@ const SPECIAL_TRACKS = {
   },
   "cmh|слава кпсс|сэлфхарм": {
     year: 2023,
-    colors: ["#5f657c", "#d5dbe4"]
+    colors: ["#49506d", "#d5dbe4"]
   },
   "пошлая молли|самый лучший эмо панк": {
     year: 2020,
@@ -2395,7 +2395,7 @@ const SPECIAL_TRACKS = {
   },
   "2hollis|poster boy": {
     year: 2023,
-    colors: ["#ffffff", "#cb2929"]
+    colors: ["#dfdfdf", "#cb2929"]
   },
   "benjamingotbenz|supernova": {
     year: 2020,
@@ -2403,19 +2403,19 @@ const SPECIAL_TRACKS = {
   },
   "sqwore|бардак": {
     year: 2024,
-    colors: ["#2b2b2b", "#6e6e6e"]
+    colors: ["#dfdfdf", "#fffc53"]
   },
   "tonser|exx": {
     year: 2024,
-    colors: ["#0f1c2e", "#1f6fb2"]
+    colors: ["#27a5ad", "#e3d9d1", "#0f0f0f"]
   },
   "angelik|revetg|ss25": {
     year: 2024,
-    colors: ["#1c1c1c", "#8b5cf6", "#e5e7eb"]
+    colors: ["#afafb1", "#434247", "#000000"]
   },
   "oklou|family and friends": {
     year: 2024,
-    colors: ["#1c1c1c", "#8b5cf6", "#e5e7eb"]
+    colors: ["#dfdfdf", "#74aab8", "#ddc0a6"]
   },
   "хестон|benjamingotbenz|bratz": {
     year: 2022,

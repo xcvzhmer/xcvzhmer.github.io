@@ -195,7 +195,8 @@ table {
 
 /* BYE-матчи (ОНИ В РАСПИСАНИИ 0:3)*/
 .bye-match {
-    background-color: rgba(0, 0, 0, 0.286) !important;
+    background-color: rgba(0, 0, 0, 0.458) !important;
+    /* ТУТ ДЕЛАТЬ ТЕМНЕЕ ДИСКВАЛ СТРОКУ */
     font-style: italic;
 }
 
