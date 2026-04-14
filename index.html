@@ -70,25 +70,67 @@ https://open.spotify.com/track/4"></textarea>
 </div>
 
 <!-- ===============================
- Standings focus controls
+ 🎛️ FILTERS MODAL SYSTEM
 ================================ -->
-<div class="standings-focus-controls">
 
-    <button data-range="all">Все</button>
-    <button data-range="100">100</button>
-    <button data-range="nq">NQ</button>
+<div class="filters-wrapper">
 
-    <button data-range="10">10</button>
-    <button data-range="custom">Custom</button>
-    <button data-special="true">20XX</button>
+    <!-- Главная кнопка -->
+    <button class="filters-main-btn">Фильтры</button>
 
-    <button data-artist-type="feat">feat.</button>
-    <button data-artist-type="solo">solo</button>
+    <!-- Модалка -->
+    <div class="filters-modal hidden">
 
-    <div class="custom-range-inputs" style="display:none;">
-        <input type="number" id="customFrom" placeholder="с">
-        <input type="number" id="customTo" placeholder="по">
-        <button id="applyCustomRange">OK</button>
+        <!-- LEVEL 1 -->
+        <div class="filters-screen active" data-screen="main">
+            <button class="filter-btn default">default</button>
+            <button class="filter-btn season">season</button>
+            <button class="filter-btn tier">tier</button>
+        </div>
+
+        <!-- LEVEL 2: DEFAULT -->
+        <div class="filters-screen" data-screen="default">
+            <div class="filters-grid grid-3x2">
+                <button class="filter-btn back">Назад</button>
+                <button class="filter-btn c100">100</button>
+                <button class="filter-btn nq">NQ</button>
+
+                <button class="filter-btn c10">10</button>
+                <button class="filter-btn custom">Custom</button>
+                <button class="filter-btn artist">Артист</button>
+            </div>
+        </div>
+
+        <!-- LEVEL 2: SEASON -->
+        <div class="filters-screen" data-screen="season">
+            <div class="filters-grid grid-4x2">
+                <button class="filter-btn back">Назад</button>
+                <button class="filter-btn feat">feat.</button>
+                <button class="filter-btn solo">solo</button>
+                <button class="filter-btn y2024">2024</button>
+
+                <button class="filter-btn winter">Зима</button>
+                <button class="filter-btn spring">Весна</button>
+                <button class="filter-btn summer">Лето</button>
+                <button class="filter-btn autumn">Осень</button>
+            </div>
+        </div>
+
+        <!-- LEVEL 2: TIER -->
+        <div class="filters-screen" data-screen="tier">
+            <div class="filters-grid grid-4x2">
+                <button class="filter-btn back">Назад</button>
+                <button class="filter-btn t1">(1)</button>
+                <button class="filter-btn t2">(2)</button>
+                <button class="filter-btn t3">(3)</button>
+
+                <button class="filter-btn t4">(4)</button>
+                <button class="filter-btn t5">(5)</button>
+                <button class="filter-btn t6">(6)</button>
+                <button class="filter-btn t20xx">20XX</button>
+            </div>
+        </div>
+
     </div>
 
 </div>

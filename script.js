@@ -7049,6 +7049,52 @@ function updateInputLabels() {
     }
 }
 
+// ==========================
+// 🎛️ FILTERS NAVIGATION
+// ==========================
+
+const filtersBtn = document.querySelector('.filters-main-btn');
+const filtersModal = document.querySelector('.filters-modal');
+const screens = document.querySelectorAll('.filters-screen');
+
+// открыть / закрыть модалку
+filtersBtn.addEventListener('click', () => {
+    filtersModal.classList.toggle('hidden');
+
+    // всегда возвращаемся в MAIN
+    switchScreen('main');
+});
+
+// функция переключения экранов
+function switchScreen(name) {
+    screens.forEach(s => s.classList.remove('active'));
+
+    const target = document.querySelector(`.filters-screen[data-screen="${name}"]`);
+    if (target) target.classList.add('active');
+}
+
+// ==========================
+// LEVEL 1 → LEVEL 2
+// ==========================
+
+document.querySelector('.filter-btn.default')
+    .addEventListener('click', () => switchScreen('default'));
+
+document.querySelector('.filter-btn.season')
+    .addEventListener('click', () => switchScreen('season'));
+
+document.querySelector('.filter-btn.tier')
+    .addEventListener('click', () => switchScreen('tier'));
+
+// ==========================
+// НАЗАД
+// ==========================
+
+document.querySelectorAll('.filter-btn.back')
+    .forEach(btn => {
+        btn.addEventListener('click', () => switchScreen('main'));
+    });
+
 // --- Конец скрипта ---
 // Вся логика работы с IndexedDB, генерация расписания, отображение туров,
 // обработка ввода счета и Spotify URL (теперь кнопками), а также базовая статистика тура

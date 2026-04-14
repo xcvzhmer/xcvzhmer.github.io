@@ -34,10 +34,6 @@ button {
     margin: 5px;
 }
 
-button:hover:not(:disabled) {
-    background-color: #7cb03e;
-}
-
 button:disabled {
     background-color: #444;
     color: #888;
@@ -2054,3 +2050,196 @@ margin-top:18px;
 
     text-transform: uppercase;   /* ПЕСНИ → всегда капсом */
 }
+
+/* ==========================
+ 🎛️ FILTERS WRAPPER
+========================== */
+
+.filters-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 15px 0;
+
+    gap: 10px; /* 🔥 расстояние: [Фильтры] ↔ [def... */
+}
+
+/* 🔥 расстояние МЕЖДУ default / season / tier */
+.filters-screen[data-screen="main"] {
+    flex-direction: row;
+    justify-content: center;
+
+    gap: 4px; /* 🔥 ВОТ ЭТО регулирует [default] ↔ [season] ↔ [tier] */
+}
+
+/* ==========================
+ 🔘 MAIN BUTTON
+========================== */
+
+.filters-main-btn {
+    background: #8bc34a;
+    color: #121212;
+
+    padding: 10px 18px;   /* 🔽 меньше */
+    border-radius: 6px;
+
+    cursor: pointer;
+}
+
+/* ==========================
+ 🧊 MODAL
+========================== */
+
+.filters-modal {
+    margin-top: 0; /* 🔥 УБРАЛИ СДВИГ ВНИЗ */
+    background: transparent; /* 🔥 УБРАЛИ ВТОРОЙ БЛОК */
+    border: none;
+    border-radius: 0;
+    padding: 0;
+
+    display: flex;
+    justify-content: center;
+
+    width: fit-content;
+}
+
+.filters-modal.hidden {
+    display: none;
+}
+
+/* ==========================
+ 📺 SCREENS
+========================== */
+
+.filters-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+/* 🔥 LEVEL 1 В ЛИНИЮ */
+.filters-screen[data-screen="main"] {
+    flex-direction: row;
+    justify-content: center;
+}
+
+.filters-screen.active {
+    display: flex;
+}
+
+/* ==========================
+ 🔲 GRID
+========================== */
+
+.filters-grid {
+    display: grid;
+    gap: 7px;
+}
+
+.grid-3x2 {
+    grid-template-columns: repeat(3, 90px);
+}
+
+.grid-4x2 {
+    grid-template-columns: repeat(4, 80px);
+}
+
+/* ==========================
+ 🔘 BUTTON BASE
+========================== */
+
+.filter-btn {
+    padding: 10px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #121212;
+}
+
+/* ==========================
+ 🎨 COLORS
+========================== */
+
+/* MAIN LEVEL */
+.filter-btn.default { background: #8bc34a; }
+.filter-btn.season { background: #fbc02d; }
+.filter-btn.tier   { background: #06e3d8; }
+
+/* DEFAULT */
+.filter-btn.back   { background: #8bc34a; }
+.filter-btn.c100   { background: #474747; color:#fff; }
+.filter-btn.nq     { background: #e53935; }
+.filter-btn.c10    { background: #474747; color:#fff; }
+.filter-btn.custom { background: #fbc02d; }
+.filter-btn.artist { background: #06e3d8; }
+
+/* SEASON                                                    */ 
+.filter-btn.feat   { background: #3a3a3a; color:#fff; }
+.filter-btn.solo   { background: #3a3a3a; color:#fff; }
+.filter-btn.y2024  { background: #3a3a3a; color:#fff; }
+.filter-btn.winter { background: #39a5c6; color:#fff; }
+.filter-btn.spring { background: #e68a00; }
+.filter-btn.summer { background: #ffd51de7; color:#000000; }
+.filter-btn.autumn { background: #890535; color:#fff; }
+
+/* TIER */
+.filter-btn.t1 { background: #e23934; color:#e5ff00; }
+.filter-btn.t2 { background: #d34677; color:#fff; }
+.filter-btn.t3 { background: #fbc02d; }
+.filter-btn.t4 { background: #ff7500; color:#fff; }
+.filter-btn.t5 { background: #141414; color:#ff0000; }
+.filter-btn.t6 { background: #3f58aa; color:#fff; }
+.filter-btn.t20xx { background: #dadfed; }
+
+/* ==========================
+ ✨ HOVER
+========================== */
+
+.filter-btn:active {
+    transform: scale(0.95);
+}
+
+/* ==============
+ 🌍 GLOBAL HOVER
+================= */
+
+button:hover:not(:disabled) {
+    background-color: #7cb03e;
+}
+
+/* ====================
+ 🔥 ABSOLUTE HOVER FIX
+======================= */
+
+/* MAIN */
+.filters-wrapper .filter-btn.default:hover { background: #8bc34a; filter: brightness(0.9); }
+.filters-wrapper .filter-btn.season:hover  { background: #fbc02d; filter: brightness(0.9); }
+.filters-wrapper .filter-btn.tier:hover    { background: #06e3d8; filter: brightness(0.9); }
+
+/* DEFAULT */
+.filters-wrapper .filter-btn.back:hover   { background: #8bc34a; filter: brightness(0.9); }
+.filters-wrapper .filter-btn.c100:hover   { background: #474747; filter: brightness(0.9); }
+.filters-wrapper .filter-btn.nq:hover     { background: #e53935; filter: brightness(0.9); }
+.filters-wrapper .filter-btn.c10:hover    { background: #474747; filter: brightness(0.9); }
+.filters-wrapper .filter-btn.custom:hover { background: #fbc02d; filter: brightness(0.9); }
+.filters-wrapper .filter-btn.artist:hover { background: #06e3d8; filter: brightness(0.9); }
+
+/* SEASON */
+.filters-wrapper .filter-btn.feat:hover   { background: #3a3a3a; filter: brightness(0.9); }
+.filters-wrapper .filter-btn.solo:hover   { background: #3a3a3a; filter: brightness(0.9); }
+.filters-wrapper .filter-btn.y2024:hover  { background: #3a3a3a; filter: brightness(0.9); }
+.filters-wrapper .filter-btn.winter:hover { background: #39a5c6; filter: brightness(0.9); }
+.filters-wrapper .filter-btn.spring:hover { background: #e68a00; filter: brightness(0.9); }
+.filters-wrapper .filter-btn.summer:hover { background: #ffd51de7; filter: brightness(0.9); }
+.filters-wrapper .filter-btn.autumn:hover { background: #890535; filter: brightness(0.9); }
+
+/* TIER */
+.filters-wrapper .filter-btn.t1:hover { background: #e23934; filter: brightness(0.9); }
+.filters-wrapper .filter-btn.t2:hover { background: #d34677; filter: brightness(0.9); }
+.filters-wrapper .filter-btn.t3:hover { background: #fbc02d; filter: brightness(0.9); }
+.filters-wrapper .filter-btn.t4:hover { background: #ff7500; filter: brightness(0.9); }
+.filters-wrapper .filter-btn.t5:hover { background: #141414; filter: brightness(0.9); }
+.filters-wrapper .filter-btn.t6:hover { background: #3f58aa; filter: brightness(0.9); }
+.filters-wrapper .filter-btn.t20xx:hover { background: #dadfed; filter: brightness(0.9); }
