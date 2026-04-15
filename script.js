@@ -18,6 +18,11 @@ let activeStandingsRange = null;
 let activeStandingsArtistType = null;
 // 🎯 20ХХ треки
 let activeSpecialTracksFilter = false;
+// 🎯 20ХХ треки
+let activeSeasonFilter = null;   // 🔥 (зима/весна/...)
+let activeYearFilter = null;     // 🔥 (2024)
+let activeTierFilter = null;     // 🔥 (1-6)
+let isSpecial = false;
 // 🆚 сравнение команд
 let selectedCompareTeamA = null;
 let selectedCompareTeamB = null;
@@ -3079,88 +3084,34 @@ if (applyYellowBtn && applyRedBtn) {
     });
 }
 
-// ===============================
-// Standings focus buttons
-// ===============================
+//      ========
+//      СБРОСС
+//      ========
+
+function resetAllStandingsFilters() {
+    activeStandingsRange = null;
+    activeStandingsArtistType = null;
+    activeSpecialTracksFilter = false;
+
+    activeSeasonFilter = null;   // 🔥 СЕЗОНЫ
+    activeYearFilter = null;     // 🔥 2024
+    activeTierFilter = null;     // 🔥 (1-6)
+    activeArtistFilter = null;   // 🔥 артист
+
+    // 🔥 скрываем UI
+    document.querySelector('.custom-range-inputs').style.display = 'none';
+    document.querySelector('.artist-filter-box').style.display = 'none';
+
+    applyStandingsVisibilityFilter();
+}
+
+//      ========
+//      ФИЛЬТРЫ
+//      ========
 
 // инициализация фильтра Артист
 initArtistFilter();
 initArtistFilterT9();
-
-document.querySelectorAll('.standings-focus-controls button')
-.forEach(btn => {
-    btn.addEventListener('click', () => {
-
-        const range = btn.dataset.range;
-        const artistType = btn.dataset.artistType;
-        const specialFilter = btn.dataset.special;
-
-        // feat. / solo
-        if (artistType) {
-            activeStandingsArtistType = artistType;
-
-            document
-                .querySelectorAll('.standings-focus-controls button[data-artist-type]')
-                .forEach(b => b.classList.remove('active'));
-
-            btn.classList.add('active');
-            applyStandingsVisibilityFilter();
-            return;
-        }
-
-        // 🔥 SPECIAL TRACKS (20XX)
-        if (specialFilter) {
-
-            activeSpecialTracksFilter = !activeSpecialTracksFilter;
-
-            btn.classList.toggle('active', activeSpecialTracksFilter);
-
-            applyStandingsVisibilityFilter();
-            return;
-        }
-
-        // диапазоны
-        const total = document.querySelectorAll("#standingsBody tr").length;
-
-        if (range === 'all') {
-    activeStandingsRange = null;
-    activeStandingsArtistType = null;
-
-    // 🔥 убираем активность feat/solo
-    document
-        .querySelectorAll('.standings-focus-controls button[data-artist-type]')
-        .forEach(b => b.classList.remove('active'));
-}
-
-        else if (range === '100') {
-    activeStandingsRange = total >= 100 ? { from: 1, to: 100 } : null;
-    }
-
-        else if (range === '10') {
-    activeStandingsRange = total >= 10 ? { from: 1, to: 10 } : null;
-    }
-
-        else if (range === 'nq') {
-
-    // 🔥 нижние 33% таблицы
-    const bottomCount = Math.round(total / 3);
-    const from = total - bottomCount + 1;
-
-    activeStandingsRange = {
-        from: from,
-        to: total
-    };
-}
-
-    else if (range === 'custom') {
-    document.querySelector('.custom-range-inputs').style.display = 'flex';
-    return;
-    }
-
-        document.querySelector('.custom-range-inputs').style.display = 'none';
-        applyStandingsVisibilityFilter();
-    });
-});
 
 // Custom range apply
 document.getElementById('applyCustomRange')?.addEventListener('click', () => {
@@ -3641,12 +3592,102 @@ function applyStandingsVisibilityFilter() {
         }
 
         // ПОЛУЧАЕМ ИМЯ ТРЕКА
-        const trackName =
-            row.dataset.track ||        // ← ИСХОДНОЕ НАЗВАНИЕ (ВАЖНО)
-            row.dataset.team ||         // запасной вариант
-            row.querySelector('.team-name')?.textContent ||
-            "";
+const trackName =
+    row.dataset.track ||
+    row.dataset.team ||
+    row.querySelector('.team-name')?.textContent ||
+    "";
 
+// 🔥 ОПРЕДЕЛЯЕМ SPECIAL TRACK
+let isSpecial = false;
+const trackKey = row.dataset.track;
+
+for (const k in SPECIAL_TRACKS) {
+    if (isSpecialTrack(trackKey, k)) {
+        isSpecial = true;
+        break;
+    }
+}
+
+// 🔥 ВЫТАСКИВАЕМ ДАТУ (первая из dd.mm.yyyy / dd.mm.yyyy)
+const dateMatches = [...trackName.matchAll(/(\d{2})\.(\d{2})\.(\d{4})/g)];
+
+let trackDate = null;
+
+if (dateMatches.length > 0) {
+    const [_, d, m, y] = dateMatches[0]; // 👈 берём ПЕРВУЮ (левую)
+    trackDate = new Date(`${y}-${m}-${d}`);
+}
+
+// ==========================
+// 📅 ГОД (2024)
+// ==========================
+
+if (activeYearFilter) {
+
+    if (isSpecial) {
+        visible = false;
+    }
+    else if (!trackDate) {
+        visible = false;
+    }
+    else {
+        const from = new Date(`2000-01-01`);
+        const to   = new Date(`2024-12-20`);
+
+        if (trackDate < from || trackDate > to) {
+            visible = false;
+        }
+    }
+}
+
+        // 🌦️ СЕЗОНЫ
+if (activeSeasonFilter) {
+
+    if (isSpecial) {
+        visible = false;
+    }
+    else if (!trackDate) {
+        visible = false;
+    }
+    else {
+        const y = trackDate.getFullYear();
+
+        const ranges = {
+            winter: [new Date(`2024-12-21`), new Date(`2025-02-28`)],
+            spring: [new Date(`2025-03-01`), new Date(`2025-05-31`)],
+            summer: [new Date(`2025-06-01`), new Date(`2025-08-31`)],
+            autumn: [new Date(`2025-09-01`), new Date(`2025-12-31`)]
+        };
+
+        const [from, to] = ranges[activeSeasonFilter] || [];
+
+        if (!from || trackDate < from || trackDate > to) {
+            visible = false;
+        }
+    }
+}
+
+// 🔢 TIER (1-6)
+if (activeTierFilter) {
+
+    if (isSpecial) {
+        visible = false;
+    }
+    else {
+        const matches = trackName.match(/\((\d)\)/g);
+
+        if (!matches) {
+            visible = false;
+        } else {
+            const nums = matches.map(m => parseInt(m.replace(/\D/g, '')));
+
+            if (!nums.includes(activeTierFilter)) {
+                visible = false;
+            }
+        }
+    }
+}
         // ФИЛЬТР FEAT.
         if (activeStandingsArtistType === 'feat') {
             if (!isFeatTrack(trackName)) {
@@ -3661,22 +3702,24 @@ function applyStandingsVisibilityFilter() {
             }
         }
 
-        // 🔥 SPECIAL TRACKS FILTER
-if (activeSpecialTracksFilter) {
-    let isSpecial = false;
-
-    const trackKey = row.dataset.track;
-    for (const k in SPECIAL_TRACKS) {
-        const year = SPECIAL_TRACKS[k].year; // <- здесь новая структура
-        if (isSpecialTrack(trackKey, k)) { 
-            isSpecial = true;
-            break;
+        // 🎤 ФИЛЬТР ПО АРТИСТУ (НОВЫЙ)
+        if (activeArtistFilter) {
+            if (!trackName.toLowerCase().includes(activeArtistFilter)) {
+                visible = false;
+            }
         }
-    }
+
+        // 🔥 SPECIAL TRACKS (20XX)
+if (activeSpecialTracksFilter) {
+
+    // показываем ТОЛЬКО special
     if (!isSpecial) {
         visible = false;
     }
 }
+
+// ❗ ВАЖНО: больше НЕ скрываем special по умолчанию
+
         // применяем видимость
         row.style.display = visible ? "" : "none";
     });
@@ -7091,9 +7134,200 @@ document.querySelector('.filter-btn.tier')
 // ==========================
 
 document.querySelectorAll('.filter-btn.back')
-    .forEach(btn => {
-        btn.addEventListener('click', () => switchScreen('main'));
+.forEach(btn => {
+    btn.addEventListener('click', () => {
+        resetAllStandingsFilters(); // 🔥 ВОТ ЭТО НОВОЕ
+        switchScreen('main');
     });
+});
+
+// ==========================
+// DEFAULT FILTERS
+// ==========================
+
+document.querySelector('.filter-btn.c100')
+.addEventListener('click', () => {
+    const total = document.querySelectorAll("#standingsBody tr").length;
+
+    activeStandingsRange = total >= 100 ? { from: 1, to: 100 } : null;
+
+    applyStandingsVisibilityFilter();
+});
+
+document.querySelector('.filter-btn.c10')
+.addEventListener('click', () => {
+    const total = document.querySelectorAll("#standingsBody tr").length;
+
+    activeStandingsRange = total >= 10 ? { from: 1, to: 10 } : null;
+
+    applyStandingsVisibilityFilter();
+});
+
+document.querySelector('.filter-btn.nq')
+.addEventListener('click', () => {
+    const rows = document.querySelectorAll("#standingsBody tr");
+    const total = rows.length;
+
+    const bottomCount = Math.round(total / 3);
+    const from = total - bottomCount;
+
+    activeStandingsRange = { from, to: total };
+
+    applyStandingsVisibilityFilter();
+});
+
+// custom
+document.querySelector('.filter-btn.custom')
+.addEventListener('click', () => {
+
+    document.querySelector('.custom-range-inputs').style.display = 'flex';
+    document.querySelector('.artist-filter-box').style.display = 'none';
+});
+
+// artist
+document.querySelector('.filter-btn.artist')
+.addEventListener('click', () => {
+
+    document.querySelector('.artist-filter-box').style.display = 'flex';
+    document.querySelector('.custom-range-inputs').style.display = 'none';
+});
+
+// ==========================
+// SEASON FILTERS
+// ==========================
+
+// feat
+document.querySelector('.filter-btn.feat')
+.addEventListener('click', () => {
+    activeStandingsArtistType = 'feat'; // // кнопка [feat.]
+    applyStandingsVisibilityFilter();
+});
+
+// solo
+document.querySelector('.filter-btn.solo')
+.addEventListener('click', () => {
+    activeStandingsArtistType = 'solo'; // // кнопка [solo]
+    applyStandingsVisibilityFilter();
+});
+
+// 2024
+document.querySelector('.filter-btn.y2024')
+.addEventListener('click', () => {
+    activeYearFilter = 2024; // // кнопка [2024]
+    applyStandingsVisibilityFilter();
+});
+
+// зима
+document.querySelector('.filter-btn.winter')
+.addEventListener('click', () => {
+    activeSeasonFilter = 'winter'; // // кнопка [Зима]
+    applyStandingsVisibilityFilter();
+});
+
+// весна
+document.querySelector('.filter-btn.spring')
+.addEventListener('click', () => {
+    activeSeasonFilter = 'spring'; // // кнопка [Весна]
+    applyStandingsVisibilityFilter();
+});
+
+// лето
+document.querySelector('.filter-btn.summer')
+.addEventListener('click', () => {
+    activeSeasonFilter = 'summer'; // // кнопка [Лето]
+    applyStandingsVisibilityFilter();
+});
+
+// осень
+document.querySelector('.filter-btn.autumn')
+.addEventListener('click', () => {
+    activeSeasonFilter = 'autumn'; // // кнопка [Осень]
+    applyStandingsVisibilityFilter();
+});
+
+// ==========================
+// TIER FILTERS
+// ==========================
+
+// (1)
+document.querySelector('.filter-btn.t1')
+.addEventListener('click', () => {
+    activeTierFilter = 1; // // кнопка [(1)]
+    applyStandingsVisibilityFilter();
+});
+
+// (2)
+document.querySelector('.filter-btn.t2')
+.addEventListener('click', () => {
+    activeTierFilter = 2; // // кнопка [(2)]
+    applyStandingsVisibilityFilter();
+});
+
+// (3)
+document.querySelector('.filter-btn.t3')
+.addEventListener('click', () => {
+    activeTierFilter = 3; // // кнопка [(3)]
+    applyStandingsVisibilityFilter();
+});
+
+// (4)
+document.querySelector('.filter-btn.t4')
+.addEventListener('click', () => {
+    activeTierFilter = 4; // // кнопка [(4)]
+    applyStandingsVisibilityFilter();
+});
+
+// (5)
+document.querySelector('.filter-btn.t5')
+.addEventListener('click', () => {
+    activeTierFilter = 5; // // кнопка [(5)]
+    applyStandingsVisibilityFilter();
+});
+
+// (6)
+document.querySelector('.filter-btn.t6')
+.addEventListener('click', () => {
+    activeTierFilter = 6; // // кнопка [(6)]
+    applyStandingsVisibilityFilter();
+});
+
+// 20XX
+document.querySelector('.filter-btn.t20xx')
+.addEventListener('click', () => {
+
+    activeSpecialTracksFilter = true;
+
+    applyStandingsVisibilityFilter();
+});
+
+// custom APPLY
+document.getElementById('applyCustomRange')?.addEventListener('click', () => {
+
+    const from = parseInt(document.getElementById('customFrom').value);
+    const to   = parseInt(document.getElementById('customTo').value);
+    const total = document.querySelectorAll("#standingsBody tr").length;
+
+    if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to > total || from > to) {
+        alert("Некорректный диапазон");
+        return;
+    }
+
+    activeStandingsRange = { from, to };
+
+    applyStandingsVisibilityFilter();
+});
+
+// artist APPLY
+document.getElementById('applyArtistFilter')?.addEventListener('click', () => {
+
+    const val = document.getElementById('artistFilterInput').value.trim();
+
+    if (!val) return;
+
+    activeArtistFilter = val.toLowerCase();
+
+    applyStandingsVisibilityFilter();
+});
 
 // --- Конец скрипта ---
 // Вся логика работы с IndexedDB, генерация расписания, отображение туров,

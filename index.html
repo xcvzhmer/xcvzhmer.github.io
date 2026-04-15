@@ -98,6 +98,33 @@ https://open.spotify.com/track/4"></textarea>
                 <button class="filter-btn c10">10</button>
                 <button class="filter-btn custom">Custom</button>
                 <button class="filter-btn artist">Артист</button>
+
+                <!-- CUSTOM RANGE -->
+<div class="custom-range-inputs" style="display:none;">
+    <input type="number" id="customFrom" placeholder="от">
+    <span class="range-separator">-</span>
+    <input type="number" id="customTo" placeholder="до">
+    <button id="applyCustomRange" class="filter-ok-btn">OK</button>
+</div>
+
+<!-- ARTIST FILTER -->
+<div class="artist-filter-box" style="display:none;">
+
+    <div class="artist-input-wrapper">
+        <input
+            type="text"
+            id="artistFilterInput"
+            placeholder="Введите артиста..."
+            autocomplete="off"
+        />
+        <button id="applyArtistFilter" class="filter-ok-btn">OK</button>
+
+        <!-- T9 -->
+        <div id="artistFilterSuggestions" class="artist-filter-suggestions"></div>
+    </div>
+
+</div>
+
             </div>
         </div>
 

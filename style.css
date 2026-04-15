@@ -536,10 +536,11 @@ body.teams-column-hidden td.team-cell.team-visible {
 .artist-suggestions {
     width: 260px;
     background-color: #2c2c2c;
-    border: 1px solid #444;
     border-radius: 6px;
     overflow: hidden;
     max-height: 180px;
+
+    display: none; /* 🔥 ВАЖНО — убивает линию */
 }
 
 .artist-suggestion {
@@ -1170,36 +1171,6 @@ body.teams-hidden .team-name {
     top: 42px;
     left: 0;
     z-index: 20;
-}
-
-
-/* === Custom диапазон (как зоны вылета) === */
-
-.custom-range-inputs {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background-color: #2c2c2c;
-    padding: 8px 10px;
-    border-radius: 6px;
-    justify-content: center;
-}
-
-/* input — ОСТАЁТСЯ КАК ЕСТЬ (НЕ ТРОГАЕМ) */
-
-.custom-range-inputs button {
-    width: 36px;
-    height: 36px;
-    background-color: #8bc34a; /* можно сменить, если захочешь */
-    color: #121212;
-    font-weight: bold;
-    font-size: 18px;
-    border-radius: 6px;
-    cursor: pointer;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    border: none;
 }
 
 /* Результат фильтра:
@@ -2061,7 +2032,7 @@ margin-top:18px;
     align-items: center;
     margin: 15px 0;
 
-    gap: 10px; /* 🔥 расстояние: [Фильтры] ↔ [def... */
+    gap: 15px; /* 🔥 расстояние: [Фильтры] ↔ [def... */
 }
 
 /* 🔥 расстояние МЕЖДУ default / season / tier */
@@ -2243,3 +2214,138 @@ button:hover:not(:disabled) {
 .filters-wrapper .filter-btn.t5:hover { background: #141414; filter: brightness(0.9); }
 .filters-wrapper .filter-btn.t6:hover { background: #3f58aa; filter: brightness(0.9); }
 .filters-wrapper .filter-btn.t20xx:hover { background: #dadfed; filter: brightness(0.9); }
+
+/* ======
+   Фильтр Custom
+   + (от - до)
+=================== */
+
+.custom-range-inputs {
+    display: none;
+    align-items: center;
+    gap: 6px;
+
+    background: #2c2c2c;
+    padding: 8px 10px;
+    border-radius: 6px;
+}
+
+.custom-range-inputs input {
+    width: 45px;
+    background: #3a3a3a;
+    border: 1px solid #555;
+    color: #fff;
+    text-align: center;
+}
+
+/* дефис */
+.range-separator {
+    color: #e0e0e0;
+}
+
+/* ======
+   Фильтр Артист
+   ======     */
+.artist-filter-box {
+    display: none; /* 🔥 скрыто по умолчанию */
+
+    margin-top: 10px;
+
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+
+    background: #2c2c2c;
+    padding: 10px 12px;
+    border-radius: 6px;
+}
+
+/* input + кнопка */
+.artist-input-wrapper {
+    position: relative;
+
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* сам input */
+.artist-input-wrapper input {
+    width: 220px; /* 🔥 главный параметр ширины */
+    padding: 8px 10px;
+
+    background-color: #3a3a3a;
+    border: 1px solid #555;
+    color: #fff;
+
+    border-radius: 5px;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+/* ==========================
+ 🔽 T9 подсказки (Фильтр Артист)
+========================== */
+
+.artist-filter-suggestions {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+
+    width: 100%;
+
+    background: #3a3a3a; /* 🔥 нужный цвет */
+    border-radius: 6px;
+
+    max-height: 180px;
+    overflow-y: auto;
+
+    z-index: 9999;
+
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+}
+
+/* элементы */
+.artist-filter-suggestions .artist-suggestion {
+    padding: 6px 10px;
+    cursor: pointer;
+    color: #e0f7fa;
+}
+
+.artist-filter-suggestions .artist-suggestion:hover {
+    background: #fbc12d88;
+}
+
+/* ==========================
+ 🔘 OK BUTTON (универсальная)
+========================== */
+
+.filter-ok-btn {
+    width: 36px;
+    height: 36px;
+
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+
+    font-weight: bold;
+    font-size: 15px;
+
+    border-radius: 6px;
+    border: none;
+
+    background: #8bc34a;
+    color: #121212;
+
+    cursor: pointer;
+
+    transition: transform 0.08s ease, filter 0.15s ease;
+}
+
+.filter-ok-btn:hover {
+    filter: brightness(0.9);
+}
+
+.filter-ok-btn:active {
+    transform: scale(0.95);
+}
