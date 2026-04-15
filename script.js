@@ -3319,9 +3319,8 @@ if (replaceTeamBtn) {
             const hasLinkReplace = oldLink && newLink;
 
             if (!hasLineReplace && !hasLinkReplace) {
-                alert("Нужно указать хотя бы замену строки или ссылки");
-                return;
-            }
+    return;
+}
 
             // ==========================
             // 🔹 тип (трек / команда)
@@ -3415,31 +3414,58 @@ if (!teamObj) {
         normalizeName(m.team2) === normalizeName(oldLine)
     )
 ) {
-                    const isByeMatch = m.team1 === 'BYE' || m.team2 === 'BYE';
 
-if (normalizeName(m.team1) === normalizeName(oldLine)) {
+    // 🔥 сначала запоминаем старые значения
+const oldTeam1 = m.team1;
+const oldTeam2 = m.team2;
+
+// 🔥 считаем флаги ДО замены
+const isByeMatch =
+    m.isBye === true ||
+    oldTeam1 === 'BYE' ||
+    oldTeam2 === 'BYE';
+
+// 🔥 проверяем по АКТУАЛЬНОЙ строке команды
+const isTeam1Technical = hasCrossMark(oldTeam1);
+const isTeam2Technical = hasCrossMark(oldTeam2);
+
+const isTechnicalMatch =
+    isTeam1Technical ||
+    isTeam2Technical;
+
+// 🔥 теперь делаем замену
+if (normalizeName(oldTeam1) === normalizeName(oldLine)) {
     m.team1 = newLine;
 }
 
-if (normalizeName(m.team2) === normalizeName(oldLine)) {
+if (normalizeName(oldTeam2) === normalizeName(oldLine)) {
     m.team2 = newLine;
 }
 
-                    if (!isByeMatch) {
-                        m.score1 = null;
-                        m.score2 = null;
-                        m.isBye = false;
-                        m.technical = false;
+// 🔥 🧹 СРАЗУ ЧИСТИМ УСТАРЕВШИЙ TECHNICAL (КРИТИЧНО)
+if (!hasCrossMark(m.team1) && !hasCrossMark(m.team2)) {
+    m.technical = false;
+}
 
-                        delete m.originalScore1;
-                        delete m.originalScore2;
-                        delete m.originalIsBye;
-                        delete m.originalTechnical;
-                        m.originalSaved = false;
-                    }
+// 🔥 теперь чистим
+// ❗ учитываем только АКТУАЛЬНЫЕ special-статусы
+if (!isByeMatch && !isTechnicalMatch) {
+    m.score1 = null;
+    m.score2 = null;
 
-                    changed = true;
-                }
+    // 🔥 КРИТИЧЕСКИЙ ФИКС
+    m.isBye = false;
+    m.technical = false;
+
+    delete m.originalScore1;
+    delete m.originalScore2;
+    delete m.originalIsBye;
+    delete m.originalTechnical;
+    m.originalSaved = false;
+}
+
+    changed = true;
+}
 
                 if (changed) {
                     await new Promise((res, rej) => {
