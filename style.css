@@ -539,8 +539,11 @@ body.teams-column-hidden td.team-cell.team-visible {
     border-radius: 6px;
     overflow: hidden;
     max-height: 180px;
+}
 
-    display: none; /* 🔥 ВАЖНО — убивает линию */
+/* ✅ РАЗРЕШАЕМ только для фильтра матчей */
+.artist-filter-wrapper .artist-suggestions {
+    display: block;
 }
 
 .artist-suggestion {
@@ -552,62 +555,6 @@ body.teams-column-hidden td.team-cell.team-visible {
 
 .artist-suggestion:hover {
     background-color: #3a3a3a;
-}
-
-/* === Поиск aртиста + список треков === */
-.artist-search-wrapper {
-    display: flex;
-    gap: 20px;
-    justify-content: center;
-    align-items: flex-start;
-    margin-top: 18px;
-    margin-bottom: 25px;
-}
-
-/* === Блок треков aртиста === */
-.artist-tracks {
-    min-width: 260px;
-    max-width: 320px;
-    background-color: #272727;
-    border: 1px solid #3a3a3a;
-    border-radius: 8px;
-    padding: 10px 12px;
-}
-
-.artist-tracks-title {
-    font-weight: bold;
-    margin-bottom: 8px;
-    color: #8bc34a;
-    font-size: 0.9rem;
-    text-align: center;
-}
-
-.artist-tracks-list {
-    max-height: 240px;
-    overflow-y: auto;
-    font-size: 0.85rem;
-}
-
-.artist-track {
-    padding: 4px 2px;
-    border-bottom: 1px dashed #333;
-    color: #ddd;
-}
-
-.artist-track:last-child {
-    border-bottom: none;
-}
-
-@media (max-width: 700px) {
-    .artist-search-wrapper {
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .artist-tracks {
-        width: 100%;
-        max-width: 360px;
-    }
 }
 
 /* === Спец-подсветка 16 треков === */
@@ -2348,4 +2295,31 @@ button:hover:not(:disabled) {
 
 .filter-ok-btn:active {
     transform: scale(0.95);
+}
+
+/* НИЖНЯЯ КНОПКА Артист - оформление т9 подсказок */
+.match-artist-suggestions {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 100%;
+
+    background: #2c2c2c; /* можно свой цвет */
+    border-radius: 6px;
+
+    max-height: 180px;
+    overflow-y: auto;
+
+    z-index: 9999;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+}
+
+.match-artist-suggestions .artist-suggestion {
+    padding: 6px 10px;
+    cursor: pointer;
+    color: #e0e0e0;
+}
+
+.match-artist-suggestions .artist-suggestion:hover {
+    background: #25b8b183;
 }

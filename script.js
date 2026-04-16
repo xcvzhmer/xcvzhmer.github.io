@@ -18,7 +18,7 @@ let activeStandingsRange = null;
 let activeStandingsArtistType = null;
 // 🎯 20ХХ треки
 let activeSpecialTracksFilter = false;
-// 🎯 20ХХ треки
+// 🎯
 let activeSeasonFilter = null;   // 🔥 (зима/весна/...)
 let activeYearFilter = null;     // 🔥 (2024)
 let activeTierFilter = null;     // 🔥 (1-6)
@@ -26,8 +26,10 @@ let isSpecial = false;
 // 🆚 сравнение команд
 let selectedCompareTeamA = null;
 let selectedCompareTeamB = null;
-// 🎯 активный фильтр по Артисту
-let activeArtistFilter = null;
+// 🎯
+let activeStandingsArtistFilter = null; // 🔝 таблица
+let activeMatchArtistFilter = null;     // 🔽 матчи
+// 🎯
 let artistFilterInitialized = false;
 // 🍋‍🟩 [S] в основной таблице
 let activeSpotifyCell = null;
@@ -1844,9 +1846,9 @@ if (!activeScoreFilter) {
     // ===============================
     const result = document.getElementById('artistFilterResult');
 
-    if (result && activeArtistFilter) {
-        const matches = countArtistMatchesInCurrentTour(activeArtistFilter);
-        result.textContent = `Матчей с этим артистом в этом туре: ${matches}`;
+    if (result && activeMatchArtistFilter) {
+    const matches = countArtistMatchesInCurrentTour(activeMatchArtistFilter);
+    result.textContent = `Матчей с этим артистом в этом туре: ${matches}`;
     }
 
     // ⚠️ initBestMatchesUI вызывается ВНУТРИ renderBestMatchesForTour
@@ -2826,7 +2828,7 @@ async function handleSaveOrUpdateScore(event) {
 
 /* ===============================
    🔥 ЛОКАЛЬНОЕ ОБНОВЛЕНИЕ СТРОКИ МАТЧА
-   без displayTour()
+   без displаyTour()
 ================================= */
 
 const row = document.querySelector(`[data-match-id="${matchId}"]`);
@@ -3093,10 +3095,10 @@ function resetAllStandingsFilters() {
     activeStandingsArtistType = null;
     activeSpecialTracksFilter = false;
 
-    activeSeasonFilter = null;   // 🔥 СЕЗОНЫ
-    activeYearFilter = null;     // 🔥 2024
-    activeTierFilter = null;     // 🔥 (1-6)
-    activeArtistFilter = null;   // 🔥 артист
+    activeSeasonFilter = null;        // 🔥 СЕЗОНЫ
+    activeYearFilter = null;          // 🔥 2024
+    activeTierFilter = null;          // 🔥 (1-6)
+    activeMatchArtistFilter = null;   // 🔥 артист
 
     // 🔥 скрываем UI
     document.querySelector('.custom-range-inputs').style.display = 'none';
@@ -3109,9 +3111,9 @@ function resetAllStandingsFilters() {
 //      ФИЛЬТРЫ
 //      ========
 
-// инициализация фильтра Артист
 initArtistFilter();
 initArtistFilterT9();
+initStandingsArtistFilterT9(); // 🔥 ВОТ СЮДА
 
 // Custom range apply
 document.getElementById('applyCustomRange')?.addEventListener('click', () => {
@@ -3155,7 +3157,7 @@ generateBtn.addEventListener('click', async () => {
 // ❗ НИЧЕГО БОЛЬШЕ НЕ РЕНДЕРИМ
 updateTourNavigation();;
 
-        // 🔥 после displayTour
+        // 🔥 после displаyTour
     highlightMatchesWithRelegationTeams();
 
 // 🔥 ВОССТАНАВЛИВАЕМ ПОДСВЕТКУ ИГРАЮЩЕГО ТРЕКА
@@ -3234,7 +3236,7 @@ await withStableScroll(async () => {
 
     applyAuto33Relegation();
 
-            // 🔥 после displayTour
+            // 🔥 после displаyTour
     highlightMatchesWithRelegationTeams();
 
 // 🔥 ВОССТАНАВЛИВАЕМ ПОДСВЕТКУ ИГРАЮЩЕГО ТРЕКА
@@ -3729,11 +3731,11 @@ if (activeTierFilter) {
         }
 
         // 🎤 ФИЛЬТР ПО АРТИСТУ (НОВЫЙ)
-        if (activeArtistFilter) {
-            if (!trackName.toLowerCase().includes(activeArtistFilter)) {
-                visible = false;
-            }
-        }
+        if (activeStandingsArtistFilter) {
+    if (!trackName.toLowerCase().includes(activeStandingsArtistFilter)) {
+        visible = false;
+    }
+}
 
         // 🔥 SPECIAL TRACKS (20XX)
 if (activeSpecialTracksFilter) {
@@ -4794,7 +4796,7 @@ function getAllArtistsFromTeams() {
                 .replace(/feat\.?/gi, ',')
                 .replace(/&/g, ',')
                 .split(',')
-                .map(a => a.trim())
+               .map(a => a.trim())
                 .filter(Boolean)
                 .forEach(a => set.add(a));
         });
@@ -4805,9 +4807,9 @@ function getAllArtistsFromTeams() {
 // Применение фильтра к матчу
 
 function matchPassesArtistFilter(match) {
-    if (!activeArtistFilter) return true;
+    if (!activeMatchArtistFilter) return true;
 
-    const target = activeArtistFilter.toLowerCase();
+    const target = activeMatchArtistFilter.toLowerCase();
 
     function extractArtists(teamName) {
         const { artist } = parseArtistAndTrack(teamName);
@@ -4877,7 +4879,7 @@ function initArtistFilter() {
     artistFilterInitialized = true;
 
     const btn = document.getElementById('artistFilterBtn');
-    const input = document.getElementById('artistFilterInput');
+    const input = document.getElementById('matchArtistFilterInput');
 
     if (!btn || !input) return;
 
@@ -4894,15 +4896,14 @@ input.addEventListener('input', () => {
 });
 
 // выход из input по ESC
-input.addEventListener('keydown', (e) => {
+input.addEventListener('keydown', async (e) => {
     if (e.key === 'Escape') {
-        activeArtistFilter = null;
-        input.value = '';
+        activeMatchArtistFilter = null;        input.value = '';
         input.style.display = 'none';
         btn.style.display = 'block';
         const result = document.getElementById('artistFilterResult');
         if (result) result.textContent = '';
-        displayTour(currentTourIndex);  
+        await withStableScroll(() => displayTour(currentTourIndex));
     }
   });
 }
@@ -4911,19 +4912,25 @@ input.addEventListener('keydown', (e) => {
 // T9-поиск для фильтра Артист
 // ===============================
 function initArtistFilterT9() {
-    const input = document.getElementById('artistFilterInput');
-    const suggestions = document.getElementById('artistFilterSuggestions');
+    const input = document.getElementById('matchArtistFilterInput');
+    const suggestions = document.getElementById('matchArtistFilterSuggestions');
 
     if (!input || !suggestions) return;
 
-    input.addEventListener('input', () => {
-        const query = input.value.trim().toLowerCase();
-        suggestions.innerHTML = '';
+    input.addEventListener('input', async () => {
+    const query = input.value.trim().toLowerCase(); // 🔥 ВОТ ЭТОГО НЕ ХВАТАЛО
 
-            if (!query) {
-        activeArtistFilter = null;
-        displayTour(currentTourIndex);
-        return;
+    suggestions.innerHTML = '';
+
+    if (!query) {
+    activeMatchArtistFilter = null;
+
+    const result = document.getElementById('artistFilterResult');
+    if (result) result.textContent = '';
+
+    await withStableScroll(() => displayTour(currentTourIndex));
+
+    return;
 }
 
         const artists = getAllArtistsFromTeams();
@@ -4937,10 +4944,10 @@ function initArtistFilterT9() {
                 div.className = 'artist-suggestion';
                 div.textContent = name;
 
-                div.addEventListener('click', () => {
+                div.addEventListener('click', async () => {
     input.value = name;
     suggestions.innerHTML = '';
-    activeArtistFilter = name;
+    activeMatchArtistFilter = name;
 
     const result = document.getElementById('artistFilterResult');
     if (result) {
@@ -4948,7 +4955,7 @@ function initArtistFilterT9() {
         result.textContent = `Матчей с этим артистом в этом туре: ${matches}`;
     }
 
-    displayTour(currentTourIndex);
+    await withStableScroll(() => displayTour(currentTourIndex));
 });
 
                 suggestions.appendChild(div);
@@ -7346,14 +7353,58 @@ document.getElementById('applyCustomRange')?.addEventListener('click', () => {
 // artist APPLY
 document.getElementById('applyArtistFilter')?.addEventListener('click', () => {
 
-    const val = document.getElementById('artistFilterInput').value.trim();
+    const input = document.getElementById('artistFilterInput');
+if (!input) return;
 
+const val = input.value.trim();
     if (!val) return;
 
-    activeArtistFilter = val.toLowerCase();
+    activeStandingsArtistFilter = val.toLowerCase();
 
     applyStandingsVisibilityFilter();
 });
+
+// T9-логика для верхнего фильтра 
+
+function initStandingsArtistFilterT9() {
+    const input = document.getElementById('artistFilterInput');
+    const suggestions = document.getElementById('ArtistFilterSuggestions');
+
+    if (!input || !suggestions) return;
+
+    input.addEventListener('input', () => {
+        const query = input.value.trim().toLowerCase();
+
+        suggestions.innerHTML = '';
+
+        if (!query) return;
+
+        const artists = getAllArtistsFromTeams();
+        const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+
+        artists
+            .filter(a => regex.test(a))
+            .slice(0, 6)
+            .forEach(name => {
+                const div = document.createElement('div');
+                div.className = 'artist-suggestion';
+                div.textContent = name;
+
+                div.addEventListener('click', () => {
+                    input.value = name;
+                    suggestions.innerHTML = '';
+                });
+
+                suggestions.appendChild(div);
+            });
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!input.contains(e.target) && !suggestions.contains(e.target)) {
+            suggestions.innerHTML = '';
+        }
+    });
+}
 
 // --- Конец скрипта ---
 // Вся логика работы с IndexedDB, генерация расписания, отображение туров,

@@ -120,7 +120,7 @@ https://open.spotify.com/track/4"></textarea>
         <button id="applyArtistFilter" class="filter-ok-btn">OK</button>
 
         <!-- T9 -->
-        <div id="artistFilterSuggestions" class="artist-filter-suggestions"></div>
+        <div id="ArtistFilterSuggestions" class="artist-filter-suggestions"></div>
     </div>
 
 </div>
@@ -180,29 +180,6 @@ https://open.spotify.com/track/4"></textarea>
                 <tbody id="standingsBody"></tbody>
             </table>
         </div>
-
-        <!-- Т9 Поиск артиста + треки T9 -->
-<div class="artist-search-wrapper">
-
-    <!-- Левая колонка: поиск -->
-    <div class="artist-search">
-        <input
-            type="text"
-            id="artistSearchInput"
-            placeholder="Поиск по артисту..."
-            autocomplete="off"
-        />
-        <div id="artistSuggestions" class="artist-suggestions"></div>
-        <div id="artistSearchResult" class="artist-search-result"></div>
-    </div>
-
-    <!-- Правая колонка: треки -->
-    <div class="artist-tracks">
-        <div class="artist-tracks-title">Треки артиста</div>
-        <div id="artistTracksList" class="artist-tracks-list"></div>
-    </div>
-
-</div>
 
 <!-- ⭐ Лучшие матчи тура -->
 <div class="best-matches-wrapper">
@@ -278,7 +255,7 @@ https://open.spotify.com/track/4"></textarea>
     </button>
 
     <input
-        id="artistFilterInput"
+        id="matchArtistFilterInput"
         type="text"
         placeholder="Введите артиста"
         class="artist-filter-input"
@@ -286,7 +263,7 @@ https://open.spotify.com/track/4"></textarea>
         autocomplete="off"
     />
 
-    <div id="artistFilterSuggestions" class="artist-suggestions"></div>
+    <div id="matchArtistFilterSuggestions" class="match-artist-suggestions"></div>
 
     <!-- Результат фильтра по артисту (без подчёркивающей линии) -->
     <div id="artistFilterResult"></div>
