@@ -1080,9 +1080,10 @@ standingsBody.addEventListener('click', function (e) {
     cell.style.padding = '0';
 
     // Создаём кнопку через универсальную функцию
-const btn = createSpotifyButton(url);
-// 🔥 полностью убираем чужой класс
-btn.className = 'standings-spotify-overlay';
+const btn = createSpotifyButton(url, 'standings', trackName);
+
+// ❌ НЕ ПЕРЕТИРАЕМ КЛАССЫ
+btn.classList.add('standings-spotify-overlay');
 
 // 🔥 убираем лишнее поведение ссылок (на всякий)
 btn.href = '#';
@@ -1719,7 +1720,7 @@ if (!match.isBye && match.score1 !== null && match.score2 !== null) {
         spotifyBtnCell1.style.width = '36px';
         spotifyBtnCell1.style.textAlign = 'center';
         const spotifyUrl1 = match.spotifyUrl1 || '';
-        const spotifyBtn1 = createSpotifyButton(spotifyUrl1);
+        const spotifyBtn1 = createSpotifyButton(spotifyUrl1, 'default', match.team1);
         spotifyBtnCell1.appendChild(spotifyBtn1);
 
         // Команда 1
@@ -1807,7 +1808,7 @@ applyInlineColorSquare(colorSquare2, rawTeam2);
         spotifyBtnCell2.style.width = '36px';
         spotifyBtnCell2.style.textAlign = 'center';
         const spotifyUrl2 = match.spotifyUrl2 || '';
-        const spotifyBtn2 = createSpotifyButton(spotifyUrl2);
+        const spotifyBtn2 = createSpotifyButton(spotifyUrl2, 'default', match.team2);
         spotifyBtnCell2.appendChild(spotifyBtn2);
 
         // Кнопка "Сохранить"/"Изменить"
@@ -2039,8 +2040,14 @@ document.addEventListener('click', async e => {
  * Возвращает HTMLElement (a или button).
  */
 
-function createSpotifyButton(url, variant = 'default') {
-    const size = 28;
+// 🔥 определяем платформу
+function getPlatformName(url) {
+    if (url.includes('soundcloud.com')) return 'SoundCloud';
+    if (url.includes('spotify.com')) return 'Spotify';
+    return 'Unknown';
+}
+
+function createSpotifyButton(url, variant = 'default', trackName = '') {    const size = 28;
 
     if (url && url.length > 0) {
         const a = document.createElement('a');
@@ -2050,10 +2057,99 @@ function createSpotifyButton(url, variant = 'default') {
         a.tabIndex = -1;
         a.title = 'Play in tournament player';
 
-        a.addEventListener('click', function (e) {
-            e.preventDefault();
-            playInGlobalPlayer(url, this);
-        });
+        const urls = url.split(' / ').map(s => s.trim());
+
+if (urls.length === 1) {
+    // обычный режим
+    a.addEventListener('click', function (e) {
+        e.preventDefault();
+        playInGlobalPlayer(urls[0], this);
+    });
+} else {
+    // 🔥 SPLIT-РЕЖИМ
+
+    let pressTimer = null;
+    let longPressTriggered = false;
+
+    const cleanName = stripInlineColors(trackName);
+
+    // 🔥 делим артист и трек
+
+    // 🔥 сначала убираем ВСЕ скобки (там могут быть даты с /)
+const noBrackets = trackName.replace(/\([^)]*\)/g, '').trim();
+
+// 🔥 теперь безопасно делим
+const parts = noBrackets.split('–');
+const artist = parts[0]?.trim() || '';
+const trackPart = parts[1]?.trim() || '';
+
+// 🔥 теперь / только для реальных треков
+const trackSplit = trackPart.split(' / ').map(s => s.trim()).filter(Boolean);
+
+    // 🎯 MOUSEMOVE → динамический title
+    a.addEventListener('mousemove', (e) => {
+        const rect = a.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+
+        const isLeft = x < rect.width / 2;
+
+        let title = '';
+
+        // ✅ СЛУЧАЙ 1: два трека
+        if (trackSplit.length === 2 && artist) {
+    const chosenTrack = isLeft ? trackSplit[0] : trackSplit[1];
+    title = `${artist} – ${chosenTrack}`;
+}
+
+        // ✅ СЛУЧАЙ 2: один трек, две ссылки
+        else {
+    const platform = getPlatformName(isLeft ? urls[0] : urls[1]);
+
+    // 🔥 если вдруг artist не распарсился — используем чистое имя
+    if (!artist || !trackPart) {
+        title = `${cleanName} (${platform})`;
+    } else {
+        title = `${artist} – ${trackPart} (${platform})`;
+    }
+}
+
+        a.title = title;
+    });
+
+    // desktop + mobile определение стороны
+    a.addEventListener('click', function (e) {
+        e.preventDefault();
+
+        // если уже был long press — игнорим клик
+        if (longPressTriggered) {
+            longPressTriggered = false;
+            return;
+        }
+
+        const rect = a.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+
+        const chosenUrl = (x < rect.width / 2)
+            ? urls[0]
+            : urls[1];
+
+        playInGlobalPlayer(chosenUrl, a);
+    });
+
+    // 📱 LONG PRESS = правая ссылка
+    a.addEventListener('touchstart', () => {
+        longPressTriggered = false;
+
+        pressTimer = setTimeout(() => {
+            longPressTriggered = true;
+            playInGlobalPlayer(urls[1], a);
+        }, 400);
+    });
+
+    a.addEventListener('touchend', () => {
+        clearTimeout(pressTimer);
+    });
+}
 
         // базовые стили
         a.style.display = 'inline-flex';
@@ -2068,7 +2164,12 @@ function createSpotifyButton(url, variant = 'default') {
         a.style.boxSizing = 'border-box';
 
         // 🎵 платформа
-        if (url.includes("soundcloud.com")) {
+if (urls.length > 1) {
+    a.classList.add('split');
+    a.textContent = 'S';
+    a.style.fontSize = '16px';
+}
+else if (url.includes("soundcloud.com")) {
             a.style.backgroundColor = '#ff7500';
             a.textContent = 'SC';
             a.style.fontSize = '15px';
@@ -6708,7 +6809,7 @@ if (codeInput) {
             .split('')
             .map(ch => mapToLatin(ch)) // кириллица → латиница
             .join('')
-            .replace(/[^A-Z0-9]/g, ''); // только A-Z0-9
+            .replace(/[^A-Z0-9-]/g, ''); // только A-Z0-9
 
         // 🔹 добавляем в "сырой ввод"
         rawInputValue += mapped;

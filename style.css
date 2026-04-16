@@ -127,7 +127,10 @@ textarea {
 
 .position-cell .standings-spotify-overlay {
     position: absolute;
-    inset: 2px;
+
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 /* 🔥 убираем фон полностью — наследуем от строки */
@@ -157,7 +160,7 @@ table {
     width: 28px;
     height: 28px;
 
-    margin: auto; /* 🔥 центрируем внутри td */
+    margin: 0; 
 
     background-color: #1DB954;
     color: #ffffff;
@@ -211,12 +214,26 @@ table {
     background-color: #1db954; /* зелёная */
     color: black;
 }
+
+/* 🔥 ФИКС ДЛЯ STANDINGS */
+.position-cell .spotify-btn {
+    margin: 0; /* ← убираем сдвиг */
+}
+
 .spotify-btn:hover {
     filter: brightness(1.2);
 }
 
 .spotify-btn.disabled {
     visibility: hidden; /* Полностью скрыта */
+}
+
+.spotify-btn.split {
+    background: linear-gradient(
+        to right,
+        #1DB954 50%,
+        #ff7500 50%
+    );
 }
 
 /* === Модал полного расписания === */
