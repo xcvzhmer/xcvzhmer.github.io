@@ -1846,10 +1846,16 @@ if (!activeScoreFilter) {
     // ===============================
     const result = document.getElementById('artistFilterResult');
 
-    if (result && activeMatchArtistFilter) {
-    const matches = countArtistMatchesInCurrentTour(activeMatchArtistFilter);
-    result.textContent = `Матчей с этим артистом в этом туре: ${matches}`;
+if (result) {
+    if (activeMatchArtistFilter && activeMatchArtistFilter.trim()) {
+        const matches = countArtistMatchesInCurrentTour(activeMatchArtistFilter);
+        result.textContent = `Матчей с этим артистом в этом туре: ${matches}`;
+        result.style.display = 'block';
+    } else {
+        result.textContent = '';
+        result.style.display = 'none';
     }
+}
 
     // ⚠️ initBestMatchesUI вызывается ВНУТРИ renderBestMatchesForTour
 }
@@ -4902,7 +4908,10 @@ input.addEventListener('keydown', async (e) => {
         input.style.display = 'none';
         btn.style.display = 'block';
         const result = document.getElementById('artistFilterResult');
-        if (result) result.textContent = '';
+        if (result) {
+    result.textContent = '';
+    result.style.display = 'none';
+}
         await withStableScroll(() => displayTour(currentTourIndex));
     }
   });
@@ -4926,7 +4935,10 @@ function initArtistFilterT9() {
     activeMatchArtistFilter = null;
 
     const result = document.getElementById('artistFilterResult');
-    if (result) result.textContent = '';
+    if (result) {
+        result.textContent = '';
+        result.style.display = 'none'; // 🔥 скрываем обратно
+    }
 
     await withStableScroll(() => displayTour(currentTourIndex));
 
@@ -4950,10 +4962,16 @@ function initArtistFilterT9() {
     activeMatchArtistFilter = name;
 
     const result = document.getElementById('artistFilterResult');
-    if (result) {
+if (result) {
+    if (name && name.trim()) {
         const matches = countArtistMatchesInCurrentTour(name);
         result.textContent = `Матчей с этим артистом в этом туре: ${matches}`;
+        result.style.display = 'block';
+    } else {
+        result.textContent = '';
+        result.style.display = 'none';
     }
+}
 
     await withStableScroll(() => displayTour(currentTourIndex));
 });

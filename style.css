@@ -1125,12 +1125,12 @@ body.teams-hidden .team-name {
    без подчёркивающей линии */
 
 #artistFilterResult {
-    font-size: 0.9rem;          /* как .artist-search-result */
+    display: none; /* 🔥 скрыт по умолчанию */
+
+    font-size: 0.9rem;
     color: #bdbdbd;
-    min-height: 18px;           /* убирает "линию", но даёт высоту */
-    margin-top: 6px;            /* такой же отступ вниз */
-    text-align: center;         /* центр */
-    line-height: normal;
+    margin-top: 6px;
+    text-align: center;
 }
 
 /* кнопки feat. / solo в standings */
