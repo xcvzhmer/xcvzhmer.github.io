@@ -1079,18 +1079,15 @@ standingsBody.addEventListener('click', function (e) {
     cell.innerHTML = '';
     cell.style.padding = '0';
 
-    // Создаём кнопку
-    const btn = document.createElement('a');
-    btn.href = '#';
-    btn.addEventListener('click', function (e) {
-    e.preventDefault();
-    playInGlobalPlayer(url, this);
-});
-    btn.rel = 'noopener';
-    btn.className = 'standings-spotify-overlay';
-    btn.textContent = 'S';
+    // Создаём кнопку через универсальную функцию
+const btn = createSpotifyButton(url);
+// 🔥 полностью убираем чужой класс
+btn.className = 'standings-spotify-overlay';
 
-    cell.appendChild(btn);
+// 🔥 убираем лишнее поведение ссылок (на всякий)
+btn.href = '#';
+
+cell.appendChild(btn);
 
     activeSpotifyCell = cell;
 });
@@ -2042,63 +2039,72 @@ document.addEventListener('click', async e => {
  * Возвращает HTMLElement (a или button).
  */
 
-function createSpotifyButton(url) {
+function createSpotifyButton(url, variant = 'default') {
     const size = 28;
+
     if (url && url.length > 0) {
         const a = document.createElement('a');
 
-        a.href = "#";   // ← НЕ переходим со страницы
-        
+        a.href = "#";
         a.className = 'spotify-btn';
         a.tabIndex = -1;
         a.title = 'Play in tournament player';
 
         a.addEventListener('click', function (e) {
-        e.preventDefault();
-        playInGlobalPlayer(url, this);
-});
+            e.preventDefault();
+            playInGlobalPlayer(url, this);
+        });
 
+        // базовые стили
         a.style.display = 'inline-flex';
         a.style.alignItems = 'center';
         a.style.justifyContent = 'center';
         a.style.width = `${size}px`;
         a.style.height = `${size}px`;
         a.style.borderRadius = '4px';
-
-        /* 🔥 ОПРЕДЕЛЯЕМ ПЛАТФОРМУ ДЛЯ ЦВЕТА И ТЕКСТА */
-
-if (url.includes("soundcloud.com")) {
-    a.style.backgroundColor = '#ff7500'; // ☁ SoundCloud оранжевый
-    a.textContent = 'SC';                
-a.style.fontSize = '15px';               // 🔥 немного меньше для SC
-    } else {
-    a.style.backgroundColor = '#1DB954'; // 🎵 Spotify зелёный
-    a.textContent = 'S';
-a.style.fontSize = '16px';                 // 🍋‍🟩 стандартный размер
-        }
         a.style.color = '#ffffff';
         a.style.textDecoration = 'none';
         a.style.fontWeight = '700';
         a.style.boxSizing = 'border-box';
+
+        // 🎵 платформа
+        if (url.includes("soundcloud.com")) {
+            a.style.backgroundColor = '#ff7500';
+            a.textContent = 'SC';
+            a.style.fontSize = '15px';
+        } else {
+            a.style.backgroundColor = '#1DB954';
+            a.textContent = 'S';
+            a.style.fontSize = '16px';
+        }
+
+        // 🔥 ВАРИАНТЫ
+        if (variant === 'standings') {
+            a.classList.add('standings-spotify-overlay');
+        }
+
         return a;
     } else {
         const btn = document.createElement('button');
+
         btn.type = 'button';
         btn.className = 'spotify-btn disabled';
         btn.disabled = true;
-        btn.tabIndex = -1;                   // ← 🔥 ВАЖНО (tab)
+        btn.tabIndex = -1;
         btn.title = 'Нет ссылки';
+
         btn.style.display = 'inline-flex';
         btn.style.alignItems = 'center';
         btn.style.justifyContent = 'center';
         btn.style.width = `${size}px`;
         btn.style.height = `${size}px`;
         btn.style.borderRadius = '4px';
-        btn.style.backgroundColor = '#6b6b6b'; // grey
+        btn.style.backgroundColor = '#6b6b6b';
         btn.style.color = '#ffffff';
         btn.style.border = 'none';
         btn.style.fontWeight = '700';
         btn.textContent = 'S';
+
         return btn;
     }
 }
