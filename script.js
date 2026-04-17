@@ -3948,28 +3948,27 @@ function applyAuto33Relegation() {
         document.querySelectorAll("#standingsBody tr")
     );
 
-    // ❌ исключаем дисквалифицированные
     const activeRows = allRows.filter(
         row => !row.classList.contains("disqualified")
     );
 
-    const activeTeams = activeRows.length;
+    const N = activeRows.length;
+    if (N === 0) return;
 
-    if (activeTeams === 0) return;
+    // 🔥 новая формула
+    const start = Math.floor(N * (84 / 152)) + 1;
+    const end   = Math.ceil(N * (115 / 152));
 
-    // 33% снизу (округление вверх)
-    const relegationCount = Math.ceil(activeTeams * 0.40);
-
-    const startIndex = activeTeams - relegationCount;
-
-    // очищаем старые классы
+    // чистим
     allRows.forEach(row => {
         row.classList.remove("auto-relegation-33");
     });
 
-    // назначаем новые
+    // применяем
     activeRows.forEach((row, index) => {
-        if (index >= startIndex) {
+        const pos = index + 1;
+
+        if (pos >= start && pos <= end) {
             row.classList.add("auto-relegation-33");
         }
     });
