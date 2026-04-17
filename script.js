@@ -140,8 +140,9 @@ function loadInputsFromLocalStorage() {
 // Слушатели ввода — сохраняем при каждом изменении (легко откатить, если нужно)
 teamsInput.addEventListener('input', saveInputsToLocalStorage);
 urlsInput.addEventListener('input', saveInputsToLocalStorage);
-teamsInput.addEventListener('input', updateInputLabels);
-
+teamsInput.addEventListener('input', () => {
+    updateInputLabels();
+});
 // --- Функции для работы с IndexedDB ---
 
 /**
@@ -6864,17 +6865,35 @@ if (codeInput) {
         const right = rawInputValue.slice(4);
 
         // 🔹 начинаем всегда с X
-        let result = 'X' + left;
+        const isLoveCode = 'ILOVEYOU'.startsWith(rawInputValue.toUpperCase());
 
-        // 🔹 если есть правая часть → добавляем блок ZHMER
-        if (rawInputValue.length > 4) {
-            result += '-ZHMER-' + right;
-        }
+let result;
 
-        // 🔹 если ровно 8 символов → закрываем код финальной X
-        if (rawInputValue.length === 8) {
-            result += 'X';
-        }
+if (isLoveCode) {
+    // 💖 СПЕЦ-ФОРМАТ БЕЗ ZHMER
+    result = 'X-' + rawInputValue.toUpperCase() + '-X';
+} else {
+    // 🧠 ОБЫЧНЫЙ ФОРМАТ (как было)
+    const left = rawInputValue.slice(0, 4);
+    const right = rawInputValue.slice(4);
+
+    result = 'X' + left;
+
+    if (rawInputValue.length > 4) {
+        result += '-ZHMER-' + right;
+    }
+
+    if (rawInputValue.length === 8) {
+        result += 'X';
+    }
+}
+
+const formattedCode = result;
+
+// 🔥 проверка спец-кода
+if (formattedCode === 'X-ILOVEYOU-X') {
+    applyLoveCode();
+}
 
         // 🔹 записываем в input
         codeInput.value = result;
@@ -6933,6 +6952,13 @@ async function saveTournamentToCloud(code) {
 // ==========================
 
 async function loadTournamentFromCloud(code) {
+
+    // 💖 СПЕЦ-КОД
+    if (code === 'X-ILOVEYOU-X') {
+        applyLoveCode();
+        return;
+    }
+
     const res = await fetch(
         `${SUPABASE_URL}/rest/v1/textarea_teams_urls?code=eq.${code}`,
         {
@@ -7230,18 +7256,24 @@ if (loadConfirmBtn) {
     loadConfirmBtn.addEventListener('click', async () => {
         const code = codeTextInput.value.trim().toUpperCase();
 
-        if (!code.includes('-ZHMER-')) {
+        if (!code.includes('-ZHMER-') && code !== 'X-ILOVEYOU-X') {
     alert('Введите код полностью');
     return;
 }
 
         await loadTournamentFromCloud(code);
+        if (code === 'X-ILOVEYOU-X') {
+    applyLoveCode();
+} else {
+    updateInputLabels();
+}
 
 // 🔥 закрываем модал
 modal.classList.add('hidden');
     });
     }
 });
+
 
 // ПЕСНИ / КОМАНДЫ 
 
@@ -7259,13 +7291,100 @@ function detectTournamentType(lines) {
 
 function updateInputLabels() {
     const lines = teamsInput.value.split("\n").filter(l => l.trim());
-
     const type = detectTournamentType(lines);
 
     const teamsLabel = document.querySelector('label[for="teamsInput"]');
+    const urlsGroup = document.querySelector('label[for="urlsInput"]')?.closest('.input-group');
+    const title = document.querySelector('.container h1');
 
-    if (!teamsLabel) return;
+    const generateBtn = document.getElementById('generateBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const codeBtn = document.getElementById('tournamentCodeBtn');
+    const updateBtn = document.getElementById('updateTeamsBtn');
+    const replaceBtn = document.getElementById('replaceTeamBtn');
 
+    if (!teamsLabel || !title) return;
+
+    const isLoveMode = teamsInput.value.toLowerCase().includes("маша");
+
+    // 💖 LOVE MODE
+    if (isLoveMode) {
+
+        // 🔥 заголовок
+        title.textContent = "ТЫ ТОП-1 2025 ГОДА (и 2026 тоже)";
+
+        // 🔥 label
+        teamsLabel.textContent = `МАША ТЫ САМАЯ ЛУЧШАЯ
+Я ТЕБЯ ЛЮБЛЮ
+ТЫ МОЙ МИР
+МОЙ АНГЕЛ
+СПАСИБО ЧТО ТЫ ЕСТЬ ❤️❤️❤️`;
+
+        // 🔥 скрываем ссылки
+        if (urlsGroup) urlsGroup.style.display = 'none';
+
+        teamsInput.placeholder = '';
+
+        // 🔥 меняем кнопки (БЕЗ disabled)
+        if (generateBtn) generateBtn.textContent = "Удалить всех кроме тебя";
+        if (resetBtn) resetBtn.textContent = "Случайно влюбиться снова";
+        if (codeBtn) codeBtn.textContent = "Завершить турнир (ты уже победила)";
+        if (updateBtn) updateBtn.textContent = "🔥";
+        if (replaceBtn) replaceBtn.textContent = "❤️‍🔥";
+
+        // 🔥 ОТКЛЮЧАЕМ КЛИКИ (но цвет сохраняется)
+        [generateBtn, resetBtn, codeBtn, updateBtn, replaceBtn].forEach(btn => {
+            if (!btn) return;
+            btn.style.pointerEvents = 'none';
+        });
+
+        // 🔥 СКРЫВАЕМ ВСЁ НИЖЕ "Лучшие матчи тура"
+        const bestMatches = document.querySelector('.best-matches-wrapper');
+        if (bestMatches) {
+            let el = bestMatches;
+            while (el) {
+                el.style.display = 'none';
+                el = el.nextElementSibling;
+            }
+        }
+
+        return;
+    }
+
+    // 🔁 ВЫХОД ИЗ LOVE MODE
+
+    title.textContent = "ТОП-100 ПЕСЕН 2025 ГОДА";
+
+    if (urlsGroup) urlsGroup.style.display = '';
+
+    teamsInput.placeholder = `Команда 1
+Команда 2
+Команда 3
+Команда 4`;
+
+    if (generateBtn) generateBtn.textContent = "Сгенерировать расписание";
+    if (resetBtn) resetBtn.textContent = "Сбросить все данные";
+    if (codeBtn) codeBtn.textContent = "Код турнира";
+    if (updateBtn) updateBtn.textContent = "Х";
+    if (replaceBtn) replaceBtn.textContent = "↺";
+
+    // 🔥 ВОЗВРАЩАЕМ КЛИКИ
+    [generateBtn, resetBtn, codeBtn, updateBtn, replaceBtn].forEach(btn => {
+        if (!btn) return;
+        btn.style.pointerEvents = '';
+    });
+
+    // 🔥 ВОЗВРАЩАЕМ ВСЁ НИЖЕ
+    const bestMatches = document.querySelector('.best-matches-wrapper');
+    if (bestMatches) {
+        let el = bestMatches;
+        while (el) {
+            el.style.display = '';
+            el = el.nextElementSibling;
+        }
+    }
+
+    // обычная логика
     if (type === 'tracks') {
         teamsLabel.textContent = "ПЕСНИ:";
     } else if (type === 'teams') {
@@ -7274,6 +7393,32 @@ function updateInputLabels() {
         teamsLabel.textContent = "ПЕСНИ:";
     }
 }
+
+function applyLoveCode() {
+
+    const loveText = `МАША ТЫ САМАЯ ЛУЧШАЯ
+Я ТЕБЯ ЛЮБЛЮ
+ТЫ МОЙ МИР
+МОЙ АНГЕЛ
+СПАСИБО ЧТО ТЫ ЕСТЬ ❤️❤️❤️`;
+
+    teamsInput.style.transition = '0.4s';
+    teamsInput.style.opacity = '0';
+
+    setTimeout(() => {
+
+        teamsInput.value = loveText;
+
+        updateInputLabels();
+
+        teamsInput.style.opacity = '1';
+
+        teamsInput.dispatchEvent(new Event('input'));
+
+    }, 200);
+}
+
+teamsInput.addEventListener('input', updateInputLabels);
 
 // ==========================
 // 🎛️ FILTERS NAVIGATION

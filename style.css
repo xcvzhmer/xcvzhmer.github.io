@@ -2167,6 +2167,10 @@ margin-top:18px;
     text-transform: uppercase;   /* ПЕСНИ → всегда капсом */
 }
 
+label[for="teamsInput"] {
+    white-space: pre-line;
+}
+
 /* ==========================
  🎛️ FILTERS WRAPPER
 ========================== */
