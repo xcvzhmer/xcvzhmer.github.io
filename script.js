@@ -1739,7 +1739,7 @@ if (!match.isBye && match.score1 !== null && match.score2 !== null) {
 
         // Номер матча
         const matchNumCell = row.insertCell(0);
-        matchNumCell.textContent = `${matchIndex + 1}`;
+matchNumCell.innerHTML = `<span class="cell-text">${matchIndex + 1}</span>`;
 
         // Spotify кнопка для Команды 1
         const spotifyBtnCell1 = row.insertCell(1);

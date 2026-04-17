@@ -1654,6 +1654,11 @@ body.teams-hidden .team-name {
     overflow: hidden; /* 🔥 важно */
 }
 
+#currentTourOutput tbody tr td.match-relegation-cell .cell-text {
+    position: relative;
+    z-index: 2;
+}
+
 #currentTourOutput tbody tr td.match-relegation-cell::after {
     content: "";
     position: absolute;
