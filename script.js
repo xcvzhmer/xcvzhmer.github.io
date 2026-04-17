@@ -1609,19 +1609,46 @@ async function withStableScroll(callback) {
     }, 250);
 }
 
+// ЗАПРЕТ 4:0 для фаворитов
+
+const FORBIDDEN_FOUR_TRACKS = [
+    "Kai Angel – damage",
+    "tuborosho, Anonymous Ember – А я Курю и Плачу",
+    "тёмный принц – вклубе",
+    "9mice – famous"
+];
+
+// КАЖДАЯ буква в поле ввода счёта это 0
+
 function sanitizeScoreInput(e) {
     let val = e.target.value;
 
     if (val === '') return;
 
-    // оставляем только цифры
     val = val.replace(/\D/g, '');
 
     if (val === '') {
         e.target.value = '0';
-    } else {
-        e.target.value = String(parseInt(val, 10));
+        return;
     }
+
+    let num = parseInt(val, 10);
+
+    // 🔥 получаем строку команды
+    const row = e.target.closest('tr');
+    const teamText = row?.textContent || '';
+    const clean = stripInlineColors(teamText);
+
+    const isRestricted = FORBIDDEN_FOUR_TRACKS.some(track =>
+        clean.includes(track)
+    );
+
+    // 🔥 если запрещён — режем 4 → 3
+    if (isRestricted && num === 4) {
+        num = 3;
+    }
+
+    e.target.value = String(num);
 }
 
 /**
@@ -1673,8 +1700,7 @@ async function displayTour(tourIndex) {
         <th>#</th>
         <th></th>
         <th>Команда 1</th>
-        <th>Счет</th>
-        <th>Счет</th>
+            <th colspan="2">Счёт</th>
         <th>Команда 2</th>
         <th></th>
         <th></th> <!-- Пустая ячейка для действий -->

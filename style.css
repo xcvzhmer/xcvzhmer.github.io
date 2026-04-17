@@ -78,16 +78,107 @@ textarea {
 /* === Турнирная таблица === */
 .standings-section table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;   /* 🔥 как в schedule */
+    border-spacing: 0 6px;       /* 🔥 тот же gap */
     font-size: 0.95rem;
 }
+
 .standings-section th, .standings-section td {
-    border: 1px solid #444;
+    border: none; /* 🔥 иначе будут артефакты */
     padding: 10px;
     text-align: center;
 }
+
+.standings-section tbody tr:nth-child(odd) {
+    background: linear-gradient(
+        180deg,
+        #2f2f2f 0%,   /* чуть светлее */
+        #262626 100%
+    );
+}
+
+.standings-section tbody tr:nth-child(even) {
+    background: linear-gradient(
+        180deg,
+        #262626 0%,   /* заметно темнее */
+        #202020 100%
+    );
+}
+
+.standings-section tbody tr {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    border-radius: 6px;
+    position: relative; /* 🔥 обязательно */
+    overflow: hidden;
+    transition: 0.2s ease;
+}
+
+.standings-section tbody tr:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.45);
+}
+
+.standings-section tbody tr.relegation-playoff::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+
+    background: #ffc8003a;
+    box-shadow: inset 0 0 1px #70702a;
+
+    pointer-events: none;
+}
+
+.standings-section tbody tr.relegation::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+
+    background: #ff000039;
+    box-shadow: inset 0 0 1px #522424;
+
+    pointer-events: none;
+}
+
+/* head */
+
+.standings-section thead {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+
+.standings-section thead tr {
+    background: linear-gradient(
+        180deg,
+        #3a3a3a 0%,
+        #2f2f2f 100%
+    );
+}
+
 .standings-section th {
-    background-color: #3a3a3a;
+    position: relative;
+    transition: 0.2s ease;
+}
+
+.standings-section th:hover {
+    color: #ffffff;
+}
+
+.standings-section th::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 20%;
+    width: 60%;
+    height: 2px;
+    background: #ebc51e;
+    opacity: 0;
+    transition: 0.2s ease;
+}
+
+.standings-section th:hover::after {
+    opacity: 1;
 }
 
 /* ШАХМАТЫ турнирной таблицы */
@@ -169,18 +260,86 @@ table {
     border-radius: 4px;
 }
 
-/* === Расписание === */
+/* === Расписание матчей === */
+
 .schedule-section table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;   /* 🔥 КЛЮЧ */
+    border-spacing: 0 6px;       /* 🔥 вертикальный gap между матчами */
 }
+
 .schedule-section th {
-    background-color: #3a3a3a;
+    background: linear-gradient(
+        180deg,
+        #3a3a3a 0%,
+        #2f2f2f 100%
+    );
+
+    position: relative;
+    transition: 0.2s ease;
 }
+
+/* 🔥 hover текст */
+.schedule-section th:hover {
+    color: #ffffff;
+}
+
+/* 🔥 нижняя линия как в standings */
+.schedule-section th::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 20%;
+    width: 60%;
+    height: 2px;
+
+    background: #ebc51e;
+
+    opacity: 0;
+    transition: 0.2s ease;
+}
+
+.schedule-section th:hover::after {
+    opacity: 1;
+}
+
+/* === Тюнинг === */
+
 .schedule-section td {
-    border: 1px solid #444;
+    border: 1px solid #3a3a3a;
     padding: 10px;
     text-align: center;
+}
+
+.schedule-section tbody tr:nth-child(odd) {
+    background: linear-gradient(
+        180deg,
+        #2f2f2f 0%,   /* чуть светлее */
+        #262626 100%
+    );
+}
+
+.schedule-section tbody tr:nth-child(even) {
+    background: linear-gradient(
+        180deg,
+        #262626 0%,   /* темнее */
+        #202020 100%
+    );
+}
+
+.schedule-section tbody tr {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.schedule-section tbody tr {
+    transition: 0.2s ease;
+}
+
+.schedule-section tbody tr:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.45);
 }
 
 /* Счёт */
@@ -191,6 +350,9 @@ table {
     color: #fff;
     font-size: 1rem;
     text-align: center;
+
+    position: relative; /* 🔥 */
+    z-index: 2;          /* 🔥 выше overlay */
 }
 
 /* BYE-матчи (ОНИ В РАСПИСАНИИ 0:3)*/
@@ -1489,10 +1651,23 @@ body.teams-hidden .team-name {
 /* 🔥 Подсветка матча без колонок Команда1 и Команда2 */
 #currentTourOutput tbody tr td.match-relegation-cell {
     position: relative;
-    transition: box-shadow 0.25s ease;
-    
-    /* Красный слой поверх ячейки */
-    box-shadow: inset 0 0 0 9999px rgba(255, 0, 0, 0.35);
+    overflow: hidden; /* 🔥 важно */
+}
+
+#currentTourOutput tbody tr td.match-relegation-cell::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+
+    background: #ff000040; /* можно регулировать */
+    box-shadow: inset 0 0 1px #522424;
+
+    pointer-events: none;
+    z-index: 1; /* 🔥 ниже input */
+}
+
+#currentTourOutput tbody tr:hover td.match-relegation-cell::after {
+    background: #ff000050;
 }
 
 #currentTourOutput::after {
