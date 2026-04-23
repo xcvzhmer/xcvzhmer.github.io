@@ -1622,34 +1622,70 @@ const FORBIDDEN_FOUR_TRACKS = [
 // КАЖДАЯ буква в поле ввода счёта это 0
 
 function sanitizeScoreInput(e) {
-    let val = e.target.value;
+    const input = e.target;
 
-    if (val === '') return;
+    // 🔹 чистим ввод
+    let val = input.value.replace(/\D/g, '');
+    if (val === '') val = '0';
+    input.value = val;
 
-    val = val.replace(/\D/g, '');
+    const row = input.closest('tr');
+    if (!row) return;
 
-    if (val === '') {
-        e.target.value = '0';
-        return;
+    const inputA = row.querySelector('input[data-team="team1"]');
+    const inputB = row.querySelector('input[data-team="team2"]');
+
+    if (!inputA || !inputB) return;
+
+    let a = parseInt(inputA.value) || 0;
+    let b = parseInt(inputB.value) || 0;
+
+    // 🔥 берём НОРМАЛЬНО команды (через span)
+    const teamSpans = row.querySelectorAll('.team-name');
+
+    if (teamSpans.length < 2) return;
+
+    const teamA = stripInlineColors(teamSpans[0].textContent);
+    const teamB = stripInlineColors(teamSpans[1].textContent);
+
+    const favA = FORBIDDEN_FOUR_TRACKS.some(t => teamA.includes(t));
+    const favB = FORBIDDEN_FOUR_TRACKS.some(t => teamB.includes(t));
+
+    // =========================
+    // 🔥 ЗАПРЕТЫ
+    // =========================
+
+    // фаворит слева
+    if (favA && a > b) {
+
+        // ❌ 4:0 → 3:0
+        if (a === 4 && b === 0) {
+            a = 3;
+        }
+
+        // ❌ 3:1 → 3:0
+        if (a === 3 && b === 1) {
+            b = 0;
+        }
     }
 
-    let num = parseInt(val, 10);
+    // фаворит справа
+    if (favB && b > a) {
 
-    // 🔥 получаем строку команды
-    const row = e.target.closest('tr');
-    const teamText = row?.textContent || '';
-    const clean = stripInlineColors(teamText);
+        // ❌ 0:4 → 0:3
+        if (b === 4 && a === 0) {
+            b = 3;
+        }
 
-    const isRestricted = FORBIDDEN_FOUR_TRACKS.some(track =>
-        clean.includes(track)
-    );
-
-    // 🔥 если запрещён — режем 4 → 3
-    if (isRestricted && num === 4) {
-        num = 3;
+        // ❌ 1:3 → 0:3
+        if (b === 3 && a === 1) {
+            a = 0;
+        }
     }
 
-    e.target.value = String(num);
+    // 🔥 ПЕРЕЗАПИСЫВАЕМ ОБА ПОЛЯ (ключевой момент)
+    inputA.value = a;
+    inputB.value = b;
 }
 
 /**
