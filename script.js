@@ -856,14 +856,13 @@ function isSpecial(teamName) {
 
 function getStatsKey(s) {
     return [
-        s.wins + s.draws + s.losses,
+        s.points,
+        s.goalDifference,
+        s.goalsFor,
         s.wins,
         s.draws,
         s.losses,
-        s.goalsFor,
-        s.goalsAgainst,
-        s.goalDifference,
-        s.points
+        s.goalsAgainst
     ].join('|');
 }
 
@@ -878,16 +877,36 @@ for (let i = 0; i < sortedTeams.length; i++) {
 
     const special = isSpecial(teamName);
 
-// 🔥 добавляем вакантные в ту же логику
+// 🔥 ВАКАНТНЫЕ ОТДЕЛЬНО (НЕ ВЛИЯЮТ НА МЕСТА)
 const isVacant = /^вакантное место\s*-\s*\d+$/i.test(teamName.toLowerCase());
-const isVirtual = special || isVacant;
 
-    const statsKey = getStatsKey(stats);
+// 🔥 ОБЩЕЕ КОЛ-ВО КОМАНД
+const TOTAL_TEAMS = sortedTeams.length;
+
+const statsKey = getStatsKey(stats);
+
+// =========================
+// 🔥 ВАКАНТНЫЕ → ВСЕГДА ПОСЛЕДНЕЕ МЕСТО
+// =========================
+if (isVacant) {
+    positionsMap[teamName] = TOTAL_TEAMS;
+    continue;
+}
+
+// 🔥 ВСЕ НУЛИ = НЕ СЧИТАЕМ РАВЕНСТВОМ
+const isAllZero =
+    stats.points === 0 &&
+    stats.goalDifference === 0 &&
+    stats.goalsFor === 0 &&
+    stats.goalsAgainst === 0 &&
+    stats.wins === 0 &&
+    stats.draws === 0 &&
+    stats.losses === 0;
 
     // =========================
     // 🔥 SPECIAL TRACK LOGIC
     // =========================
-    if (isVirtual) {
+    if (special) {
 
         if (i === 0) {
             positionsMap[teamName] = currentPlace;
@@ -900,10 +919,10 @@ const isVirtual = special || isVacant;
     }
 
     // =========================
-    // 🔥 NORMAL TRACKS
+    // 🔥 ОБЫЧНЫЕ ТРЕКИ
     // =========================
 
-    if (statsKey === lastStatsKey) {
+    if (!isAllZero && statsKey === lastStatsKey) {
         // одинаковая статистика → то же место
         positionsMap[teamName] = currentPlace;
     } else {
