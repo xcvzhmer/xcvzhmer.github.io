@@ -4579,31 +4579,47 @@ const closeFormModalBtn = document.getElementById('closeFormModal');
 document.addEventListener('DOMContentLoaded', () => {
 
     const hideTeamsBtn = document.getElementById('hideTeamsBtn');
-    const toggleRelegationBtn = document.getElementById('toggleRelegationBtn');
+const toggleRelegationBtn = document.getElementById('toggleRelegationBtn');
 
-    if (hideTeamsBtn) {
-        hideTeamsBtn.addEventListener('click', () => {
-            document.body.classList.toggle('teams-hidden');
-        });
-    }
+if (hideTeamsBtn) {
+    hideTeamsBtn.addEventListener('click', () => {
+        document.body.classList.toggle('teams-hidden');
+    });
+}
 
-    // 🔴 ПЕРЕКЛЮЧАТЕЛЬ ПОДСВЕТКИ
-    let relegationHighlightEnabled = true;
+// 🔴 ПЕРЕКЛЮЧАТЕЛЬ ПОДСВЕТКИ (С СОХРАНЕНИЕМ)
 
-    if (toggleRelegationBtn) {
+// 🔥 грузим сохранённое состояние
+let relegationHighlightEnabled =
+    localStorage.getItem('relegationHighlight') !== 'false';
 
-        toggleRelegationBtn.addEventListener('click', () => {
+// 🔥 применяем при загрузке
+document.body.classList.toggle(
+    'relegation-disabled',
+    !relegationHighlightEnabled
+);
 
-            relegationHighlightEnabled = !relegationHighlightEnabled;
+if (toggleRelegationBtn) {
 
-            document.body.classList.toggle(
-                'relegation-disabled',
-                !relegationHighlightEnabled
-            );
+    toggleRelegationBtn.addEventListener('click', () => {
 
-        });
+        relegationHighlightEnabled = !relegationHighlightEnabled;
 
-    }
+        // 🔥 применяем визуально
+        document.body.classList.toggle(
+            'relegation-disabled',
+            !relegationHighlightEnabled
+        );
+
+        // 🔥 сохраняем навсегда
+        localStorage.setItem(
+            'relegationHighlight',
+            relegationHighlightEnabled
+        );
+
+    });
+
+}
 
 });
 
