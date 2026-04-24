@@ -787,23 +787,137 @@ tournamentData.completedTours = getCompletedToursCount(allMatches);
         });
 
         // Сортировка команд для отображения
-        // Сначала сортируем по очкам/рэшо/забито, затем помещаем inactive в конец
-        const sortedTeams = Object.keys(standings).sort((a, b) => {
-            const statsA = standings[a];
-            const statsB = standings[b];
+// Сначала сортируем по очкам/рэшо/забито, затем помещаем inactive в конец
+const sortedTeams = Object.keys(standings).sort((a, b) => {
+    const statsA = standings[a];
+    const statsB = standings[b];
 
-            // если одна из команд inactive — откладываем её вниз
-            const aInactive = !!inactiveMap[a];
-            const bInactive = !!inactiveMap[b];
-            if (aInactive !== bInactive) {
-                return aInactive ? 1 : -1; // inactive идут вниз
-            }
+    // если одна из команд inactive — откладываем её вниз
+    const aInactive = !!inactiveMap[a];
+    const bInactive = !!inactiveMap[b];
+    if (aInactive !== bInactive) {
+        return aInactive ? 1 : -1;
+    }
 
-            if (statsB.points !== statsA.points) return statsB.points - statsA.points;
-            if (statsB.goalDifference !== statsA.goalDifference) return statsB.goalDifference - statsA.goalDifference;
-            return statsB.goalsFor - statsA.goalsFor;
-        });
+    // 🔥 ВАКАНТНЫЕ ВСЕГДА В САМЫЙ НИЗ
+    const isVacantA = /^вакантное место\s*-\s*\d+$/i.test(a.toLowerCase());
+    const isVacantB = /^вакантное место\s*-\s*\d+$/i.test(b.toLowerCase());
 
+    if (isVacantA !== isVacantB) {
+        return isVacantA ? 1 : -1;
+    }
+
+    // 🔥 ОСНОВНАЯ СОРТИРОВКА
+    if (statsB.points !== statsA.points) return statsB.points - statsA.points;
+    if (statsB.goalDifference !== statsA.goalDifference) return statsB.goalDifference - statsA.goalDifference;
+    if (statsB.goalsFor !== statsA.goalsFor) return statsB.goalsFor - statsA.goalsFor;
+
+    // 🔥 ПРИ РАВНЫХ СТАТАХ: SPECIAL НИЖЕ ОБЫЧНЫХ
+    const specialA = isSpecial(a);
+    const specialB = isSpecial(b);
+
+    if (specialA !== specialB) {
+        return specialA ? 1 : -1;
+    }
+
+    return 0;
+});
+
+        // ==============               =================
+        // 🧠 НЕ ЗАНИМАЕТ МЕСТО ОБЫЧНЫХ КОМАНД в таблице
+        // ===============================
+
+        function isVirtualTeam(teamName) {
+
+    // 🔥 SPECIAL
+    for (const k in SPECIAL_TRACKS) {
+        if (isSpecialTrack(teamName, k)) return true;
+    }
+
+    // 🔥 ВАКАНТНОЕ МЕСТО
+    const normalized = teamName.toLowerCase().trim();
+    if (/^вакантное место\s*-\s*\d+$/i.test(normalized)) {
+        return true;
+    }
+
+    return false;
+}
+
+// ===============================
+// 🧠 BUILD POSITIONS SYSTEM
+// ===============================
+
+function isSpecial(teamName) {
+    for (const k in SPECIAL_TRACKS) {
+        if (isSpecialTrack(teamName, k)) return true;
+    }
+    return false;
+}
+
+function getStatsKey(s) {
+    return [
+        s.wins + s.draws + s.losses,
+        s.wins,
+        s.draws,
+        s.losses,
+        s.goalsFor,
+        s.goalsAgainst,
+        s.goalDifference,
+        s.points
+    ].join('|');
+}
+
+const positionsMap = {};
+let currentPlace = 1;
+let lastStatsKey = null;
+
+for (let i = 0; i < sortedTeams.length; i++) {
+
+    const teamName = sortedTeams[i];
+    const stats = standings[teamName];
+
+    const special = isSpecial(teamName);
+
+// 🔥 добавляем вакантные в ту же логику
+const isVacant = /^вакантное место\s*-\s*\d+$/i.test(teamName.toLowerCase());
+const isVirtual = special || isVacant;
+
+    const statsKey = getStatsKey(stats);
+
+    // =========================
+    // 🔥 SPECIAL TRACK LOGIC
+    // =========================
+    if (isVirtual) {
+
+        if (i === 0) {
+            positionsMap[teamName] = currentPlace;
+        } else {
+            const prevTeam = sortedTeams[i - 1];
+            positionsMap[teamName] = positionsMap[prevTeam];
+        }
+
+        continue;
+    }
+
+    // =========================
+    // 🔥 NORMAL TRACKS
+    // =========================
+
+    if (statsKey === lastStatsKey) {
+        // одинаковая статистика → то же место
+        positionsMap[teamName] = currentPlace;
+    } else {
+        // новая позиция
+        currentPlace = Object.values(positionsMap)
+            .filter((_, idx) => {
+                const t = sortedTeams[idx];
+                return !isSpecial(t);
+            }).length + 1;
+
+        positionsMap[teamName] = currentPlace;
+        lastStatsKey = statsKey;
+    }
+}
         // Рендерим строки таблицы
         sortedTeams.forEach((teamName, index) => {
     const stats = standings[teamName];
@@ -844,13 +958,15 @@ for (const k in SPECIAL_TRACKS) {
         row.style.textDecoration = 'line-through';
     }
 
-    // 🧹 убираем inline-цвета ТОЛЬКО для отображения
-    const cleanTeamName = stripInlineColors(teamName);
+    const place = positionsMap[teamName];
 
-    row.innerHTML = `
-    <td class="position-cell" data-position="${index + 1}">
-        ${index + 1}
-    </td>
+// 🧹 убираем inline-цвета
+const cleanTeamName = stripInlineColors(teamName);
+
+row.innerHTML = `
+<td class="position-cell" data-position="${place}">
+    ${place}
+</td>
         <td class="team-cell">${cleanTeamName}</td>
         <td>${stats.wins + stats.losses + stats.draws}</td>
         <td>${stats.wins}</td>
