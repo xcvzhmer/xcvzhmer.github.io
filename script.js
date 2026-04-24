@@ -1009,7 +1009,6 @@ rows.forEach(r => {
 });
 
 // получаем настройки зон
-// получаем настройки зон
 const zones = settings?.relegationZones;
 
 const yellowFrom = zones?.yellow?.from;
@@ -1017,29 +1016,57 @@ const yellowTo   = zones?.yellow?.to;
 const redFrom    = zones?.red?.from;
 const redTo      = zones?.red?.to;
 
-rows.forEach((r, idx) => {
-    const pos = idx + 1;
+// 🔥 собираем реальные места
+const places = rows.map(r => {
+    const cell = r.querySelector('.position-cell');
+    return cell ? parseInt(cell.dataset.position) : null;
+}).filter(Boolean);
 
-    // 🔴 красная зона
+// 🔥 функции поиска границ
+function getTopBound(target) {
+    // ближайшее сверху (<= target)
+    const candidates = places.filter(p => p <= target);
+    return candidates.length ? Math.max(...candidates) : Math.min(...places);
+}
+
+function getBottomBound(target) {
+    // ближайшее снизу (>= target)
+    const candidates = places.filter(p => p >= target);
+    return candidates.length ? Math.min(...candidates) : Math.max(...places);
+}
+
+// 🔥 реальные границы зон
+const realYellowFrom = yellowFrom ? getTopBound(yellowFrom) : null;
+const realYellowTo   = yellowTo   ? getBottomBound(yellowTo) : null;
+
+const realRedFrom = redFrom ? getTopBound(redFrom) : null;
+const realRedTo   = redTo   ? getBottomBound(redTo) : null;
+
+// 🔥 применение
+rows.forEach(r => {
+    const cell = r.querySelector('.position-cell');
+    if (!cell) return;
+
+    const pos = parseInt(cell.dataset.position);
+
     if (
-        redFrom !== undefined &&
-        redTo !== undefined &&
-        pos >= redFrom &&
-        pos <= redTo
+        realRedFrom !== null &&
+        realRedTo !== null &&
+        pos >= realRedFrom &&
+        pos <= realRedTo
     ) {
         r.classList.add('relegation');
     }
-
-    // 🟨 жёлтая зона
     else if (
-        yellowFrom !== undefined &&
-        yellowTo !== undefined &&
-        pos >= yellowFrom &&
-        pos <= yellowTo
+        realYellowFrom !== null &&
+        realYellowTo !== null &&
+        pos >= realYellowFrom &&
+        pos <= realYellowTo
     ) {
         r.classList.add('relegation-playoff');
     }
 });
+
     }
 
     // ← ← ← ДОБАВИТЬ ЭТУ СТРОКУ
@@ -3866,27 +3893,31 @@ async function applyRelegationZonesToStandings() {
     const zones = await loadRelegationZones();
     const rows = document.querySelectorAll("#standingsBody tr");
 
-    rows.forEach((row, index) => {
-        const place = index + 1;
+    rows.forEach((row) => {
 
-        row.classList.remove("relegation", "relegation-playoff");
+    const cell = row.querySelector('.position-cell');
+    if (!cell) return;
 
-        if (
-            zones.yellow &&
-            place >= zones.yellow.from &&
-            place <= zones.yellow.to
-        ) {
-            row.classList.add("relegation-playoff");
-        }
+    const place = parseInt(cell.dataset.position);
 
-        if (
-            zones.red &&
-            place >= zones.red.from &&
-            place <= zones.red.to
-        ) {
-            row.classList.add("relegation");
-        }
-    });
+    row.classList.remove("relegation", "relegation-playoff");
+
+    if (
+        zones.yellow &&
+        place >= zones.yellow.from &&
+        place <= zones.yellow.to
+    ) {
+        row.classList.add("relegation-playoff");
+    }
+
+    if (
+        zones.red &&
+        place >= zones.red.from &&
+        place <= zones.red.to
+    ) {
+        row.classList.add("relegation");
+    }
+});
     // 🔥 AUTO 33% (всегда поверх ручных зон)
     applyAuto33Relegation();
 }
@@ -4144,7 +4175,10 @@ function applyAuto33Relegation() {
 
     // применяем
     activeRows.forEach((row, index) => {
-        const pos = index + 1;
+        const cell = row.querySelector('.position-cell');
+if (!cell) return;
+
+const pos = parseInt(cell.dataset.position);
 
         if (pos >= start && pos <= end) {
             row.classList.add("auto-relegation-33");
