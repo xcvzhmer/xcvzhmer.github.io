@@ -1620,6 +1620,8 @@ await withStableScroll(async () => {
     // 🔥 ДОБАВЛЕНО — подсветка после полной отрисовки
     applyAuto33Relegation();
     highlightMatchesWithRelegationTeams();
+    applyAutoChansonTier();
+    applyAutoTestTournamentTier();
 
 // 🔥 ВОССТАНАВЛИВАЕМ ПОДСВЕТКУ ИГРАЮЩЕГО ТРЕКА
     restoreActiveTrackHighlight();
@@ -2065,16 +2067,15 @@ applyInlineColorSquare(colorSquare2, rawTeam2);
 
 currentTourOutput.appendChild(table);
 
-    // ⭐ лучшие матчи перерисовываем ТОЛЬКО если фильтр выключен
+// ⭐ лучшие матчи перерисовываем ТОЛЬКО если фильтр выключен
 if (!activeScoreFilter) {
     await renderBestMatchesForTour(tourIndex);
 }
 
 // ===============================
-    // 🔎 Обновление подписи фильтра "Артист"
-    // при ЛЮБОЙ перерисовке тура
-    // ===============================
-    const result = document.getElementById('artistFilterResult');
+// 🔎 Обновление подписи фильтра "Артист"
+// ===============================
+const result = document.getElementById('artistFilterResult');
 
 if (result) {
     if (activeMatchArtistFilter && activeMatchArtistFilter.trim()) {
@@ -2087,7 +2088,16 @@ if (result) {
     }
 }
 
-    // ⚠️ initBestMatchesUI вызывается ВНУТРИ renderBestMatchesForTour
+// 🔥🔥🔥 ВСТАВИТЬ ВОТ СЮДА 🔥🔥🔥
+
+// 🔴 зоны вылета
+highlightMatchesWithRelegationTeams();
+
+// 🟪🟦 tier подсветки
+applyAutoChansonTier();
+applyAutoTestTournamentTier();
+
+// ⚠️ initBestMatchesUI вызывается ВНУТРИ renderBestMatchesForTour
 }
 
 /* ==========================
@@ -3170,6 +3180,8 @@ async function handleSaveOrUpdateScore(event) {
 
 // 🔥 применяем авто-вылет
         applyAuto33Relegation();
+        applyAutoChansonTier();
+        applyAutoTestTournamentTier();
 
 /* ===============================
    🔥 ЛОКАЛЬНОЕ ОБНОВЛЕНИЕ СТРОКИ МАТЧА
@@ -3580,6 +3592,8 @@ await withStableScroll(async () => {
 });
 
     applyAuto33Relegation();
+    applyAutoChansonTier();
+    applyAutoTestTournamentTier();
 
             // 🔥 после displаyTour
     highlightMatchesWithRelegationTeams();
@@ -3921,6 +3935,8 @@ async function applyRelegationZonesToStandings() {
 });
     // 🔥 AUTO 33% (всегда поверх ручных зон)
     applyAuto33Relegation();
+    applyAutoChansonTier();
+    applyAutoTestTournamentTier();
 }
 
 function isFeatTrack(name) {
@@ -4146,6 +4162,8 @@ async function restoreRelegationZonesUI() {
 
     // 🔥 AUTO 33% при загрузке страницы
     applyAuto33Relegation()
+    applyAutoChansonTier();
+    applyAutoTestTournamentTier();
 }
 
 // ===============================
@@ -4253,6 +4271,128 @@ function highlightMatchesWithRelegationTeams() {
     }
 
   });
+}
+
+// n chanson 
+
+function applyAutoChansonTier() {
+
+    // 🔥 берём СЫРЫЕ треки из textarea
+    const raw = document.getElementById('teamsInput')?.value || '';
+
+    const tierTeams = raw
+        .split('\n')
+        .filter(line => /\(5\)/.test(line)) // 🔥 ищем (5)
+        .map(line => {
+            // убираем цвета и мета, но НЕ tier
+            const clean = stripInlineColors(line);
+
+            // обрезаем всё после первой " (" → убираем дату и прочее
+            const base = clean.split(' (')[0];
+
+            return normalizeText(base);
+        })
+        .filter(Boolean);
+
+    if (tierTeams.length === 0) return;
+
+    const matchRows = document.querySelectorAll(
+        "#currentTourOutput tbody tr"
+    );
+
+    matchRows.forEach(row => {
+
+        row.classList.remove("match-chanson");
+
+        const cells = row.querySelectorAll("td");
+        if (cells.length < 5) return;
+
+        cells.forEach(td => td.classList.remove("match-chanson-cell"));
+
+        if (
+            row.classList.contains("bye-match") ||
+            row.classList.contains("technical-match")
+        ) {
+            return;
+        }
+
+        const team1 = normalizeText(
+            stripInlineColors(cells[2]?.textContent || "")
+        );
+
+        const team2 = normalizeText(
+            stripInlineColors(cells[5]?.textContent || "")
+        );
+
+        if (tierTeams.includes(team1) && tierTeams.includes(team2)) {
+
+            cells.forEach((td, index) => {
+                if (index === 1 || index === 2 || index === 5 || index === 6 || index === 7) return;
+
+                td.classList.add("match-chanson-cell");
+            });
+
+        }
+
+    });
+}
+
+function applyAutoTestTournamentTier() {
+
+    // 🔥 берём СЫРЫЕ треки из textarea
+    const raw = document.getElementById('teamsInput')?.value || '';
+
+    const tierTeams = raw
+        .split('\n')
+        .filter(line => /\(6\)/.test(line)) // 🔥 ищем (6)
+        .map(line => {
+            const clean = stripInlineColors(line);
+            const base = clean.split(' (')[0];
+            return normalizeText(base);
+        })
+        .filter(Boolean);
+
+    if (tierTeams.length === 0) return;
+
+    const matchRows = document.querySelectorAll(
+        "#currentTourOutput tbody tr"
+    );
+
+    matchRows.forEach(row => {
+
+        row.classList.remove("match-test-tier");
+
+        const cells = row.querySelectorAll("td");
+        if (cells.length < 5) return;
+
+        cells.forEach(td => td.classList.remove("match-test-tier-cell"));
+
+        if (
+            row.classList.contains("bye-match") ||
+            row.classList.contains("technical-match")
+        ) {
+            return;
+        }
+
+        const team1 = normalizeText(
+            stripInlineColors(cells[2]?.textContent || "")
+        );
+
+        const team2 = normalizeText(
+            stripInlineColors(cells[5]?.textContent || "")
+        );
+
+        if (tierTeams.includes(team1) && tierTeams.includes(team2)) {
+
+            cells.forEach((td, index) => {
+                if (index === 1 || index === 2 || index === 5 || index === 6 || index === 7) return;
+
+                td.classList.add("match-test-tier-cell");
+            });
+
+        }
+
+    });
 }
 
 /**
@@ -4581,11 +4721,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const hideTeamsBtn = document.getElementById('hideTeamsBtn');
 const toggleRelegationBtn = document.getElementById('toggleRelegationBtn');
+const toggleTierHighlightBtn = document.getElementById('toggleTierHighlightBtn');
 
 if (hideTeamsBtn) {
     hideTeamsBtn.addEventListener('click', () => {
         document.body.classList.toggle('teams-hidden');
     });
+}
+
+// 🟪🟦 ПЕРЕКЛЮЧАТЕЛЬ TIER ПОДСВЕТКИ (С СОХРАНЕНИЕМ)
+
+let tierHighlightEnabled =
+    localStorage.getItem('tierHighlight') !== 'false';
+
+// применяем при загрузке
+document.body.classList.toggle(
+    'tier-highlight-disabled',
+    !tierHighlightEnabled
+);
+
+if (toggleTierHighlightBtn) {
+
+    toggleTierHighlightBtn.addEventListener('click', () => {
+
+        tierHighlightEnabled = !tierHighlightEnabled;
+
+        document.body.classList.toggle(
+            'tier-highlight-disabled',
+            !tierHighlightEnabled
+        );
+
+        localStorage.setItem(
+            'tierHighlight',
+            tierHighlightEnabled
+        );
+
+    });
+
 }
 
 // 🔴 ПЕРЕКЛЮЧАТЕЛЬ ПОДСВЕТКИ (С СОХРАНЕНИЕМ)

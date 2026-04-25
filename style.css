@@ -331,9 +331,8 @@ table {
     box-shadow: 0 2px 8px rgba(0,0,0,0.4);
     border-radius: 6px;
     overflow: hidden;
-}
-
-.schedule-section tbody tr {
+    position: relative;
+    z-index: 0;
     transition: 0.2s ease;
 }
 
@@ -729,9 +728,7 @@ body.teams-column-hidden td.team-cell.team-visible {
 .special-track-cell {
     position: relative;
     overflow: hidden;
-
     padding-right: 3.6em;
-    container-type: inline-size; /* ⬅️ КРИТИЧНО */
 }
 
 /* 📅 ГОД */
@@ -748,7 +745,7 @@ body.teams-column-hidden td.team-cell.team-visible {
     user-select: none;
 
     transition: opacity 0.15s ease;
-    z-index: 1;
+    z-index: 3;
 }
 
 /* 🎵 НАЗВАНИЕ */
@@ -782,10 +779,27 @@ body.teams-column-hidden td.team-cell.team-visible {
     z-index: 0;
 }
 
-/* контент поверх подсветки */
+.special-track-cell .track-title {
+    position: relative;
+    z-index: 2;
+}
+
 .special-track-cell > * {
     position: relative;
-    z-index: 1;
+    z-index: 3; /* 🔥 ВЫШЕ ВСЕХ row-подсветок */
+}
+
+#currentTourOutput tbody tr td.special-track-cell {
+    position: relative;
+}
+
+.special-track-cell .track-year {
+    position: absolute;
+
+    right: 10px;
+    bottom: 6px;
+
+    z-index: 5; /* 🔥 выше всего */
 }
 
     /* === Модал Форма и серия === */
@@ -1633,7 +1647,7 @@ body.teams-hidden .team-name {
    ЦВЕТ МЕНЯТЬ ЗДЕСЬ
 ========================== */
 .auto-relegation-33 {
-    background: rgba(255, 0, 0, 0.18);
+    background: #ff00002e;
 }
 
 /* 🔥 Подсветка матча без колонок Команда1 и Команда2 */
@@ -1645,7 +1659,7 @@ body.teams-hidden .team-name {
 /* места в столбце # в schedule*/
 #currentTourOutput tbody tr td.match-relegation-cell .cell-text {
     position: relative;
-    z-index: 6;
+    z-index: 8;
 }
 
 #currentTourOutput tbody tr td.match-relegation-cell::after {
@@ -2559,10 +2573,6 @@ button:hover:not(:disabled) {
 
     z-index: 0;
 }
-/* 🔥 важно */
-.schedule-section tbody tr::after {
-    z-index: 1;
-}
 
 /* ❌ УБРАТЬ Z-INDEX С ROW */
 .draw-match,
@@ -2596,7 +2606,7 @@ button:hover:not(:disabled) {
 }
 
 /* 🔵 НИЧЬЯ */
-.schedule-section tbody tr.draw-match::after {
+#currentTourOutput tbody tr.draw-match td::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -2605,11 +2615,11 @@ button:hover:not(:disabled) {
     box-shadow: inset 0 0 8px #0e80dd9d;
 
     pointer-events: none;
-    z-index: 1;
+    z-index: 2;
 }
 
 /* 🟢 TOTAL 4 */
-.schedule-section tbody tr.total4-match::after {
+#currentTourOutput tbody tr.total4-match td::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -2618,15 +2628,110 @@ button:hover:not(:disabled) {
     box-shadow: inset 0 0 8px rgba(255,255,255,0.25);
 
     pointer-events: none;
-    z-index: 1;
+    z-index: 2;
 }
 
-.schedule-section tbody tr.bye-match::after {
+/* BYE — самый верх */
+#currentTourOutput tbody tr.bye-match td::after {
     content: "";
     position: absolute;
     inset: 0;
 
     background: rgba(0,0,0,0.6);
 
-    z-index: 2;
+    pointer-events: none;
+    z-index: 4;
+}
+
+/* ==========================
+   🟪🟦 SPLIT TIER BUTTON
+========================== */
+
+.tier-split-btn {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+
+
+    font-weight: bold;
+    font-size: 18px;
+    color: #ffffff;
+
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+
+    justify-content: center;
+    align-items: center;
+
+    background: linear-gradient(
+        to right,
+        #8c00ffe6 50%,  /* 🟪 */
+        #0050ffe6 50%   /* 🟦 */
+    );
+
+    box-shadow:
+        inset 0 0 6px #ffffff33,
+        0 0 8px #00000099;
+
+    transition: transform 0.08s ease, filter 0.15s ease;
+}
+
+.tier-split-btn:hover {
+    filter: brightness(1.15);
+}
+
+.tier-split-btn:active {
+    transform: scale(0.94);
+}
+
+/* 🔥 БАЗА ДЛЯ ВСЕХ ЯЧЕЕК SCHEDULE */
+#currentTourOutput tbody tr td {
+    position: relative;
+    z-index: 0;
+}
+
+/* 🔥 ВСЁ СОДЕРЖИМОЕ TD ВСЕГДА ВЫШЕ ПОДСВЕТОК */
+#currentTourOutput tbody tr td > * {
+    position: relative;
+    z-index: 6;
+}
+
+/* 🔥 ПСЕВДОСЛОИ ВСЕГДА НИЖЕ */
+#currentTourOutput tbody tr td::after {
+    z-index: 3 !important;
+}
+
+/* 🔕 ОТКЛЮЧЕНИЕ TIER ПОДСВЕТКИ */
+body.tier-highlight-disabled 
+#currentTourOutput tbody tr td.match-chanson-cell::after,
+body.tier-highlight-disabled 
+#currentTourOutput tbody tr td.match-test-tier-cell::after {
+    opacity: 0;
+}
+
+/* 🟪 CHANSON TIER (5) */
+#currentTourOutput tbody tr td.match-chanson-cell::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+
+    background: #a600ff89;
+    box-shadow: inset 0 0 2px #0a2a66;
+
+    pointer-events: none;
+    z-index: 3;
+}
+
+/* 🟦 TEST TIER (6) */
+#currentTourOutput tbody tr td.match-test-tier-cell::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+
+    background: #0038c6d1;
+    box-shadow: inset 0 0 2px #0a2a66;
+
+    pointer-events: none;
+    z-index: 3;
 }
