@@ -913,7 +913,7 @@ body.teams-hidden .team-name {
     background-repeat: no-repeat;
     background-size: 100% 100%;
 
-    z-index: 3;               /* ПОД ТЕКСТОМ */
+    z-index: 7;               /* ПОД ТЕКСТОМ */
 
     pointer-events: none;
 }
@@ -2605,42 +2605,30 @@ button:hover:not(:disabled) {
     position: relative;
 }
 
-/* 🔵 НИЧЬЯ */
-#currentTourOutput tbody tr.draw-match td::after {
+.schedule-section tbody tr {
+    position: relative;
+}
+
+.schedule-section tbody tr::after {
     content: "";
     position: absolute;
     inset: 0;
+    pointer-events: none;
+    z-index: 1;
+}
 
+.schedule-section tbody tr.draw-match::after {
     background: #0e80ddb8;
     box-shadow: inset 0 0 8px #0e80dd9d;
-
-    pointer-events: none;
-    z-index: 2;
 }
 
-/* 🟢 TOTAL 4 */
-#currentTourOutput tbody tr.total4-match td::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-
+.schedule-section tbody tr.total4-match::after {
     background: rgba(0, 255, 38, 0.301);
-    box-shadow: inset 0 0 8px rgba(255,255,255,0.25);
-
-    pointer-events: none;
-    z-index: 2;
 }
 
-/* BYE — самый верх */
-#currentTourOutput tbody tr.bye-match td::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-
+.schedule-section tbody tr.bye-match::after {
     background: rgba(0,0,0,0.6);
-
-    pointer-events: none;
-    z-index: 4;
+    z-index: 2;
 }
 
 /* ==========================
@@ -2689,17 +2677,6 @@ button:hover:not(:disabled) {
 #currentTourOutput tbody tr td {
     position: relative;
     z-index: 0;
-}
-
-/* 🔥 ВСЁ СОДЕРЖИМОЕ TD ВСЕГДА ВЫШЕ ПОДСВЕТОК */
-#currentTourOutput tbody tr td > * {
-    position: relative;
-    z-index: 6;
-}
-
-/* 🔥 ПСЕВДОСЛОИ ВСЕГДА НИЖЕ */
-#currentTourOutput tbody tr td::after {
-    z-index: 3 !important;
 }
 
 /* 🔕 ОТКЛЮЧЕНИЕ TIER ПОДСВЕТКИ */
