@@ -964,6 +964,7 @@ for (const k in SPECIAL_TRACKS) {
     const trackData = SPECIAL_TRACKS[k];
     if (isSpecialTrack(trackKey, k)) {
         const colors = trackData.colors;
+
         row.style.background = buildSpecialBackground(colors);
         row.classList.add("special-track-row");
         break;
