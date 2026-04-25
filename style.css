@@ -2716,7 +2716,7 @@ body.tier-highlight-disabled
     position: absolute;
     inset: 0;
 
-    background: #a600ff89;
+    background: #7d3badd8;
     box-shadow: inset 0 0 2px #0a2a66;
 
     pointer-events: none;
@@ -2729,7 +2729,7 @@ body.tier-highlight-disabled
     position: absolute;
     inset: 0;
 
-    background: #0038c6d1;
+    background: #1f4198;
     box-shadow: inset 0 0 2px #0a2a66;
 
     pointer-events: none;
