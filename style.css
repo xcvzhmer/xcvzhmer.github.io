@@ -1300,7 +1300,7 @@ body.teams-hidden .team-name {
     position: absolute;
     top: 42px;
     left: 0;
-    z-index: 20;
+    z-index: 7;
 }
 
 /* Результат фильтра:
@@ -2562,19 +2562,6 @@ button:hover:not(:disabled) {
     z-index: 0;
 }
 
-/* SPECIAL */
-.schedule-section tbody tr.special-track-row::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-
-    background: var(--special-bg);
-    opacity: 0.3;
-    pointer-events: none;
-
-    z-index: 0;
-}
-
 /* ❌ УБРАТЬ Z-INDEX С ROW */
 .draw-match,
 .total4-match {
@@ -2608,28 +2595,6 @@ button:hover:not(:disabled) {
 
 .schedule-section tbody tr {
     position: relative;
-}
-
-.schedule-section tbody tr::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 1;
-}
-
-.schedule-section tbody tr.draw-match::after {
-    background: #0e80ddb8;
-    box-shadow: inset 0 0 8px #0e80dd9d;
-}
-
-.schedule-section tbody tr.total4-match::after {
-    background: rgba(0, 255, 38, 0.301);
-}
-
-.schedule-section tbody tr.bye-match::after {
-    background: rgba(0,0,0,0.6);
-    z-index: 2;
 }
 
 /* ==========================
@@ -2693,7 +2658,7 @@ body.tier-highlight-disabled
     position: absolute;
     inset: 0;
 
-    background: #7d3badd8;
+    background: #772faa;
     box-shadow: inset 0 0 2px #0a2a66;
 
     pointer-events: none;
@@ -2706,18 +2671,18 @@ body.tier-highlight-disabled
     position: absolute;
     inset: 0;
 
-    background: #1f4198;
+    background: #254db3;
     box-shadow: inset 0 0 2px #0a2a66;
 
     pointer-events: none;
     z-index: 3;
 }
 
-
-
+/* новая база */
 
 #currentTourOutput tbody tr {
     position: relative;
+    z-index: 0; /* 🔥 создаёт свой stacking context */
 }
 
 #currentTourOutput tbody tr td {
@@ -2725,29 +2690,39 @@ body.tier-highlight-disabled
     z-index: 0;
 }
 
-#currentTourOutput tbody tr::after {
+/* 🔵 ничья */
+#currentTourOutput tbody tr.draw-match td::after {
     content: "";
     position: absolute;
     inset: 0;
+    background: #0e80ddb8;
+    box-shadow: inset 0 0 8px #0e80dd9d;
     pointer-events: none;
     z-index: 2;
 }
 
-/* 🔵 ничья */
-#currentTourOutput tbody tr.draw-match::after {
-    background: #0e80ddb8;
-    box-shadow: inset 0 0 8px #0e80dd9d;
-}
-
 /* 🟢 total 4 */
-#currentTourOutput tbody tr.total4-match::after {
-    background: rgba(0, 255, 38, 0.301);
+#currentTourOutput tbody tr.total4-match td::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #00ff264d;
+    pointer-events: none;
+    z-index: 2;
 }
 
 /* ⚫ bye */
-#currentTourOutput tbody tr.bye-match::after {
-    background: rgba(0,0,0,0.6);
+#currentTourOutput tbody tr.bye-match td::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #00000099;
+    pointer-events: none;
     z-index: 3;
+}
+
+#currentTourOutput tbody tr:hover td.match-relegation-cell::after {
+    background: #ff000050;
 }
 
 .schedule-section tbody tr.special-track-row::before {
@@ -2760,37 +2735,6 @@ body.tier-highlight-disabled
     z-index: 1;
 }
 
-#currentTourOutput tbody tr td::after {
-    z-index: 3;
-}
-
-/* 🟪 */
-.match-chanson-cell::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: #a600ff89;
-    pointer-events: none;
-}
-
-/* 🟦 */
-.match-test-tier-cell::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: #0038c6d1;
-    pointer-events: none;
-}
-
-/* 🔴 */
-.match-relegation-cell::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: #ff000040;
-    pointer-events: none;
-}
-
 .color-square {
     position: absolute;
     top: 0;
@@ -2799,28 +2743,28 @@ body.tier-highlight-disabled
     z-index: 4;
 }
 
-#currentTourOutput tbody tr td {
+#currentTourOutput input {
+    position: relative;
     z-index: 5;
+}
+
+#currentTourOutput tbody tr td .cell-text {
+    position: relative;
+    z-index: 6; /* 🔥 выше ВСЕХ td::after */
+}
+
+#currentTourOutput tbody tr td input {
+    position: relative;
+    z-index: 8;
+}
+
+#currentTourOutput tbody tr td {
+    z-index: 0;
 }
 
 .special-track-cell .track-year {
     position: absolute;
     right: 10px;
     bottom: 6px;
-    z-index: 6;
-}
-
-#currentTourOutput input {
-    position: relative;
-    z-index: 10;
-}
-
-#currentTourOutput tbody tr td .cell-text {
-    position: relative;
-    z-index: 7; /* 🔥 выше ВСЕХ td::after */
-}
-
-#currentTourOutput tbody tr td input {
-    position: relative;
-    z-index: 8;
+    z-index: 0;
 }
