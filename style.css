@@ -745,7 +745,7 @@ body.teams-column-hidden td.team-cell.team-visible {
     user-select: none;
 
     transition: opacity 0.15s ease;
-    z-index: 3;
+    z-index: 0;
 }
 
 /* 🎵 НАЗВАНИЕ */
@@ -913,7 +913,7 @@ body.teams-hidden .team-name {
     background-repeat: no-repeat;
     background-size: 100% 100%;
 
-    z-index: 7;               /* ПОД ТЕКСТОМ */
+    z-index: 0;               /* ПОД ТЕКСТОМ */
 
     pointer-events: none;
 }
@@ -1156,7 +1156,8 @@ body.teams-hidden .team-name {
 .tour-visual-top {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 3px;
+    margin-bottom: 12px; /* 🔥 расстояние вниз */
     width: 100%;
 }
 
@@ -1659,7 +1660,7 @@ body.teams-hidden .team-name {
 /* места в столбце # в schedule*/
 #currentTourOutput tbody tr td.match-relegation-cell .cell-text {
     position: relative;
-    z-index: 8;
+    z-index: 20
 }
 
 #currentTourOutput tbody tr td.match-relegation-cell::after {
@@ -1671,7 +1672,7 @@ body.teams-hidden .team-name {
     box-shadow: inset 0 0 1px #522424;
 
     pointer-events: none;
-    z-index: 5; /* 🔥 ПОДНЯЛИ */
+    z-index: 6; /* 🔥 ПОДНЯЛИ */
 
     transition: opacity 0.25s ease;
 }
@@ -2640,7 +2641,6 @@ button:hover:not(:disabled) {
     height: 36px;
     display: inline-flex;
 
-
     font-weight: bold;
     font-size: 18px;
     color: #ffffff;
@@ -2711,4 +2711,116 @@ body.tier-highlight-disabled
 
     pointer-events: none;
     z-index: 3;
+}
+
+
+
+
+#currentTourOutput tbody tr {
+    position: relative;
+}
+
+#currentTourOutput tbody tr td {
+    position: relative;
+    z-index: 0;
+}
+
+#currentTourOutput tbody tr::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* 🔵 ничья */
+#currentTourOutput tbody tr.draw-match::after {
+    background: #0e80ddb8;
+    box-shadow: inset 0 0 8px #0e80dd9d;
+}
+
+/* 🟢 total 4 */
+#currentTourOutput tbody tr.total4-match::after {
+    background: rgba(0, 255, 38, 0.301);
+}
+
+/* ⚫ bye */
+#currentTourOutput tbody tr.bye-match::after {
+    background: rgba(0,0,0,0.6);
+    z-index: 3;
+}
+
+.schedule-section tbody tr.special-track-row::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--special-bg);
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: 1;
+}
+
+#currentTourOutput tbody tr td::after {
+    z-index: 3;
+}
+
+/* 🟪 */
+.match-chanson-cell::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #a600ff89;
+    pointer-events: none;
+}
+
+/* 🟦 */
+.match-test-tier-cell::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #0038c6d1;
+    pointer-events: none;
+}
+
+/* 🔴 */
+.match-relegation-cell::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #ff000040;
+    pointer-events: none;
+}
+
+.color-square {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 31px;
+    z-index: 4;
+}
+
+#currentTourOutput tbody tr td {
+    z-index: 5;
+}
+
+.special-track-cell .track-year {
+    position: absolute;
+    right: 10px;
+    bottom: 6px;
+    z-index: 6;
+}
+
+#currentTourOutput input {
+    position: relative;
+    z-index: 10;
+}
+
+#currentTourOutput tbody tr td .cell-text {
+    position: relative;
+    z-index: 7; /* 🔥 выше ВСЕХ td::after */
+}
+
+#currentTourOutput tbody tr td input {
+    position: relative;
+    z-index: 8;
 }
