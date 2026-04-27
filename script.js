@@ -1790,7 +1790,7 @@ function sanitizeScoreInput(e) {
     const input = e.target;
 
     // 🔹 оставляем только цифры
-    let val = input.value.replace(/\D/g, '');
+    let val = input.value.replace(/\D/g, '0');
 
     // ❗ ВАЖНО: не подставляем 0 если пусто
     input.value = val;

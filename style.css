@@ -776,30 +776,16 @@ body.teams-column-hidden td.team-cell.team-visible {
     background-image: inherit;
     opacity: var(--special-opacity, 0.3);
     pointer-events: none;
-    z-index: 0;
+    z-index: 21;
 }
 
 .special-track-cell .track-title {
     position: relative;
-    z-index: 2;
-}
-
-.special-track-cell > * {
-    position: relative;
-    z-index: 3; /* 🔥 ВЫШЕ ВСЕХ row-подсветок */
+    z-index: 6;
 }
 
 #currentTourOutput tbody tr td.special-track-cell {
     position: relative;
-}
-
-.special-track-cell .track-year {
-    position: absolute;
-
-    right: 10px;
-    bottom: 6px;
-
-    z-index: 5; /* 🔥 выше всего */
 }
 
     /* === Модал Форма и серия === */
@@ -2544,12 +2530,6 @@ button:hover:not(:disabled) {
     z-index: 0;
 }
 
-/* 🔥 ЗОНЫ (середина) */
-.standings-section tbody tr.relegation::after,
-.standings-section tbody tr.relegation-playoff::after {
-    z-index: 1;
-}
-
 /* 🔥 BYE / TECH (САМЫЙ ВЕРХ) */
 .standings-section tbody tr.bye-match {
     position: relative;
@@ -2638,56 +2618,36 @@ button:hover:not(:disabled) {
     transform: scale(0.94);
 }
 
-/* 🔥 БАЗА ДЛЯ ВСЕХ ЯЧЕЕК SCHEDULE */
+/* 🔥 БАЗА */
+#currentTourOutput tbody tr {
+    position: relative;
+    z-index: 0;
+}
+
 #currentTourOutput tbody tr td {
     position: relative;
     z-index: 0;
 }
 
-/* 🔕 ОТКЛЮЧЕНИЕ TIER ПОДСВЕТКИ */
-body.tier-highlight-disabled 
-#currentTourOutput tbody tr td.match-chanson-cell::after,
-body.tier-highlight-disabled 
-#currentTourOutput tbody tr td.match-test-tier-cell::after {
-    opacity: 0;
-}
-
-/* 🟪 CHANSON TIER (5) */
+/* 🟪🟦 TIER */
 #currentTourOutput tbody tr td.match-chanson-cell::after {
     content: "";
     position: absolute;
     inset: 0;
-
     background: #772faa;
     box-shadow: inset 0 0 2px #0a2a66;
-
     pointer-events: none;
     z-index: 3;
 }
 
-/* 🟦 TEST TIER (6) */
 #currentTourOutput tbody tr td.match-test-tier-cell::after {
     content: "";
     position: absolute;
     inset: 0;
-
     background: #254db3;
     box-shadow: inset 0 0 2px #0a2a66;
-
     pointer-events: none;
     z-index: 3;
-}
-
-/* новая база */
-
-#currentTourOutput tbody tr {
-    position: relative;
-    z-index: 0; /* 🔥 создаёт свой stacking context */
-}
-
-#currentTourOutput tbody tr td {
-    position: relative;
-    z-index: 0;
 }
 
 /* 🔵 ничья */
@@ -2695,20 +2655,9 @@ body.tier-highlight-disabled
     content: "";
     position: absolute;
     inset: 0;
-    background: #0e80ddb8;
-    box-shadow: inset 0 0 8px #0e80dd9d;
+    background: #00ff2653;
     pointer-events: none;
-    z-index: 2;
-}
-
-/* 🟢 total 4 */
-#currentTourOutput tbody tr.total4-match td::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: #00ff264d;
-    pointer-events: none;
-    z-index: 2;
+    z-index: 1;
 }
 
 /* ⚫ bye */
@@ -2721,20 +2670,13 @@ body.tier-highlight-disabled
     z-index: 3;
 }
 
+/* 🔴 hover (ТОЛЬКО НУЖНЫЕ ЯЧЕЙКИ) */
 #currentTourOutput tbody tr:hover td.match-relegation-cell::after {
     background: #ff000050;
+    z-index: 5; /* 🔥 ВАЖНО */
 }
 
-.schedule-section tbody tr.special-track-row::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: var(--special-bg);
-    opacity: 0.3;
-    pointer-events: none;
-    z-index: 1;
-}
-
+/* 🌈 цветные полосы */
 .color-square {
     position: absolute;
     top: 0;
@@ -2743,28 +2685,19 @@ body.tier-highlight-disabled
     z-index: 4;
 }
 
-#currentTourOutput input {
-    position: relative;
-    z-index: 5;
-}
-
+/* 📝 текст */
 #currentTourOutput tbody tr td .cell-text {
     position: relative;
-    z-index: 6; /* 🔥 выше ВСЕХ td::after */
+    z-index: 6;
 }
 
+/* 🔢 input */
 #currentTourOutput tbody tr td input {
     position: relative;
-    z-index: 8;
+    z-index: 7;
 }
 
-#currentTourOutput tbody tr td {
-    z-index: 0;
-}
-
-.special-track-cell .track-year {
-    position: absolute;
-    right: 10px;
-    bottom: 6px;
-    z-index: 0;
+#currentTourOutput tbody tr td button {
+    position: relative;
+    z-index: 7;
 }
