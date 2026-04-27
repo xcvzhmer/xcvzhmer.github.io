@@ -1790,7 +1790,25 @@ function sanitizeScoreInput(e) {
     const input = e.target;
 
     // 🔹 оставляем только цифры
-    let val = input.value.replace(/\D/g, '0');
+let raw = input.value;
+
+// есть ли хоть одна цифра
+const hasDigit = /\d/.test(raw);
+
+let val;
+
+if (hasDigit) {
+    // оставляем только цифры
+    val = raw.replace(/\D/g, '');
+} else {
+    // если вообще нет цифр → один ноль
+    val = raw === '' ? '' : '0';
+}
+
+// максимум 3 цифры
+val = val.slice(0, 3);
+
+input.value = val;
 
     // ❗ ВАЖНО: не подставляем 0 если пусто
     input.value = val;
