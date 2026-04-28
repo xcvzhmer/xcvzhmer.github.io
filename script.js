@@ -1784,33 +1784,27 @@ const FORBIDDEN_FOUR_TRACKS = [
     "9mice – famous"
 ];
 
-// КАЖДАЯ буква в поле ввода счёта это 0
+// КАЖДАЯ буква = 0, максимум 3 цифры + авто 5-x
 
 function sanitizeScoreInput(e) {
     const input = e.target;
 
-    // 🔹 оставляем только цифры
-let raw = input.value;
+    // =========================
+    // 🔹 ЧИСТКА
+    // =========================
+    let raw = input.value;
 
-// есть ли хоть одна цифра
-const hasDigit = /\d/.test(raw);
+    const hasDigit = /\d/.test(raw);
 
-let val;
+    let val;
 
-if (hasDigit) {
-    // оставляем только цифры
-    val = raw.replace(/\D/g, '');
-} else {
-    // если вообще нет цифр → один ноль
-    val = raw === '' ? '' : '0';
-}
+    if (hasDigit) {
+        val = raw.replace(/\D/g, '');
+    } else {
+        val = raw === '' ? '' : '0';
+    }
 
-// максимум 3 цифры
-val = val.slice(0, 3);
-
-input.value = val;
-
-    // ❗ ВАЖНО: не подставляем 0 если пусто
+    val = val.slice(0, 3);
     input.value = val;
 
     const row = input.closest('tr');
@@ -1821,60 +1815,96 @@ input.value = val;
 
     if (!inputA || !inputB) return;
 
-    // если одно из полей пустое — не лезем
-    if (inputA.value === '' || inputB.value === '') return;
+    const teamSpans = row.querySelectorAll('.team-name');
+
+    let teamA = stripInlineColors(teamSpans[0]?.textContent || '');
+    let teamB = stripInlineColors(teamSpans[1]?.textContent || '');
+
+    const isVacantA = /^вакантное место\s*-\s*\d+$/i.test(teamA.toLowerCase());
+    const isVacantB = /^вакантное место\s*-\s*\d+$/i.test(teamB.toLowerCase());
 
     let a = parseInt(inputA.value);
     let b = parseInt(inputB.value);
 
-    // 🔥 команды
-    const teamSpans = row.querySelectorAll('.team-name');
-    if (teamSpans.length < 2) return;
-
-    const teamA = stripInlineColors(teamSpans[0].textContent);
-    const teamB = stripInlineColors(teamSpans[1].textContent);
-
-    const favA = FORBIDDEN_FOUR_TRACKS.some(t => teamA.includes(t));
-    const favB = FORBIDDEN_FOUR_TRACKS.some(t => teamB.includes(t));
-
-    // ❗ если вообще нет фаворита — ВЫХОД
-    if (!favA && !favB) return;
-
     // =========================
-    // 🔥 ПРАВИЛА
+    // 🔥 ВАКАНТ
     // =========================
+    if (isVacantA && !isVacantB) {
+        a = 0;
+        b = 3;
+    } else if (isVacantB && !isVacantA) {
+        a = 3;
+        b = 0;
+    } else {
+        // =========================
+        // 🔥 ОБЫЧНАЯ ЛОГИКА
+        // =========================
 
-    // фаворит слева
-    if (favA && a > b) {
-
-        // ❌ 4:0 → 3:0
-        if (a === 4 && b === 0) {
-            a = 3;
+        if (input === inputA && !isNaN(a)) {
+            a = Math.max(0, Math.min(5, a));
+            b = 5 - a;
         }
 
-        // ❌ 3:1 → 4:1
-        if (a === 3 && b === 1) {
-            a = 4;
+        if (input === inputB && !isNaN(b)) {
+            b = Math.max(0, Math.min(5, b));
+            a = 5 - b;
         }
     }
 
-    // фаворит справа
-    if (favB && b > a) {
+    // =========================
+    // 🔥 СИНХРОНИЗАЦИЯ
+    // =========================
+    if (!isNaN(a)) inputA.value = a;
+    if (!isNaN(b)) inputB.value = b;
+// ❗ принудительно триггерим change для правого поля
+    if (input === inputA) {
+    inputB.dispatchEvent(new Event('change', { bubbles: true }));
+}
+    if (input === inputB) {
+    inputA.dispatchEvent(new Event('change', { bubbles: true }));
+}
 
-        // ❌ 0:4 → 0:3
-        if (b === 4 && a === 0) {
-            b = 3;
-        }
+    // =========================
+    // 🔥 СОХРАНЕНИЕ В ДАННЫЕ
+    // =========================
+    const matchId = input.dataset.matchId;
 
-        // ❌ 1:3 → 0:3
-        if (b === 3 && a === 1) {
-            a = 0;
+    if (matchId) {
+        for (const tour of tournamentData.schedule) {
+            if (!tour) continue;
+
+            const match = tour.find(m => m.id === matchId);
+            if (match) {
+                match.score1 = isNaN(a) ? null : a;
+                match.score2 = isNaN(b) ? null : b;
+                break;
+            }
         }
     }
 
-    // 🔥 записываем обратно
-    inputA.value = a;
-    inputB.value = b;
+    autoFocusNextMatch(input);
+}
+
+function autoFocusNextMatch(currentInput) {
+    if (!currentInput || currentInput.value === '') return;
+
+    let row = currentInput.closest('tr');
+    if (!row) return;
+
+    let nextRow = row.nextElementSibling;
+
+    while (nextRow) {
+        const nextInput = nextRow.querySelector('input[data-team="team1"]');
+
+        // пропускаем bye / disabled
+        if (nextInput && !nextInput.disabled) {
+            nextInput.focus();
+            nextInput.select();
+            return;
+        }
+
+        nextRow = nextRow.nextElementSibling;
+    }
 }
 
 /**
@@ -1893,7 +1923,9 @@ async function displayTour(tourIndex) {
         tournamentData.schedule = [];
     }
 
-    tournamentData.schedule[tourIndex] = currentTourMatches; // Сохраняем в памяти
+  if (!tournamentData.schedule[tourIndex]) {
+    tournamentData.schedule[tourIndex] = currentTourMatches;
+} // Сохраняем в памяти
 
     // Проверка статистики тура (количество незаполненных матчей)
     let unfilledScores = 0;
@@ -2011,8 +2043,10 @@ applyInlineColorSquare(colorSquare1, rawTeam1);
         score1Input.classList.add('score-input');
         score1Input.autocomplete = 'off';
         score1Input.maxLength = '3';
-    score1Input.addEventListener('input', sanitizeScoreInput);
-    score1Input.addEventListener('change', handleScoreInputChange);
+score1Input.addEventListener('input', sanitizeScoreInput);
+score1Input.addEventListener('change', handleScoreInputChange);
+score1Input.addEventListener('keydown', handleScoreKeys);
+score1Input.addEventListener('keydown', handleBackspaceNavigation);
         score1Cell.appendChild(score1Input);
 
         // Счет Команды 2 (input)
@@ -2027,6 +2061,7 @@ applyInlineColorSquare(colorSquare1, rawTeam1);
         score2Input.dataset.team = 'team2';
         score2Input.dataset.matchId = match.id;
         score2Input.classList.add('score-input');
+    score2Input.tabIndex = -1; // ❌ нельзя фокусить TAB
         score2Input.autocomplete = 'off';
         score2Input.maxLength = '3';
     score2Input.addEventListener('input', sanitizeScoreInput);
@@ -2116,6 +2151,69 @@ applyAutoChansonTier();
 applyAutoTestTournamentTier();
 
 // ⚠️ initBestMatchesUI вызывается ВНУТРИ renderBestMatchesForTour
+}
+
+function handleScoreKeys(e) {
+    const input = e.target;
+
+    if (input.dataset.team !== 'team1') return;
+
+    // =========================
+    // 🔼🔽 СТРЕЛКИ
+    // =========================
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+
+        let val = parseInt(input.value);
+        if (isNaN(val)) val = 0;
+
+        if (e.key === 'ArrowUp') val = Math.min(5, val + 1);
+        if (e.key === 'ArrowDown') val = Math.max(0, val - 1);
+
+        input.value = val;
+
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        return;
+    }
+
+    // =========================
+    // ⏎ ENTER → следующий матч
+    // =========================
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        autoFocusNextMatch(input);
+    }
+}
+
+/* ==========================
+   🎯 АВТО-ВВОД
+========================== */
+
+function handleScoreArrows(e) {
+    const input = e.target;
+
+    if (input.dataset.team !== 'team1') return;
+
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+
+    e.preventDefault();
+
+    let val = parseInt(input.value);
+
+    if (isNaN(val)) val = 0;
+
+    if (e.key === 'ArrowUp') {
+        val = Math.min(5, val + 1);
+    }
+
+    if (e.key === 'ArrowDown') {
+        val = Math.max(0, val - 1);
+    }
+
+    input.value = val;
+
+    // 🔥 триггерим твою основную логику
+    input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 /* ==========================
@@ -2671,23 +2769,27 @@ function handleScoreInputChange(event) {
     const input = event.target;
     const matchId = input.dataset.matchId;
     const team = input.dataset.team;
-    const value = parseInt(input.value);
+    const row = input.closest('tr');
+const score1Input = row.querySelector('input[data-team="team1"]');
+const score2Input = row.querySelector('input[data-team="team2"]');
 
-    // Очищаем, если введено некорректное значение
-    if (isNaN(value) || value < 0) {
-        input.value = '';
-        // Обновляем значение в памяти и DB
-        updateMatchScoreInMemoryAndDB(matchId, team, null);
-        return;
-    }
+// ===== ВСТАВКА (замена логики сохранения) =====
+const val1 = score1Input.value === '' ? null : parseInt(score1Input.value);
+const val2 = score2Input.value === '' ? null : parseInt(score2Input.value);
 
-    // Обновляем значение в памяти и DB
-    updateMatchScoreInMemoryAndDB(matchId, team, value);
+// если некорректный ввод — чистим только текущий
+if (
+    (input === score1Input && (val1 === null || val1 < 0)) ||
+    (input === score2Input && (val2 === null || val2 < 0))
+) {
+    input.value = '';
+}
+
+// 🔥 ВСЕГДА сохраняем ОБА значения
+updateMatchScoreInMemoryAndDB(matchId, 'team1', val1);
+updateMatchScoreInMemoryAndDB(matchId, 'team2', val2);
 
     // Проверяем, введены ли оба счета, и если да, активируем кнопку "Сохранить"
-    const row = input.closest('tr');
-    const score1Input = row.querySelector('input[data-team="team1"]');
-    const score2Input = row.querySelector('input[data-team="team2"]');
     const saveBtn = row.querySelector('button');
 
     if (score1Input && score2Input && saveBtn) {
@@ -3183,10 +3285,73 @@ async function handleSaveOrUpdateScore(event) {
             return;
         }
 
-        if (match.score1 === null || match.score2 === null) {
-            alert('Пожалуйста, введите счет для обеих команд.');
-            return;
-        }
+        // 🔥 НОВЫЙ БЛОК — СИНХРОНИЗАЦИЯ С INPUT
+const row = document.querySelector(`[data-match-id="${matchId}"]`);
+if (!row) return;
+
+const inputs = row.querySelectorAll('.score-input');
+const inputA = inputs[0];
+const inputB = inputs[1];
+
+if (!inputA || !inputB) return;
+
+// =========================
+// 🔥 ЧИТАЕМ ВВОД
+// =========================
+let a = parseInt(inputA.value);
+let b = parseInt(inputB.value);
+
+// =========================
+// 🔥 ВАКАНТНЫЕ МЕСТА
+// =========================
+const teamSpans = row.querySelectorAll('.team-name');
+
+let teamA = stripInlineColors(teamSpans[0]?.textContent || '');
+let teamB = stripInlineColors(teamSpans[1]?.textContent || '');
+
+const isVacantA = /^вакантное место\s*-\s*\d+$/i.test(teamA.toLowerCase());
+const isVacantB = /^вакантное место\s*-\s*\d+$/i.test(teamB.toLowerCase());
+
+if (isVacantA && !isVacantB) {
+    a = 0;
+    b = 3;
+} else if (isVacantB && !isVacantA) {
+    a = 3;
+    b = 0;
+} else {
+    if (isNaN(a) && isNaN(b)) {
+    alert('Введите счёт');
+    return;
+}
+
+// если введён только левый → автозеркало
+if (!isNaN(a) && isNaN(b)) {
+    a = Math.max(0, Math.min(5, a));
+    b = 5 - a;
+}
+
+// если введён только правый → автозеркало
+else if (isNaN(a) && !isNaN(b)) {
+    b = Math.max(0, Math.min(5, b));
+    a = 5 - b;
+}
+
+// если оба введены → просто нормализуем
+else {
+    a = Math.max(0, Math.min(5, a));
+    b = Math.max(0, Math.min(5, b));
+}
+}
+
+// =========================
+// 🔥 СОХРАНЯЕМ В ДАННЫЕ
+// =========================
+match.score1 = a;
+match.score2 = b;
+
+// 🔥 синхронизируем UI
+inputA.value = a;
+inputB.value = b;
 
         // 🔥 ПЕРЕСЧЁТ ТАБЛИЦЫ
         await withStableScroll(async () => {
@@ -3206,13 +3371,28 @@ async function handleSaveOrUpdateScore(event) {
    без displаyTour()
 ================================= */
 
-const row = document.querySelector(`[data-match-id="${matchId}"]`);
-
 if (row) {
 
     const scoreInputs = row.querySelectorAll('.score-input');
-    const score1 = parseInt(scoreInputs[0].value);
-    const score2 = parseInt(scoreInputs[1].value);
+let score1 = parseInt(scoreInputs[0].value);
+let score2;
+
+// 🔥 ЕСЛИ ПРАВЫЙ ПУСТОЙ — ДОСЧИТЫВАЕМ
+if (isNaN(score1)) {
+    alert('Введите счёт');
+    return;
+}
+
+score1 = Math.max(0, Math.min(5, score1));
+score2 = 5 - score1;
+
+// 🔥 ПИШЕМ В МОДЕЛЬ (ЭТО ТЫ НЕ ДЕЛАЛ)
+match.score1 = score1;
+match.score2 = score2;
+
+// 🔥 СИНХРОНИЗАЦИЯ UI
+scoreInputs[0].value = score1;
+scoreInputs[1].value = score2;
 
     // убираем старые классы
     row.classList.remove('draw-match', 'total4-match', 'draw-row', 'total4-row');
@@ -8117,6 +8297,43 @@ function initStandingsArtistFilterT9() {
             suggestions.innerHTML = '';
         }
     });
+}
+
+function handleBackspaceNavigation(e) {
+    const input = e.target;
+
+    if (input.dataset.team !== 'team1') return;
+    if (e.key !== 'Backspace') return;
+
+    // если есть что стирать — пусть браузер стирает
+    if (input.value !== '') return;
+
+    e.preventDefault();
+
+    let row = input.closest('tr');
+    if (!row) return;
+
+    let prevRow = row.previousElementSibling;
+
+    while (prevRow) {
+        const prevInput = prevRow.querySelector('input[data-team="team1"]');
+
+        // пропускаем bye
+        if (prevInput && !prevInput.disabled) {
+
+            prevInput.focus();
+
+            // 🔥 очищаем его
+            prevInput.value = '';
+
+            const prevInputB = prevRow.querySelector('input[data-team="team2"]');
+            if (prevInputB) prevInputB.value = '';
+
+            return;
+        }
+
+        prevRow = prevRow.previousElementSibling;
+    }
 }
 
 // --- Конец скрипта ---
