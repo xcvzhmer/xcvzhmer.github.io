@@ -1804,9 +1804,14 @@ function sanitizeScoreInput(e) {
         val = raw === '' ? '' : '0';
     }
 
+    // максимум 3 цифры
     val = val.slice(0, 3);
+
     input.value = val;
 
+    // =========================
+    // 🔥 ROW / INPUTS
+    // =========================
     const row = input.closest('tr');
     if (!row) return;
 
@@ -1815,54 +1820,91 @@ function sanitizeScoreInput(e) {
 
     if (!inputA || !inputB) return;
 
+    // =========================
+    // 🔥 КОМАНДЫ
+    // =========================
     const teamSpans = row.querySelectorAll('.team-name');
 
     let teamA = stripInlineColors(teamSpans[0]?.textContent || '');
     let teamB = stripInlineColors(teamSpans[1]?.textContent || '');
 
     const isVacantA = /^вакантное место\s*-\s*\d+$/i.test(teamA.toLowerCase());
+
     const isVacantB = /^вакантное место\s*-\s*\d+$/i.test(teamB.toLowerCase());
 
+    // =========================
+    // 🔥 ТЕКУЩИЕ ЗНАЧЕНИЯ
+    // =========================
     let a = parseInt(inputA.value);
     let b = parseInt(inputB.value);
 
+// =========================
+// 🔥 СПЕЦ-ТУРЫ (ТОТАЛ 14)
+// =========================
+const tourIndex = Number(row.dataset.tourIndex);
+
+// первый и последний тур
+const isSpecial14Tour =
+    tourIndex === 0 ||
+    tourIndex === tournamentData.totalTours - 1;
+
+// лимит тотала
+const MAX_TOTAL = isSpecial14Tour ? 14 : 5;
+
     // =========================
-    // 🔥 ВАКАНТ
+    // 🔥 ВАКАНТНЫЕ МЕСТА
     // =========================
     if (isVacantA && !isVacantB) {
+
         a = 0;
-        b = 3;
+        b = isSpecial14Tour ? 14 : 3;
+
     } else if (isVacantB && !isVacantA) {
-        a = 3;
+
+        a = isSpecial14Tour ? 14 : 3;
         b = 0;
+
     } else {
+
         // =========================
         // 🔥 ОБЫЧНАЯ ЛОГИКА
         // =========================
 
+        // ввод слева
         if (input === inputA && !isNaN(a)) {
-            a = Math.max(0, Math.min(5, a));
-            b = 5 - a;
+
+            a = Math.max(0, Math.min(MAX_TOTAL, a));
+            b = MAX_TOTAL - a;
         }
 
+        // ввод справа
         if (input === inputB && !isNaN(b)) {
-            b = Math.max(0, Math.min(5, b));
-            a = 5 - b;
+
+            b = Math.max(0, Math.min(MAX_TOTAL, b));
+            a = MAX_TOTAL - b;
         }
     }
 
     // =========================
-    // 🔥 СИНХРОНИЗАЦИЯ
+    // 🔥 СИНХРОНИЗАЦИЯ INPUT
     // =========================
-    if (!isNaN(a)) inputA.value = a;
-    if (!isNaN(b)) inputB.value = b;
-// ❗ принудительно триггерим change для правого поля
+    inputA.value = isNaN(a) ? '' : a;
+    inputB.value = isNaN(b) ? '' : b;
+
+    // =========================
+    // 🔥 CHANGE EVENTS
+    // =========================
     if (input === inputA) {
-    inputB.dispatchEvent(new Event('change', { bubbles: true }));
-}
+        inputB.dispatchEvent(
+            new Event('change', { bubbles: true })
+        );
+    }
+
     if (input === inputB) {
-    inputA.dispatchEvent(new Event('change', { bubbles: true }));
-}
+        inputA.dispatchEvent(
+            new Event('change', { bubbles: true })
+        );
+    }
 
     // =========================
     // 🔥 СОХРАНЕНИЕ В ДАННЫЕ
@@ -1870,18 +1912,28 @@ function sanitizeScoreInput(e) {
     const matchId = input.dataset.matchId;
 
     if (matchId) {
-        for (const tour of tournamentData.schedule) {
-            if (!tour) continue;
 
-            const match = tour.find(m => m.id === matchId);
+        for (const tourMatches of tournamentData.schedule) {
+
+            if (!tourMatches) continue;
+
+            const match = tourMatches.find(
+                m => m.id === matchId
+            );
+
             if (match) {
+
                 match.score1 = isNaN(a) ? null : a;
                 match.score2 = isNaN(b) ? null : b;
+
                 break;
             }
         }
     }
 
+    // =========================
+    // 🚀 АВТО-ПЕРЕХОД
+    // =========================
     autoFocusNextMatch(input);
 }
 
@@ -1973,7 +2025,10 @@ currentTourMatches.forEach((match, matchIndex) => {
     hasMatches = true; // 🔥 ВАЖНО
 
     const row = tbody.insertRow();
-        row.dataset.matchId = match.id; // Добавляем ID матча для удобства
+    row.dataset.matchId = match.id; // Добавляем ID матча для удобства
+
+    // 🔥 НОВОЕ
+    row.dataset.tourIndex = tourIndex;
 
         // Класс для BYE матчей (визуально)
         if (match.isBye) {
