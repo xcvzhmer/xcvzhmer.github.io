@@ -2761,7 +2761,7 @@ applyInlineColorSquare(colorSquare2, match.team2);
     };
 }
 
-/**
+/** миражи
  * Обработчик изменения значения в полях ввода счета.
  * @param {Event} event - Событие изменения.
  */
@@ -3319,9 +3319,10 @@ if (isVacantA && !isVacantB) {
     a = 3;
     b = 0;
 } else {
-    if (isNaN(a) && isNaN(b)) {
-    alert('Введите счёт');
-    return;
+// ===== ВСТАВКА =====
+if (isNaN(a) && isNaN(b)) {
+    a = null;
+    b = null;
 }
 
 // если введён только левый → автозеркало
@@ -3379,9 +3380,9 @@ let score2;
 
 // 🔥 ЕСЛИ ПРАВЫЙ ПУСТОЙ — ДОСЧИТЫВАЕМ
 if (isNaN(score1)) {
-    alert('Введите счёт');
-    return;
+    score1 = null;
 }
+
 
 score1 = Math.max(0, Math.min(5, score1));
 score2 = 5 - score1;
@@ -8316,23 +8317,42 @@ function handleBackspaceNavigation(e) {
     let prevRow = row.previousElementSibling;
 
     while (prevRow) {
-        const prevInput = prevRow.querySelector('input[data-team="team1"]');
 
-        // пропускаем bye
-        if (prevInput && !prevInput.disabled) {
+    const prevInput = prevRow.querySelector('input[data-team="team1"]');
 
-            prevInput.focus();
+    // 🔥 пропускаем bye / disabled
+    if (prevInput && !prevInput.disabled) {
 
-            // 🔥 очищаем его
-            prevInput.value = '';
+        prevInput.focus();
 
-            const prevInputB = prevRow.querySelector('input[data-team="team2"]');
-            if (prevInputB) prevInputB.value = '';
+        // 🔥 очищаем
+        prevInput.value = '';
 
-            return;
+        const prevInputB = prevRow.querySelector('input[data-team="team2"]');
+
+        if (prevInputB) {
+            prevInputB.value = '';
         }
 
-        prevRow = prevRow.previousElementSibling;
+        // 🔥 СИНХРОНИЗАЦИЯ С ДАННЫМИ
+        const matchId = prevInput.dataset.matchId;
+
+        if (matchId) {
+            updateMatchScoreInMemoryAndDB(matchId, 'team1', null);
+            updateMatchScoreInMemoryAndDB(matchId, 'team2', null);
+        }
+
+        // 🔥 обновляем UI
+        prevInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+        if (prevInputB) {
+            prevInputB.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        return;
+    }
+
+    prevRow = prevRow.previousElementSibling;
     }
 }
 
