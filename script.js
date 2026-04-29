@@ -5617,7 +5617,47 @@ function matchPassesArtistFilter(match) {
     return a1.includes(target) || a2.includes(target);
 }
 
+// Матчей с этим артистом в этом туре: N
 
+// (1 матч считается ОДИН раз, даже если aртист с обеих сторон)
+
+function countArtistMatchesInCurrentTour(artistName) {
+    if (!artistName) return 0;
+
+    const target = artistName.toLowerCase();
+    const tour = tournamentData?.schedule?.[currentTourIndex];
+
+    if (!Array.isArray(tour)) return 0;
+
+    let matchCount = 0;
+
+    tour.forEach(match => {
+
+        function teamHasArtist(teamName) {
+            const { artist } = parseArtistAndTrack(teamName);
+            if (!artist) return false;
+
+            return artist
+                .replace(/feat\.?/gi, ',')
+                .replace(/&/g, ',')
+                .split(',')
+                .map(a => a.trim().toLowerCase())
+                .includes(target);
+        }
+
+        // ✅ КЛЮЧЕВАЯ ЛОГИКА:
+        // матч считается, если артист есть
+        // хотя бы в ОДНОМ треке матча
+        if (
+            teamHasArtist(match.team1) ||
+            teamHasArtist(match.team2)
+        ) {
+            matchCount++;
+        }
+    });
+
+    return matchCount;
+}
 
 // ===============================
 // Инициализация фильтра Артист (1 раз)
